@@ -1,0 +1,48 @@
+menu "Bisc8"
+
+config BISC8_DEBUG_LOGS
+    bool "Enable Bisc8 debug logs by default"
+    default y
+    help
+        Enables verbose Bisc8 serial logs at boot. Runtime commands DEBUG 0
+        and DEBUG 1 can still change the setting while the firmware runs.
+
+config BISC8_AUTO_SLEEP_AFTER_FORTUNE
+    bool "Enter deep sleep after showing a fortune"
+    default n
+    help
+        Shows the selected fortune, plays the beep, then enters deep sleep
+        while the e-paper keeps the final image visible.
+
+config BISC8_AUTO_SLEEP_DELAY_MS
+    int "Delay before deep sleep after a fortune"
+    default 2500
+    range 500 30000
+    depends on BISC8_AUTO_SLEEP_AFTER_FORTUNE
+    help
+        Milliseconds to stay awake after a fortune is drawn and the beep is
+        played. The displayed fortune remains visible after deep sleep.
+
+config BISC8_IDLE_DEEP_SLEEP_ENABLED
+    bool "Enter deep sleep after idle timeout"
+    default y
+    help
+        Enters deep sleep after the app has received no button or serial events
+        for the configured idle timeout. BOOT and PWR can wake the board.
+
+config BISC8_IDLE_SLEEP_DELAY_MS
+    int "Idle timeout before deep sleep"
+    default 180000
+    range 30000 900000
+    depends on BISC8_IDLE_DEEP_SLEEP_ENABLED
+    help
+        Milliseconds of inactivity before the firmware enters deep sleep.
+
+config BISC8_MANUAL_DEEP_SLEEP_ENABLED
+    bool "Allow PWR long press to enter deep sleep"
+    default y
+    help
+        Enables the power-off deep-sleep path from the PWR long-press event.
+        The e-paper shows the Bisc8 wake prompt before sleeping.
+
+endmenu

@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bisc8 e-paper design directions</title>
+  <style>
+    :root {
+      --ink: #111;
+      --paper: #f8f8f5;
+      --desk: #dedbd2;
+      --soft: #757575;
+      --grid: #cfcfc8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--desk);
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .note {
+      margin: 8px 0 0;
+      max-width: 620px;
+      color: #424242;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .spec {
+      color: #3f3f3f;
+      font-size: 13px;
+      text-align: right;
+      line-height: 1.45;
+    }
+
+    .directions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .direction {
+      background: rgba(255, 255, 255, 0.35);
+      border: 1px solid #c5c2b8;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .direction h2 {
+      margin: 0 0 4px;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .direction p {
+      margin: 0 0 12px;
+      color: #4b4b4b;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .screens {
+      display: grid;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .frame-label {
+      margin: 0 0 5px;
+      color: #555;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .screen {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.16), 0 0 0 1px #b9b7af;
+      font-family: "Arial Rounded MT Bold", Arial, sans-serif;
+    }
+
+    .screen svg {
+      display: block;
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+      font-size: 25px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand {
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .fortune {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 58px;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.28;
+      font-weight: 800;
+    }
+
+    .meta {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 16px;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .tiny {
+      font-size: 10px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .ornate .screen {
+      border: 4px double var(--ink);
+    }
+
+    .ornate .boot-cookie {
+      position: absolute;
+      left: 70px;
+      top: 27px;
+    }
+
+    .ornate .boot-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 84px;
+    }
+
+    .ornate .brand {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 116px;
+    }
+
+    .ornate .corner {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-color: var(--ink);
+      border-style: solid;
+    }
+
+    .ornate .c1 {
+      left: 10px;
+      top: 10px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .ornate .c2 {
+      right: 10px;
+      top: 10px;
+      border-width: 2px 2px 0 0;
+    }
+
+    .ornate .c3 {
+      left: 10px;
+      bottom: 10px;
+      border-width: 0 0 2px 2px;
+    }
+
+    .ornate .c4 {
+      right: 10px;
+      bottom: 10px;
+      border-width: 0 2px 2px 0;
+    }
+
+    .ornate .idle-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 19px;
+    }
+
+    .ornate .idle-count {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      top: 76px;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .ornate .seal {
+      position: absolute;
+      left: 50%;
+      top: 111px;
+      width: 76px;
+      height: 1px;
+      background: var(--ink);
+      transform: translateX(-50%);
+    }
+
+    .ornate .seal::before,
+    .ornate .seal::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      width: 7px;
+      height: 7px;
+      border: 1px solid var(--ink);
+      transform: rotate(45deg);
+      background: var(--paper);
+    }
+
+    .ornate .seal::before {
+      left: -9px;
+    }
+
+    .ornate .seal::after {
+      right: -9px;
+    }
+
+    .cookie .screen {
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+    }
+
+    .cookie .boot-cookie {
+      position: absolute;
+      left: 54px;
+      top: 24px;
+    }
+
+    .cookie .boot-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 103px;
+    }
+
+    .cookie .brand {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 134px;
+    }
+
+    .crumb {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: var(--ink);
+    }
+
+    .crumb.big {
+      width: 5px;
+      height: 5px;
+    }
+
+    .cookie .idle-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 17px;
+    }
+
+    .cookie .ticket {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 61px;
+      min-height: 72px;
+      padding: 10px 12px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .cookie .ticket::before,
+    .cookie .ticket::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      width: 1px;
+      border-left: 2px dotted var(--ink);
+    }
+
+    .cookie .ticket::before {
+      left: 6px;
+    }
+
+    .cookie .ticket::after {
+      right: 6px;
+    }
+
+    .cookie .meta {
+      bottom: 14px;
+    }
+
+    .terminal .screen {
+      border: 2px solid var(--ink);
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    .terminal .topbar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 26px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .terminal .topbar .left {
+      position: absolute;
+      left: 7px;
+      top: 6px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .terminal .topbar .right {
+      position: absolute;
+      right: 7px;
+      top: 6px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .terminal .boot-cookie {
+      position: absolute;
+      left: 71px;
+      top: 47px;
+    }
+
+    .terminal .boot-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 106px;
+      font-family: "Arial Rounded MT Bold", Arial, sans-serif;
+    }
+
+    .terminal .brand {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 136px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      letter-spacing: 0.04em;
+    }
+
+    .terminal .fortune {
+      top: 52px;
+      font-family: "Arial Rounded MT Bold", Arial, sans-serif;
+      font-size: 15px;
+    }
+
+    .terminal .rail {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 11px;
+      display: flex;
+      justify-content: space-between;
+      border-top: 2px solid var(--ink);
+      padding-top: 7px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .terminal .idle-copy {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 60px;
+      text-align: center;
+      font-family: "Arial Rounded MT Bold", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      header {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .spec {
+        text-align: left;
+      }
+
+      .directions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Bisc8 display directions</h1>
+        <p class="note">Tre ipotesi b/n per il display e-paper 200x200. Ogni schermata usa forme semplici: cornici, label, linee e un piccolo bitmap biscotto traducibile in LVGL.</p>
+      </div>
+      <div class="spec">200x200 px<br>1-bit e-paper preview<br>boot / idle / fortune</div>
+    </header>
+
+    <section class="directions" aria-label="Bisc8 design directions">
+      <article class="direction ornate">
+        <h2>1. Occulto pulito</h2>
+        <p>La mia preferita: elegante, leggibile, un po' tarocco ma senza perdere pixel in micro-dettagli.</p>
+        <div class="screens">
+          <div>
+            <div class="frame-label">Boot</div>
+            <div class="screen">
+              <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+              <svg class="boot-cookie" width="60" height="46" viewBox="0 0 60 46" aria-hidden="true">
+                <path d="M9 28C10 15 21 7 34 8c10 1 18 8 18 18 0 8-7 16-18 17C20 44 8 39 9 28Z" fill="none" stroke="#111" stroke-width="3"/>
+                <path d="M19 21c8 0 13 4 17 10 3-7 8-12 15-13" fill="none" stroke="#111" stroke-width="3"/>
+                <circle cx="27" cy="18" r="2" fill="#111"/><circle cx="38" cy="27" r="2" fill="#111"/><circle cx="21" cy="31" r="2" fill="#111"/>
+              </svg>
+              <h3 class="title boot-title">Bisc8</h3>
+              <div class="brand">by Netmilk Studio</div>
+              <div class="meta tiny">oracolo in carica</div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Idle</div>
+            <div class="screen">
+              <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+              <h3 class="title idle-title">Bisc8</h3>
+              <div class="idle-count">180 risposte<br>nel grimorio</div>
+              <div class="seal"></div>
+              <div class="meta">BOOT oracolo<br>PWR microfono</div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Fortune</div>
+            <div class="screen">
+              <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+              <h3 class="title idle-title">Bisc8</h3>
+              <div class="fortune">No. Risparmiati la deviazione.</div>
+              <div class="seal"></div>
+              <div class="meta">#24 / 180</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction cookie">
+        <h2>2. Fortune cookie</h2>
+        <p>Piu' tenera e iconica: il biscotto diventa mascotte, con il responso come bigliettino.</p>
+        <div class="screens">
+          <div>
+            <div class="frame-label">Boot</div>
+            <div class="screen">
+              <span class="crumb" style="left:32px;top:42px"></span>
+              <span class="crumb big" style="left:156px;top:40px"></span>
+              <span class="crumb" style="left:144px;top:94px"></span>
+              <svg class="boot-cookie" width="92" height="74" viewBox="0 0 92 74" aria-hidden="true">
+                <path d="M12 45C12 23 30 10 51 12c18 2 31 14 30 31-1 14-14 26-32 27C26 71 11 61 12 45Z" fill="none" stroke="#111" stroke-width="4"/>
+                <path d="M28 32c11 1 20 8 27 18 3-11 11-21 25-23" fill="none" stroke="#111" stroke-width="4"/>
+                <circle cx="39" cy="29" r="3" fill="#111"/><circle cx="57" cy="42" r="3" fill="#111"/><circle cx="31" cy="52" r="3" fill="#111"/>
+              </svg>
+              <h3 class="title boot-title">Bisc8</h3>
+              <div class="brand">by Netmilk Studio</div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Idle</div>
+            <div class="screen">
+              <h3 class="title idle-title">Bisc8</h3>
+              <div class="ticket">180 risposte<br>nel grimorio</div>
+              <div class="meta">BOOT apri<br>PWR ascolta</div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Fortune</div>
+            <div class="screen">
+              <h3 class="title idle-title">Bisc8</h3>
+              <div class="ticket">La risposta era nella domanda fin dall'inizio.</div>
+              <div class="meta">#56 / 180</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction terminal">
+        <h2>3. Terminale mistico</h2>
+        <p>Piu' elettronica: sembra un oggetto diagnostico-oracolare, ottima se vogliamo valorizzare seriale e audio.</p>
+        <div class="screens">
+          <div>
+            <div class="frame-label">Boot</div>
+            <div class="screen">
+              <div class="topbar"><span class="left">BISC8.OS</span><span class="right">BOOT</span></div>
+              <svg class="boot-cookie" width="58" height="46" viewBox="0 0 58 46" aria-hidden="true">
+                <path d="M8 28C9 15 20 7 33 8c10 1 17 8 17 18 0 8-7 15-18 16C19 43 7 38 8 28Z" fill="none" stroke="#111" stroke-width="3"/>
+                <path d="M18 21c8 0 13 4 17 10 3-7 8-12 14-13" fill="none" stroke="#111" stroke-width="3"/>
+                <circle cx="26" cy="18" r="2" fill="#111"/><circle cx="37" cy="27" r="2" fill="#111"/><circle cx="20" cy="31" r="2" fill="#111"/>
+              </svg>
+              <h3 class="title boot-title">Bisc8</h3>
+              <div class="brand">by Netmilk Studio</div>
+              <div class="rail"><span>READY</span><span>180</span><span>ES8311</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Idle</div>
+            <div class="screen">
+              <div class="topbar"><span class="left">ORACLE</span><span class="right">IDLE</span></div>
+              <div class="idle-copy">180 risposte<br>nel grimorio</div>
+              <div class="rail"><span>BOOT</span><span>ASK</span><span>PWR MIC</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="frame-label">Fortune</div>
+            <div class="screen">
+              <div class="topbar"><span class="left">ORACLE</span><span class="right">#024</span></div>
+              <div class="fortune">No. Risparmiati la deviazione.</div>
+              <div class="rail"><span>BEEP OK</span><span>24/180</span></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

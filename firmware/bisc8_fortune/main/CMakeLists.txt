@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS 
+    "app_main.cpp"
+    "audio_service.cpp"
+    "board_support.cpp"
+    "button_controller.cpp"
+    "debug_serial.cpp"
+    "display_service.cpp"
+    "fortune_service.cpp"
+    INCLUDE_DIRS 
+    "./")

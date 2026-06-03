@@ -1,0 +1,20 @@
+.DS_Store
+
+# Local ESP-IDF checkout and toolchain cache
+.esp/
+.espressif/
+
+# Build outputs and generated local state
+firmware/**/build/
+firmware/**/managed_components/
+firmware/**/.pytest_cache/
+**/__pycache__/
+.pytest_cache/
+
+# Local reference captures and downloaded research media
+docs/references/
+
+# Runtime/editor artifacts
+*.log
+*.tmp
+*.swp

@@ -1,0 +1,888 @@
+Sì. E lo sapevi già.
+Assolutamente. Smettila di rimuginare.
+Sì, ma per ora tienitelo per te.
+Le stelle dicono sì. A voce alta.
+Sì. L'universo insiste.
+Buttati. La fortuna oggi è di buonumore.
+Di' sì prima che lo faccia un altro.
+Sì, e non te ne pentirai.
+Un sì squillante, coi coriandoli.
+Sì. Oggi è una giornata fatta per te.
+La risposta è sì, scritta in grassetto.
+Sì, ma solo se lo pensi davvero.
+Sì. Ora comportati come se ci credessi.
+Senza dubbio. Procedi.
+Sì, il semaforo è verde.
+No. Ed è un favore che ti faccio.
+Non questo. Qualcosa di meglio ti aspetta.
+No. Fidati della delusione, ti protegge.
+No secco. Dormici su e mi darai ragione.
+No, ma richiedimelo quando sarai più coraggioso.
+La risposta è no, per ora.
+No. Certe porte restano chiuse apposta.
+Assolutamente no. Avanti il prossimo.
+No. Risparmiati la deviazione.
+Neanche per sogno. E poi mi ringrazierai.
+No. Il momento è del tutto sbagliato.
+Lascia perdere questa.
+Richiedimelo dopo il caffè.
+La nebbia non si è ancora alzata. Aspetta.
+Forse. L'universo sta ancora decidendo.
+Non ancora. Ma presto.
+I segni sono incerti. Come il tuo cuore.
+Risposta confusa. Riprova a mezzanotte.
+Pazienza. La risposta sta maturando.
+Aspetta tre giorni, poi chiedilo allo specchio.
+Poco chiaro. Pure le stelle hanno fatto spallucce.
+La risposta sta caricando. Non ricaricare.
+Dagli tempo. Il tempo restituisce.
+Troppo presto per dirlo. Prima vivi un po'.
+Fallo. Se serve, ti scuserai dopo.
+Fai la telefonata che stai evitando.
+Dillo a voce alta. La paura si rimpicciolirà.
+Comincia. La strada appare sotto i piedi.
+Scegli l'opzione più coraggiosa. Sai sempre qual è.
+Smetti di aspettare il permesso. È adesso.
+Brucia la mappa. Fidati della bussola.
+Corri il rischio che ti spaventa un po'.
+Vai via. A testa alta.
+Finisci ciò che hai iniziato prima di iniziare altro.
+Prima riposa. Poi conquista.
+Molla la cosa a cui ti aggrappi.
+Fidati del te che non ha paura.
+Manda il messaggio. Smettila di riscriverlo.
+Fai meno, ma fallo come se contasse.
+Ciò che cerchi sta cercando anche te.
+La risposta era nella domanda fin dall'inizio.
+Segui la voce più piccola, non la più forte.
+Ogni fine è una porta senza maniglia, per ora.
+Sei più vicino di quanto dica il dubbio.
+Il fiume non corre, eppure arriva.
+La luce entra dove ci sono già le crepe.
+Il silenzio tra due battiti custodisce la risposta.
+Perdi il sentiero per trovare la strada.
+Ciò che sembra cadere a volte è volo.
+La mappa non è il territorio. Va' a vedere.
+Pure la luna prende in prestito la luce. Fallo senza timore.
+Le stelle sono pazienza che ha imparato a brillare.
+Il seme non discute col buio.
+Sì, ma gli dèi ridacchiano un po'.
+L'oracolo è in pausa. Usa l'istinto.
+Coraggioso chiedere consigli di vita a un biscotto.
+Certo. Cosa mai potrebbe andare storto?
+La risposta è sì. Il conto arriva dopo.
+Lancia una moneta. Se esiti, fai il contrario.
+Il destino dice sì. Ed è pure un filo drammatico.
+Chiedi all'amico più coraggioso. Poi ignoralo.
+L'universo dice: ahah, vai.
+Sì. Mercurio non è nemmeno retrogrado.
+Le carte dicono forse. Le carte se la giocano.
+Fidati della pancia. Ha digerito decisioni peggiori.
+La risposta è sì, ma la domanda è sbagliata.
+Hai già deciso. Questo è solo per coraggio.
+Desideralo di meno, e si avvicinerà.
+Ciò che temi di perdere ti sta insegnando qualcosa.
+Smetti di misurare. Inizia a muoverti.
+Il confronto è il ladro del tuo sì.
+Il dubbio è solo entusiasmo senza un piano.
+Il momento migliore era ieri. Il secondo è adesso.
+Puoi desiderarlo e lasciarlo andare lo stesso.
+La paura è una preghiera per ciò che non vuoi.
+Lento è fluido. Fluido è veloce.
+La strada giusta all'inizio raramente dà sollievo.
+La risposta è 42. È sempre quella.
+Fidati della fonte. Che sia con te.
+Questa è la via.
+Prendi la pillola rossa, poi richiedimelo.
+Non è un bug. È il tuo destino in refactoring.
+Tira per il coraggio. Hai fatto 20 naturale.
+Premi start. Il livello era già sbloccato.
+Ctrl Z è per il codice, non per questo. Vai avanti.
+Sì, secondo lo stack trace del karma.
+Riavvia la prospettiva e richiedimelo.
+L'obiettivo si sblocca quando smetti di accanirti.
+Salva i progressi. Poi salta.
+Sì. Forte, felice e presto.
+La porta è aperta. Smetti di bussare.
+Sì, e portati qualcuno.
+Vai. La rete apparirà.
+Sì. Hai aspettato abbastanza.
+La risposta è un sì caldo e sicuro.
+No. Ma quel no indica un posto buono.
+Non loro. Non questo. Non ora.
+No, e questo ti libera per qualcosa di più vero.
+La risposta onesta è no. Rispettala.
+No. Lo senti già nel petto.
+La risposta arriva quando smetti di pretenderla.
+Aspetta il secondo invito.
+Restaci insieme un'altra notte.
+Il sì è vero, solo non ancora pronto.
+Lascia sobbollire. Le cose buone si restringono piano.
+Stavolta scegli te stesso.
+Dillo a cena, non nella tua testa.
+Bagaglio leggero. Vai lontano.
+Smetti di provare. Vai in scena.
+Perdona, poi dimentica, poi muoviti.
+Costruisci la cosa piccola oggi.
+Proteggi le mattine. Spendi il coraggio.
+Fai la scelta noiosa e coraggiosa.
+Il muro è una porta che non hai spinto.
+Il te del futuro ti sta già ringraziando.
+La risposta vibra sotto il rumore. Avvicinati.
+Fidati della deviazione. Le strade sanno cose.
+Ciò che è tuo non può mancarti.
+L'ombra dimostra che la luce è vicina.
+Sì. Le vibrazioni sono impeccabili.
+L'oracolo è sicuro all'87 percento. Arrotonda.
+Fallo per la trama.
+La risposta è sì, ma rendila strana.
+Pure gli scettici annuiscono. In silenzio.
+Certo. Nel peggiore dei casi, una bella storia.
+Colpo di scena: avevi ragione fin dall'inizio.
+Il cosmo dice vai. E lascia pure la mancia.
+La risposta più coraggiosa di solito è la più gentile.
+Non sei in ritardo. Vai col tuo orologio.
+Scegli la strada che ti fa di più, non di meno.
+Lascia andare le persone sbagliate.
+Superalo con grazia.
+Fidati del lento. Dura.
+Il sì che temi è il sì che ti serve.
+Sii la calma che continui ad aspettare.
+La risposta è sì. Porta da sgranocchiare.
+No, ma scrivi comunque l'idea.
+Sì, se smetti di chiedere e inizi a fare.
+La strada si libera per chi la percorre.
+Lascia che a questa risponda il silenzio.
+Sì. La paura è solo grande come il sogno.
+Non ancora, ma tieni la porta calda.
+Fallo con paura. La paura è pronto travestito.
+L'universo annuisce. Piano, ma annuisce.
+Scegli la meraviglia, non l'ansia. Poi vai.
+Sì. E non dirlo a nessuno finché non è vero.
+La risposta cambia se diventi più coraggioso.
+Fidati del piccolo sì che vibra nel petto.
+No. Certi ponti vanno ammirati, non attraversati.
+La porta giusta non va forzata.
+Va' verso ciò che spaventa ed entusiasma.
+Sì, ma guadagnatelo con un'ora onesta.
+Lascia che la risposta ti trovi in una passeggiata.
+Le stelle sono allineate. E finalmente anche i tuoi tempi.
+Zittisci il rumore. Il sì c'era da sempre.
+No. Conserva il fuoco per quella vera.
+Comincia male. Ma comincia.
+Il sì è tuo. Allunga la mano.
+Pazienza ora, fuochi d'artificio dopo.
+Sì. Di quelli che cambiano le cose.
+Chiedi alla pancia, non alla chat di gruppo.
+La risposta è sì, ed è pure in ritardo.
+Fidati del salto. La paura sta solo prestando attenzione.
+Non questa stagione. La tua sta arrivando.
+L'oracolo ha parlato: sì, e sbrigati.
+Sì. In stampatello, senza asterischi.
+Mille volte sì.
+Sì. Di quegli inevitabili belli.
+Sì, e il tempismo è un regalo.
+Verde su tutta la linea. Vai.
+Sì. Il tuo istinto l'aveva detto settimane fa.
+La risposta pende verso il sì, poi si decide.
+Sì. Smetti i provini, la parte è tua.
+Sì. La porta non è mai stata chiusa a chiave.
+Sì. E sarà come tornare a casa.
+Sì, se molli il piano B.
+Sì, se chiedi aiuto ad alta voce.
+Sì, nel momento in cui smetti di contrattare.
+Sì, ma solo con entrambe le mani.
+Sì, se riesci a essere paziente e coraggioso insieme.
+Sì, una volta perdonato il tentativo precedente.
+Sì, se lo lasci essere semplice.
+Sì, a patto che ti presenti lucido e riposato.
+Sì, quando lo vuoi più di quanto lo temi.
+Sì, se smetti di chiederlo alle persone sbagliate.
+Sì, e prima di quanto pensassi.
+Sì. La primavera è già nel terreno.
+Sì, l'attesa è quasi finita.
+Sì. Conta fino a dieci, poi vai.
+Sì, entro la prossima luna piena.
+Sì, la porta si apre al terzo tentativo.
+Sì. Il sì lento è quello forte.
+No, e ti risparmia un addio peggiore.
+No. La deviazione ti salva le ginocchia.
+No, ma il dispiacere è breve e pulito.
+No. Questo peso non è mai stato tuo.
+No, e domani ti sentirai più leggero.
+No. Ti stanno deviando, non negando.
+No, e il sollievo ti sorprenderà.
+No. Punto, senza note a piè di pagina.
+Un no pulito e definitivo.
+No. Non trattarci sopra.
+No, e stanotte non cambierà.
+No. Chiudi la scheda.
+No. Mi hai sentito la prima volta.
+Assolutamente no, e lo sapevi il rischio.
+Non questa porta. Quella accanto.
+Non ora, ma ripassa in autunno.
+Non loro. Quella giusta si farà sentire dopo.
+Non l'opzione rumorosa. Quella silenziosa.
+No a questo, sì a ciò a cui fa spazio.
+Non la scorciatoia. Prendi la strada lunga e sicura.
+Non la prima idea. La terza.
+I segni litigano tra loro.
+Metà sì, metà non ancora.
+Il pendolo oscilla ancora. Respira.
+Due verità, entrambe vere. Scegli la più gentile.
+La risposta è un forse vestito da sì.
+Dipende da una scelta che non hai ancora fatto.
+Nuvoloso, con schiarite previste per venerdì.
+La moneta è caduta di taglio. Decidi tu.
+Aspetta. Il frutto non è pronto a cadere.
+Non ancora. Lascia che si guadagni il sì.
+Fermati. La corrente sta per cambiare.
+Aspetta una stagione. Solo una.
+Pazienza. Sei in anticipo, non in errore.
+Lascialo riposare come l'impasto. Lievita meglio.
+Aspetta la marea, non combatterla.
+Presto. Il bollitore sta quasi fischiando.
+Richiedimelo con la domanda vera.
+Chiedimelo all'alba, la risposta cambia luce.
+Scrollati il dubbio e richiedimelo.
+Richiedimelo dopo che hai dormito.
+Qui il segnale è debole. Chiedi fuori.
+Richiedimelo quando il cuore è più calmo.
+Richiedimelo, ma stavolta senza il se.
+Muoviti oggi. Lo slancio perdona gli errori.
+Comincia prima di sentirti pronto. Non lo sarai mai.
+Fai subito la prima versione brutta.
+Fai il piccolo passo che continui a rimandare.
+Agisci sull'idea prima che si raffreddi.
+Fai il salto piccolo, ma fallo adesso.
+Pubblicalo. Il perfetto è un bugiardo lento.
+Bussa. La risposta peggiore è un silenzio a cui sopravvivi.
+Rilassa la presa. Le cose belle hanno bisogno di spazio.
+Lascialo cadere. Non eri tu a tenerlo su.
+Molla il piano, tieni la direzione.
+Lascia il rancore. Pesa più della ferita.
+Lascia morire la vecchia versione di questa cosa.
+Apri la mano. Guarda cosa resta.
+Smetti di conservare la cosa per un giorno che non arriva.
+Lascia chi eri per incontrare chi sei.
+Di' la cosa vera e difficile, con delicatezza.
+Diglielo prima di raccontarti una storia.
+Chiedi esattamente ciò che vuoi. Senza sconti.
+Parla per primo. Qui il silenzio non è strategia.
+Dillo ad alta voce e perde i denti.
+Di' no senza il paragrafo di scuse.
+Fai la conversazione, non la prova generale.
+Il riposo non è il premio, è la strada.
+Dormici su. La risposta si conserva fino a domani.
+Rallenta prima che lo faccia la vita al posto tuo.
+Prenditi il pomeriggio. Il mondo regge.
+Riempiti prima di versare di nuovo.
+Non fare niente, splendidamente, per un giorno.
+Fermati, vai a riserva e forza di volontà.
+Scegli l'opzione che rispetta il tuo tempo.
+Scegli la stanza dove riesci a respirare.
+Sii prima di tutto un amico leale con te stesso.
+Spendi il tuo sì su ciò che ti nutre.
+Proteggi il silenzio. È lì che cresci.
+Di' sì alla tua vita, per una volta.
+Lascia che siano delusi. Tu sii libero.
+La montagna non insegue lo scalatore.
+Le radici lavorano al buio prima del fiore.
+La marea restituisce sempre ciò che prende.
+Le tempeste passano. Il cielo non ha mai avuto paura.
+La quercia era una ghianda che ha resistito.
+I fiumi scavano canyon semplicemente continuando.
+La notte è solo il cielo che riposa gli occhi.
+La neve è paziente. Poi, all'improvviso, primavera.
+Per arrivare, smetti di misurare la distanza.
+La presa che allenti è quella che tiene.
+Trovi la strada accettando di perderti.
+La risposta si nasconde nella domanda che eviti.
+Ciò a cui resisti è la soglia.
+Svuota la tazza prima di chiedere altro tè.
+Il sì più forte nasce da un no vero.
+Anche la quiete è una forma di movimento.
+Lo sapevi prima di premere il tasto.
+La pancia ha già votato. Conta il voto.
+Questa è una conferma, non una consulenza.
+Mi stai chiedendo ciò che hai già deciso.
+Il dubbio è rumoroso, il sapere è sicuro.
+Rileggi la tua prima reazione. Era quella la risposta.
+Non ti serve un segno, ti serve un inizio.
+La paura è il pedaggio sulla strada del desiderio.
+L'agitazione vuol dire che conta. Bene.
+La paura è una bussola, non un muro.
+L'ansia è immaginazione usata contro di te.
+Ciò che ti spaventa è solo la misura della tua fortuna.
+Il coraggio è paura che ha continuato a camminare.
+Le farfalle nello stomaco volano in formazione. Vai.
+Sì, ovvio. Perché siamo ancora qui?
+L'oracolo sospira, ma sì.
+Domanda coraggiosa. Risposta più coraggiosa: fallo.
+Certo, vivi pericolosamente, mettiti i pantaloni bianchi.
+Sì. Tanto l'asticella era per terra.
+Fallo. Il te del futuro si sta già vantando.
+Sì, e prova a sembrare sorpreso.
+La risposta è sì. Lascia la mancia all'oracolo.
+E dai. Rendi fiera la chat di gruppo.
+I pianeti si sono allineati solo per dire: vabbè, vai.
+L'universo ha controllato l'agenda. Sei libero.
+Saturno approva, a malincuore.
+Il cosmo fa spallucce a tuo favore.
+Il destino ha tirato i dadi e ha sorriso.
+Le stelle dicono sì, ma alle feste lo dicono sempre.
+Pure l'entropia tifa per te.
+Sì. Il merge non ha conflitti.
+Mandalo in produzione. I test sono verdi.
+Sì, la tua fortuna ha appena fatto un version bump.
+L'algoritmo del destino restituisce true.
+Sì. Cache svuotata, dubbi spariti.
+Ha compilato. L'universo l'ha rilasciato.
+Sì, nessun rollback necessario.
+Vai a prendere aria, poi procedi. Sì.
+Il demone del destino dice vai.
+Fare, o non fare. Oggi, fai.
+La torta è una bugia. Il sì no.
+Metti la cera sul dubbio, togli la cera dalla paura.
+Perché così serio? La risposta è sì.
+Tu puoi passare.
+L'avventura è là fuori. Va' a prendertela.
+Continua a nuotare. Continua a nuotare.
+Le probabilità si sono girate dalla tua parte un'ora fa.
+Stanotte le regole del banco ti favoriscono. Punta.
+Raddoppia. Il conteggio è buono.
+I dadi sono caldi. Tira.
+La fortuna si ritira con i timidi. Resta in gioco.
+Azzardo, ma la vincita è tutta la tua vita.
+Gioca la mano che hai, alla grande.
+La tua pancia lo sapeva dal primo saluto.
+Fidati del nodo allo stomaco, è una mappa.
+Il corpo custodisce il sì vero. Chiediglielo.
+Le spalle si sono già abbassate. Quello è un sì.
+Inspira. La risposta è nell'espirazione.
+Il brivido lungo la schiena è un assenso.
+Le mani vogliono iniziare. Lasciale fare.
+Questa è una domanda da semina, non da raccolto.
+È la cosa giusta nella stagione sbagliata.
+Dagli un inverno. Ha bisogno del freddo.
+L'orologio che guardi non è quello vero.
+Idea giusta, tre mesi in anticipo.
+La stagione cambia la settimana in cui smetti di forzarla.
+Il tempo è dalla tua parte, è solo una compagnia lenta.
+Vale il prezzo. Pagalo volentieri.
+Il prezzo è reale. Anche il premio.
+Spendi il coraggio, è rinnovabile.
+Investi il no ora, incassa il sì dopo.
+Questa la offre la casa del destino.
+Costa poco chiedere, troppo non sapere mai. Chiedi.
+Il conto è giusto. Saldalo e vai.
+Prendi la strada che spaventa la mappa.
+La deviazione è il percorso panoramico. Fidati.
+Metti in valigia il dubbio per ultimo, lascialo al gate.
+La strada si fa camminando. Cammina.
+Anche le svolte sbagliate sanno la via di casa.
+Vai. Il ponte regge i coraggiosi.
+La tua uscita è la prossima. Metti la freccia ora.
+Sì, ma lascialo marinare tutta la notte.
+Le cose buone, come il buon brodo, vogliono tempo.
+Aggiungi sale, aggiungi fegato, assaggia, poi servi.
+La ricetta funziona. Smetti di leggere, inizia a cucinare.
+Sì, e lascia spazio per il dolce.
+Bassa temperatura e pazienza vincono questa.
+Inzuppa il dubbio e mangiati il momento.
+Permesso accordato. Da te, finalmente.
+Ti è permesso. Lo è sempre stato.
+Concediti il sì che continui a negarti.
+Sii coraggioso per otto secondi. È tutto ciò che serve.
+Hai aspettato un segno. Eccolo.
+Smetti di chiedere se puoi. Decidi che lo farai.
+La versione coraggiosa di te sta già annuendo.
+La terza nuvola da sinistra è d'accordo.
+Una porticina nel pavimento dice sì.
+Persino la tua ombra si è sporta in avanti.
+L'orologio ha saltato un battito per te. Vai.
+Una moneta ha girato, poi ha scelto la speranza.
+La carta da parati dice sì da anni.
+Da qualche parte un bollitore ha fischiato in segno di approvazione.
+Chi va piano va sano, ma stavolta corri.
+Chi dorme non piglia pesci, ma tu hai già la canna in mano.
+Rosso di sera, sì in arrivo si spera.
+Batti il ferro adesso, è caldo da giorni.
+Chi non risica non rosica. Risica.
+Tra il dire e il fare c'è di mezzo un sì.
+A caval donato si dice solo grazie. E sì.
+Chi ben comincia oggi è già a metà del sì.
+Una rondine non fa primavera, ma due sì.
+Gallina vecchia fa buon brodo: fidati dell'esperienza.
+Chi cerca trova, e tu hai cercato abbastanza.
+Aiutati che il destino ti aiuta.
+Meglio un sì oggi che un forse domani.
+Le bugie hanno le gambe corte, la verità dille adesso.
+Chi fa da sé fa per tre, ma stavolta chiama qualcuno.
+Tutte le strade portano al sì, prendine una.
+Finché c'è dubbio c'è speranza. Spera meno, agisci.
+Non tutte le ciambelle riescono col buco, fanne un'altra.
+Chi tardi arriva trova comunque un posto. Vai.
+Patti chiari, futuro lungo.
+A mali estremi, coraggio estremo.
+Chi semina coraggio raccoglie storie.
+Ride bene chi osa per primo.
+Acqua passata non macina più. Lasciala scorrere.
+Occhio non vede, ma il cuore ha già deciso.
+Tanto va la voglia al desiderio che alla fine lo prende.
+Chi si contenta gode, ma tu puoi anche pretendere.
+Fidarsi è bene, ma di te stesso è meglio.
+Chi rompe ricomincia, e i cocci diventano mosaico.
+Da cosa nasce cosa: comincia da una.
+A buon intenditor, poche scuse. Fallo.
+Chi nasce tondo può imparare a rotolare lontano.
+L'erba del vicino è verde perché lui l'ha annaffiata. Annaffia.
+Can che abbaia non morde, e la paura nemmeno.
+Meglio soli che male accompagnati. Scegli bene.
+Il lupo perde il pelo, tu perdi il dubbio.
+Chi trova un sì trova un tesoro.
+Non rimandare a domani il sì che senti oggi.
+Chi si ferma è perduto, ma chi riposa ritrova la strada.
+Sbagliando si impara, quindi prova.
+Vai a gonfie vele: lo dice anche il vento.
+Sei un pesce fuor d'acqua qui. Trova il tuo mare.
+Non essere l'ultima ruota: metti la prima.
+Smetti di fare le ore piccole sul dubbio.
+Prendi il toro per le corna, è più docile di così.
+Hai le mani bucate di scuse. Tappa il buco e agisci.
+Non fasciarti la testa prima di cadere. Salta.
+Gettare la spugna no. Strizzala e ricomincia.
+Tieni i piedi per terra e la testa nel sì.
+Non fare il passo più lungo della gamba. Fanne due corti.
+Dopo questa pioggia, il sì è già nell'aria.
+Il vento ha girato a tuo favore. Issa le vele.
+È solo nebbia mattutina. Aspetta le dieci.
+Tuoni lontani. Il temporale non è per te.
+Cielo sereno in arrivo, deciditi prima che cambi.
+La marea è giusta. Esci dal porto.
+Sole tra le nuvole: una finestra, sfruttala.
+Gelata stanotte, semina a primavera.
+Il fuoco c'è, manca solo la scintilla. Accendila.
+La terra è pronta sotto i tuoi piedi. Pianta.
+La formica direbbe sì, ma con un piano.
+Sii lupo, non agnello, in questa scelta.
+La tartaruga arriva sempre. Tu pure.
+Il gatto sceglie con calma. Imitalo.
+Vola come la rondine, torna come il salmone.
+Anche l'ape sbaglia fiore, poi trova il miele.
+Il falco aspetta la corrente giusta. Eccola.
+Non fare la talpa: esci e guarda la luce.
+Il ragno tesse senza chiedere permesso. Tessi.
+La civetta dice: guarda meglio, poi vai.
+È il momento del ritornello. Cantalo forte.
+Salta l'intro, vai dritto al pezzo grosso.
+C'è una pausa nella partitura. Respira, poi attacca.
+Il tempo è giusto, entra a battuta.
+Stona pure, ma suona.
+La canzone giusta parte sempre da una nota incerta.
+Alza il volume del coraggio, abbassa quello del dubbio.
+È un assolo. Tocca a te.
+Misura due volte, taglia una. Poi taglia.
+La cosa fatta a mano dura. Falla.
+L'attrezzo giusto sei tu. Usati.
+Lima i dettagli dopo, ora monta il pezzo.
+Un buon artigiano non aspetta l'ispirazione, comincia.
+La materia grezza è promettente. Sgrossala.
+Il primo colpo di scalpello è il più difficile. Dallo.
+Si impara facendo, non guardando il manuale.
+La rotta è tracciata. Molla gli ormeggi.
+Segui la stella più ostinata, non la più luminosa.
+La bussola punta dove hai paura di andare. Vai.
+Non ti serve tutta la mappa, solo il primo bivio.
+Le costellazioni si formano unendo i puntini. Unisci.
+Il nord è dentro di te. Fidati dell'ago.
+Sei già più avanti di quanto dica la mappa.
+Hai sbloccato il livello. Entra.
+Il boss è più piccolo di come lo immagini. Affrontalo.
+Hai vite a sufficienza. Rischia.
+Salva i progressi e fai il salto.
+È un nuovo round. Resetta la paura.
+Il power-up era dentro di te dall'inizio.
+Continua a giocare, la storia migliora dopo.
+Game over è solo un invito a riprovare. Riprova.
+La parola che cerchi è sì. Pronunciala.
+Metti il punto a questa frase, e a questo dubbio.
+Scrivi la prima riga, il resto si racconta da solo.
+Cancella il forse. Riscrivi con un verbo deciso.
+La risposta sta in una sillaba. La conosci.
+Firma in fondo, è tua.
+La porta è socchiusa. Spingi piano.
+Hai la chiave da sempre, era nella tasca sbagliata.
+Bussa, e prometti di entrare se aprono.
+Questa soglia si attraversa una volta sola. Attraversala.
+Non è un muro, è una porta dipinta male.
+Oltre questa porta c'è una stanza che ti somiglia.
+Chiedilo allo specchio, lui non mente.
+La persona giusta per decidere ti guarda allo specchio.
+Quello che vedi negli altri è una mappa di te. Leggila.
+Il riflesso ha già annuito. Seguilo.
+Stringi i pugni, poi aprili: la tensione era la risposta.
+Il piede è già rivolto verso la porta. Segui il piede.
+Hai trattenuto il fiato leggendo. Espira e fallo.
+Le sopracciglia si sono alzate. È un sì del corpo.
+Quello che eviti è esattamente dove devi andare.
+La domanda giusta vale più di mille risposte. Trovala.
+Non confondere la pazienza con la paura travestita.
+A volte la risposta è una buona notte di sonno.
+Il futuro premia chi inizia, non chi pianifica all'infinito.
+Smetti di chiedere ai dadi ciò che sa il tuo cuore.
+La calma è la virtù dei forti. Sii forte e poi muoviti.
+La classe non è acqua, e nemmeno il tuo talento. Usalo.
+Non sempre chi parla bene decide bene. Ascoltati.
+Gli estremi si toccano: il grande sì sembra un grande no.
+La fortuna esce dove entra l'umiltà. Resta umile, vai.
+Fare di necessità virtù: trasforma il vincolo in trampolino.
+Il dubbio è solo curiosità che non ha ancora osato.
+La paura grida, l'intuito sussurra. Abbassa il volume.
+Hai più coraggio di quanto la paura voglia farti credere.
+Il rischio peggiore è restare fermi a chiedertelo.
+La paura è la guardia davanti a una cosa che vuoi.
+Sì. E adesso smetti di tormentare un biscotto.
+L'oracolo alza gli occhi al cielo: ovvio che sì.
+Certo. Cosa vuoi che vada storto, a parte tutto?
+Sì, ma fai finta che te l'abbia detto un saggio.
+Il responso è sì. Le lamentele allo sportello accanto.
+Vai. Poi mi racconti com'è andata, sono curioso.
+Sì. Lo sapevi, volevi solo qualcuno che lo dicesse.
+Certo che sì. Pure il gatto è d'accordo, e lui è esigente.
+Sì. Il coraggio è gratis oggi, approfittane.
+La risposta è sì, scritta col latte invisibile. Fidati.
+L'universo ha annuito così forte che è caduta una stella.
+Il fato ha già firmato. Manca solo la tua controfirma.
+Le galassie tifano per te, in silenzio come sempre.
+Persino il caos, stavolta, è dalla tua parte.
+Il destino ti tiene la porta. Non farlo aspettare.
+Sì. Il commit è andato a buon fine.
+La build del coraggio è verde. Rilascia.
+Riavvia la paura, parte sempre meglio dopo.
+Sì, secondo l'oracolo a riga di comando.
+Backup fatto. Ora puoi rischiare tranquillo.
+La tua fortuna ha appena ricevuto un aggiornamento.
+Sì. Nessun errore di sintassi nel tuo piano.
+Le probabilità ti sorridono. Sorridi indietro e gioca.
+Punta su di te, è la quota migliore del tavolo.
+La sorte ha già mischiato le carte a tuo favore.
+Vai all-in sull'idea, fold sul rimpianto.
+Il banco oggi perde. Approfittane.
+È la tua stagione. Smetti di guardare il calendario.
+Semina ora, raccoglierai quando meno te lo aspetti.
+Il momento perfetto è un mito. Questo va benissimo.
+Dai tempo al tempo, ma intanto comincia.
+L'attesa è finita un minuto fa. Non te ne sei accorto.
+Sì, ma inzuppa il dubbio prima di mangiartelo.
+Lievita lento, esce meglio. Aspetta una notte.
+Aggiungi un pizzico di follia alla ricetta. Servi.
+Il sì è pronto in tavola. Siediti.
+Assaggia prima di giudicare. Poi prendi il bis.
+Datti il permesso. Nessun altro lo firmerà per te.
+Tre, due, uno: ora. Non rimandare il conto alla rovescia.
+Sii coraggioso giusto il tempo di un respiro.
+Aspettavi un via libera. Eccolo, è verde.
+Il sì è già tuo, devi solo allungare la mano.
+Una falena ha sbattuto due volte: vuol dire sì.
+Il semaforo del destino è scattato verde adesso.
+C'è un sì che galleggia sopra la tua testa da ieri.
+La sedia vuota accanto a te annuisce.
+Anche la polvere nel raggio di sole dice di andare.
+Un orologio fermo ha ripreso a ticchettare per te.
+La tua tazza ha lasciato un cerchio a forma di sì.
+Sì.
+No.
+Adesso.
+Aspetta.
+Osa.
+Fidati.
+Quasi.
+Vai.
+Non ancora.
+Decisamente sì.
+Assolutamente no.
+Più tardi.
+Senza dubbio.
+Mai.
+Forse domani.
+Comincia.
+Lascia stare.
+Insisti.
+Respira, poi sì.
+Chiedi al cuore.
+Salta.
+Rallenta.
+Ovvio.
+Fai la telefonata. Quella, sì, proprio quella.
+Manda tu il primo messaggio. Stavolta tocca a te.
+Di' di sì a voce alta, anche se sei solo.
+Cancella l'appuntamento col rimpianto.
+Prenota. Le scuse trovale dopo, se servono.
+Compra il biglietto. La paura non viaggia gratis.
+Scrivi la mail e premi invio prima di rileggerla dieci volte.
+Apri quella cartella che eviti da settimane.
+Per trovare la strada, accetta di non vederla tutta.
+Il sì che temi è già dentro la domanda.
+Più stringi il futuro, più ti scivola. Apri la mano.
+La risposta arriva quando smetti di sederti ad aspettarla.
+Ciò che rimandi ti sta aspettando, paziente.
+Il vuoto davanti a te è spazio, non assenza.
+Diventa la persona che saprebbe rispondere, poi rispondi.
+Hai già deciso prima di premere. Questo è solo il timbro.
+La tua prima risposta, quella di pancia, era giusta.
+Non ti serve il mio sì, ti serve il tuo.
+Sapevi la risposta entrando. Adesso esci e falla.
+Le farfalle nello stomaco sono entusiasmo in incognito.
+Hai paura perché ti importa. Buon segno.
+Il tremore nelle mani è energia che cerca una direzione.
+Sì, di quelli che ti cambiano la rotta.
+Sì, e te lo meritavi da un pezzo.
+Sì, pieno, senza condizioni nascoste.
+Un sì grande come la tua paura. Anzi, più grande.
+No, e va bene così. Davvero.
+No, ma la prossima è quella giusta.
+No, conserva le forze per la battaglia che conta.
+No. Certe cose si amano da lontano.
+Aspetta il segnale, non forzare la serratura.
+Non ancora pronto, ma manca poco. Tieniti pronto.
+Lascia decantare. La verità sale in superficie.
+Dagli un'altra notte. Poi decidi all'alba.
+Pazienta. Il sì sta solo allacciandosi le scarpe.
+I segni dicono sì.
+I segni puntano al sì.
+Tutto fa pensare di sì.
+Non ci scommetterei.
+Le mie fonti dicono no.
+È certo.
+È deciso.
+Senza alcun dubbio, sì.
+Puoi contarci.
+Molto probabile.
+Le prospettive sono buone.
+Meglio non dirtelo ora.
+Concentrati e richiedi.
+Non posso prevederlo adesso.
+Rispondi vago, riprova.
+Non contarci.
+La mia risposta è no.
+Molto dubbio.
+I segni sono incerti, riprova.
+Chiedi di nuovo più tardi.
+Direi di sì.
+Le stelle dicono sì.
+Il responso è favorevole.
+Tutto rema a tuo favore.
+Improbabile, ma non impossibile.
+Scordatelo.
+Forse, se ci credi davvero.
+Il segno è verde.
+Non oggi.
+Sì, ma parla prima di sperare.
+Diglielo. Il silenzio non è romantico, è solo silenzio.
+Sì, se smetti di aspettare la mossa dell'altro.
+No. Meriti chi non ti fa indovinare.
+Il cuore ha già risposto, la testa fa scena.
+Sì, ma ama anche quando fa un po' paura.
+Lascia andare chi ti vuole solo nei ritagli.
+Sì. L'amore vero non chiede il permesso di esistere.
+Chiedilo a chi ami, non a me.
+Non inseguire. Cammina, e guarda chi ti tiene il passo.
+Sì, ma scegliti prima di scegliere qualcun altro.
+Il legame regge. Annaffialo.
+No, non è la persona. È la nostalgia di un'idea.
+Sì, e dillo prima che lo dica il tempo al posto tuo.
+Apri il cuore di uno spiraglio. Basta quello.
+Sì, ma leggi le clausole piccole.
+Chiedi l'aumento. Il no ce l'hai già.
+No, non vale il prezzo della tua pace.
+Investi su di te, è l'unico titolo sicuro.
+Sì, ma metti da parte un paracadute.
+Manda la candidatura. Le porte non si aprono da sole.
+Il rischio è calcolato. Calcolalo e salta.
+No, quel guadagno costa troppo in ore di vita.
+Sì, è il momento del salto di carriera.
+Tratta. Il primo numero non è mai l'ultimo.
+Fonda la cosa. Il momento perfetto non timbra il cartellino.
+Sì, ma fatti pagare quanto vali.
+Lascia il posto sicuro che ti sta spegnendo.
+Il conto torna. Firma.
+No, non prestare ciò che non puoi perdere.
+Ascolta il corpo, sta già rispondendo.
+Sì, ma dormi prima di decidere.
+Bevi un bicchiere d'acqua e richiedimelo.
+No, il tuo corpo ti sta dicendo basta.
+Cammina dieci minuti, la risposta arriva in strada.
+Sì, dopo una bella dormita sembrerà ovvio.
+Riposa. Le decisioni stanche sono decisioni sbagliate.
+Respira tre volte. Ora rileggi la domanda.
+Sì, ma muoviti, il corpo vuole esserci anche lui.
+Mangia qualcosa, poi i mostri si rimpiccioliscono.
+Il dado è tratto. Adesso lancialo.
+Veni, vidi, esita un secondo, poi vinci.
+Nel mezzo del cammin si trova sempre un bivio. Scegli.
+Lasciate ogne dubbio, voi ch'entrate.
+Carpe diem, ma anche carpe coraggio.
+Errare è umano, restare fermi un peccato.
+Chi ben dubita, ben deciderà. Ora decidi.
+Cogito, ergo fallo.
+Audaces fortuna iuvat: la sorte aiuta gli audaci.
+Memento che il momento è adesso.
+Per aspera ad astra: passa l'aspro, arrivi alle stelle.
+L'arte di vincere si impara perdendo. Quindi prova.
+Il fine giustifica l'inizio. Inizia.
+Festina lente: affrettati con calma, ma affrettati.
+Conosci te stesso, e conoscerai la risposta.
+Non chi comincia ma chi persevera. Persevera.
+A ciascuno il suo coraggio. Tira fuori il tuo.
+Vox populi dice sì, ma decidi tu.
+Tempus fugit, e la finestra pure. Salta.
+Dulcis in fundo: il bello arriva se arrivi in fondo.
+I numeri sono pari: vai.
+È uscito un 8. Doppia fortuna, doppio coraggio.
+Tre su tre dicono sì.
+La somma dei segni dà sì.
+Il pendolo ha disegnato un cerchio: chiudilo tu.
+Sette di cuori: ascolta il cuore.
+Testa: vai. Croce: vai lo stesso.
+Il conto alla rovescia è a uno. Premi.
+Dispari oggi porta bene. Rischia.
+L'asso è nella tua manica da sempre.
+Comincia piccolo, ma comincia oggi.
+Il sì costa coraggio, il no costa rimpianti. Scegli la spesa.
+Non aspettare di essere sicuro, sarai solo più vecchio.
+La porta gira sui cardini, non sulle scuse.
+Decidi tu, prima che decida la pigrizia.
+Fallo male ma fallo, il bello si lima dopo.
+Il primo passo è in salita, gli altri scendono.
+Smetti di lucidare il piano, usalo.
+La perfezione è il nemico del fatto. Fai.
+Una scelta imperfetta batte mille forse perfetti.
+Il coraggio è movimento fatto insieme alla paura.
+Quello che ami fare, fallo prima che diventi rimpianto.
+Le occasioni hanno la nuca calva. Afferrale ora.
+Chi aspetta il vento perfetto non salpa mai.
+Il meglio nasce da un sì detto un po' troppo presto.
+Certo.
+Niente affatto.
+Probabile.
+Domani.
+Mai dire mai.
+Tutto sì.
+Direi no.
+Procedi.
+Fermati.
+Ascolta.
+Scegli te.
+Dipende da te.
+Buon segno.
+Cattivo segno.
+Vacci piano.
+A tutta.
+Ci credo.
+Non stavolta.
+Sì, e subito.
+Sì. Tre responsi fa lo sapevi già.
+L'oracolo non si ripete: sì, definitivo.
+Certo che sì, ma falla sembrare una tua idea.
+Sì. E no, non te lo richiedo una quarta volta.
+Vai tranquillo, ho controllato col destino, conferma.
+Sì. Pure i pianeti si sono stancati di aspettarti.
+La risposta è sì, e te la potevi pure dare da solo.
+La candela si è piegata verso sì.
+Un gatto ha attraversato da sinistra: via libera.
+La crepa nel muro disegna una freccia. Seguila.
+Il tuo riflesso nella finestra ha annuito.
+Una pagina si è girata da sola: capitolo nuovo, vai.
+La risposta cambia colore se ti avvicini. Avvicinati.
+Quello che cerchi è già in tasca, controlla.
+Il sì è una porta, il dubbio è la chiave che non giri.
+Più aspetti il segno, più diventi tu il segno per qualcuno.
+Smetti di leggere oracoli e diventa il tuo.
+Parti leggero, decidi per strada.
+Il biglietto di sola andata fa più paura e più bene.
+La meta è chiara, basta il primo chilometro.
+Sali su quel treno, le coincidenze le sistemi dopo.
+L'orizzonte non si raggiunge restando in porto.
+Perdersi è il modo più antico di trovarsi.
+Fai la valigia stanotte, le scuse domani.
+Ogni grande viaggio inizia con un sì spaventato.
+Il fiume non torna indietro. Nemmeno tu.
+Il bocciolo non chiede permesso per aprirsi.
+La radice cresce al buio, fidati del processo.
+Anche la quercia più alta è partita da sotto terra.
+La montagna si scala un passo alla volta. Primo passo.
+Il mare calmo non fa il buon marinaio. Esci comunque.
+La luna cala e cresce, e i dubbi pure. Aspetta la fase giusta.
+Il seme sa già che albero diventerà. Lascialo fare.
+La pentola bolle. Butta la pasta.
+Il forno è caldo. Inforna l'idea.
+Aggiungi coraggio a piacere, non guasta mai.
+Il sì va servito caldo, non rimandato a freddo.
+Una pizza non si fa senza sporcarsi le mani. Impasta.
+Accendi la luce, il mostro era una giacca sulla sedia.
+L'ombra è grande solo perché la luce è vicina.
+Apri la finestra, fai entrare la risposta.
+Anche una candela basta a vincere una stanza buia.
+Il sole sorge comunque. Decidi prima dell'alba.
+Pesca un'altra carta, questa mano è buona.
+Hai l'asso, smettila di giocare di rimessa.
+Il jolly sei tu. Calalo.
+Non passare la mano: rilancia.
+La partita gira a tuo favore al prossimo turno.
+Tre porte: scegli quella che ti fa battere il cuore.
+La serratura è arrugginita, non chiusa. Forza piano.
+Hai bussato abbastanza. Adesso entra.
+La porta sul retro è sempre aperta per i coraggiosi.
+Conta fino a tre e fallo, non fino a cento.
+La scelta che rimandi sta scegliendo per te.
+Meglio chiedere scusa che chiedere permesso. Vai.
+Spunta la casella. Il modulo della vita aspetta solo te.
+Premi invio sulla tua vita.
+Taglia il nodo, non provare a scioglierlo all'infinito.
+Fai la mossa, anche se la scacchiera ti spaventa.
+Decidi col cuore pieno, non con la testa stanca.
+Il treno passa una volta. Questo è il tuo.
+Non c'è un oracolo migliore di questo sì.
+Adesso è prima di quanto pensi e dopo di quanto serva.
+Il momento giusto ha la brutta abitudine di sembrare adesso.
+Domani è la scusa preferita dei sogni rimandati.
+L'orologio non torna indietro, ma tu puoi partire avanti.
+Non è troppo presto, non è troppo tardi. È adesso.
+Fidati una volta in più di quanto la paura vorrebbe.
+Il dubbio è un consigliere, non un padrone.
+Dai fiducia al te che ci spera, non al te che teme.
+La fiducia è un muscolo. Allenalo con questo sì.
+Credici tu per primo, poi ci crederanno gli altri.
+L'oracolo ha parlato. Il resto dipende da te.
+Questo è l'ultimo responso che ti serviva. Ora muoviti.
+Hai consultato abbastanza. È ora di vivere la risposta.
+Smetti di chiedere al biscotto e mordi la vita.
+Il sì era dentro di te. Il biscotto ti fa solo compagnia.
+Sì, ma amati abbastanza da poter perdere.
+Manda quel messaggio che riscrivi da tre giorni.
+No, smettila di interpretare i silenzi come poesie.
+Il sì in amore si dice tremando. Tremane e dillo.
+Resta per chi resterebbe per te.
+Sì, ma senza piano di fuga già pronto.
+Chiudi quel capitolo, il prossimo ti aspetta a pagina nuova.
+Sì, ma metti per iscritto gli accordi.
+Quel progetto che sogni di notte fallo di giorno.
+No, non bruciare i ponti, ma attraversali con dignità.
+Chiedi aiuto al collega. Non è debolezza, è strategia.
+Lancia il prodotto imperfetto. Si migliora vivo, non in cassetto.
+Sì, ma delega ciò che ti spegne.
+Il portfolio si riempie facendo, non aspettando.
+Il coraggio dura otto secondi. Ti bastano.
+Salta, la rete la vedi solo dopo.
+Fai la cosa difficile finché è piccola.
+La tua zona di comfort è una bella prigione. Esci.
+Di' sì alla versione spaventata e felice di te.
+Coraggio non è non avere paura, è ballarci insieme.
+Sì. Test superati, deploy autorizzato.
+Il tuo destino è open source: scrivilo tu.
+Aggiorna le aspettative e riprova: sì.
+Sì, il fato ha approvato la pull request.
+Niente bug nel piano. Eseguilo.
+Sì. La connessione col coraggio è stabile.
+Chi semina sì raccoglie storie da raccontare.
