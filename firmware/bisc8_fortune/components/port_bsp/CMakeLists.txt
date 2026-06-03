@@ -12,6 +12,7 @@ idf_component_register(
     esp_lcd
     esp_timer
     REQUIRES
+    esp_driver_i2c
     lvgl
     INCLUDE_DIRS
     "./"

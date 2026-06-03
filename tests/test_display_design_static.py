@@ -16,7 +16,7 @@ def test_display_service_exposes_boot_brand_screen():
 
     assert "void ShowBoot();" in header
     assert "by Netmilk Studio" in source
-    assert "oracolo in carica" in source
+    assert "oracle loading" in source
 
 
 def test_display_service_builds_occult_clean_frame():
@@ -24,6 +24,7 @@ def test_display_service_builds_occult_clean_frame():
 
     assert "CreateOracleFrame" in source
     assert "CreateCookieIcon" in source
+    assert "CreateLogoIcon" in source
     assert "SetDecorations" in source
 
 
@@ -127,3 +128,22 @@ def test_pwr_long_press_shows_power_off_prompt_and_wakes_only_from_pwr():
     assert "void ShowPowerOff();" in display_header
     assert "Press PWR\\nto turn me on" in display_source
     assert "by Netmilk Studio" in display_source
+
+
+def test_display_service_exposes_wifi_and_voice_states_in_english():
+    header = DISPLAY_H.read_text(encoding="utf-8")
+    source = DISPLAY_CPP.read_text(encoding="utf-8")
+
+    for method in (
+        "ShowWifiConnecting",
+        "ShowWifiSetup",
+        "ShowVoiceListening",
+        "ShowVoiceThinking",
+        "ShowVoiceSpeaking",
+    ):
+        assert method in header
+        assert method in source
+    assert "Setup Wi-Fi" in source
+    assert "Join Bisc8-XXXX" in source
+    assert "Open 192.168.4.1" in source
+    assert "Release BOOT to send" in source

@@ -1,0 +1,233 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MAIN = ROOT / "firmware/bisc8_fortune/main"
+README = ROOT / "README.md"
+PARTITIONS = ROOT / "firmware/bisc8_fortune/partitions.csv"
+
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def test_config_schema_declares_product_limits_and_secret_masking():
+    header = read(MAIN / "app_config.h")
+    source = read(MAIN / "app_config.cpp")
+
+    assert "constexpr size_t kMaxWifiCredentials = 8" in header
+    assert "constexpr size_t kMaxScreenAnswerChars = 100" in header
+    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 5000" in header
+    assert "constexpr uint32_t kVoiceRecordLimitMs = 15000" in header
+    assert "MaskSecret" in header
+    assert 'return "***";' in source
+    assert "OpenAiSettings" in header
+    assert "SmtpSettings" in header
+
+
+def test_config_store_uses_nvs_namespace_keys_and_schema_version():
+    header = read(MAIN / "app_config.h")
+    source = read(MAIN / "app_config.cpp")
+
+    assert "constexpr uint32_t kConfigSchemaVersion = 1" in header
+    assert "class ConfigStore" in header
+    for method in ("Init", "Load", "Save", "Reset"):
+        assert f"esp_err_t {method}" in header
+    for token in (
+        '"bisc8"',
+        '"schema"',
+        '"language"',
+        '"wifi_count"',
+        '"openai_key"',
+        '"smtp_host"',
+        '"smtp_recipient"',
+    ):
+        assert token in source
+    assert "nvs_flash_init" in source
+    assert "nvs_open" in source
+    assert "nvs_set_str" in source
+    assert "nvs_get_str" in source
+    assert "nvs_erase_all" in source
+    assert "kMaxWifiCredentials" in source
+
+
+def test_partition_table_reserves_audio_spool_storage():
+    partitions = read(PARTITIONS)
+
+    assert "spool" in partitions
+    assert "fat" in partitions
+    assert "0x100000" in partitions
+    assert "0x200000" in partitions
+
+
+def test_localization_exposes_required_languages_and_display_states():
+    header = read(MAIN / "localization.h")
+    source = read(MAIN / "localization.cpp")
+
+    for lang in ("en", "es", "it"):
+        assert f'"{lang}"' in source
+    for key in (
+        "boot_status",
+        "wifi_setup_title",
+        "wifi_setup_body",
+        "listening_title",
+        "thinking_title",
+        "speaking_title",
+        "offline_title",
+        "sleep_footer",
+    ):
+        assert key in header
+        assert key in source
+    assert 'DefaultLanguage()' in header
+    assert 'return "en";' in source
+
+
+def test_portal_declares_required_routes_and_masks_secrets():
+    header = read(MAIN / "web_portal.h")
+    source = read(MAIN / "web_portal.cpp")
+
+    for route in (
+        '"/"',
+        '"/api/status"',
+        '"/api/wifi/scan"',
+        '"/api/wifi/credentials"',
+        '"/api/settings"',
+        '"/api/openai"',
+        '"/api/smtp"',
+        '"/api/reset"',
+    ):
+        assert route in source
+    assert "secrets are stored on this device" in source
+    assert "MaskSecret" in source
+    assert "192.168.4.1" in source
+    assert "CaptivePortalProbePaths" in header
+
+
+def test_portal_runs_http_server_and_redirects_captive_probes():
+    header = read(MAIN / "web_portal.h")
+    source = read(MAIN / "web_portal.cpp")
+    cmake = read(MAIN / "CMakeLists.txt")
+
+    for token in (
+        "httpd_start",
+        "httpd_register_uri_handler",
+        "httpd_resp_send",
+        "httpd_resp_set_status(req, \"302 Found\")",
+        "httpd_resp_set_hdr(req, \"Location\", \"/\")",
+        "httpd_stop",
+        "WifiStatus",
+        "DeviceSettings",
+        "BindStatus",
+    ):
+        assert token in source or token in header
+    assert "esp_http_server" in cmake
+
+
+def test_connectivity_service_documents_multi_wifi_attempt_policy():
+    header = read(MAIN / "connectivity_service.h")
+    source = read(MAIN / "connectivity_service.cpp")
+
+    assert "kMaxWifiCredentials" in source
+    assert "kWifiAttemptTimeoutMs" in source
+    assert "Bisc8-XXXX" in source
+    assert "StartSetupPortal" in header
+    assert "TryKnownNetworks" in header
+
+
+def test_connectivity_service_uses_real_wifi_scan_sta_and_softap_fallback():
+    header = read(MAIN / "connectivity_service.h")
+    source = read(MAIN / "connectivity_service.cpp")
+    cmake = read(MAIN / "CMakeLists.txt")
+
+    for token in (
+        "esp_netif_init",
+        "esp_event_loop_create_default",
+        "esp_wifi_init",
+        "esp_wifi_scan_start",
+        "esp_wifi_scan_get_ap_records",
+        "wifi_config_t sta_config",
+        "esp_wifi_connect",
+        "xEventGroupWaitBits",
+        "WIFI_CONNECTED_BIT",
+        "Bisc8-",
+        "esp_netif_create_default_wifi_ap",
+        "esp_wifi_set_mode(WIFI_MODE_APSTA)",
+        "esp_wifi_set_config(WIFI_IF_AP",
+        "192.168.4.1",
+    ):
+        assert token in source
+    assert "DeviceSettings" in header
+    assert "WifiStatus" in header
+    assert "ssid_attempt" in header
+    assert "setup_ssid" in header
+    assert "esp_wifi" in cmake
+    assert "esp_netif" in cmake
+    assert "esp_event" in cmake
+
+
+def test_voice_oracle_contract_and_audio_limits_are_explicit():
+    header = read(MAIN / "voice_oracle_service.h")
+    source = read(MAIN / "voice_oracle_service.cpp")
+    audio_header = read(MAIN / "audio_service.h")
+
+    for field in (
+        "detected_language",
+        "transcript",
+        "oracle_answer_full",
+        "oracle_answer_screen",
+        "tts_text",
+    ):
+        assert field in source
+    assert "audio/transcriptions" in source
+    assert "responses" in source
+    assert "audio/speech" in source
+    assert "kMaxScreenAnswerChars" in source
+    assert "StartVoiceRecording" in audio_header
+    assert "FinishVoiceRecording" in audio_header
+
+
+def test_smtp_service_is_direct_from_device_and_degrades_to_text_only():
+    header = read(MAIN / "smtp_service.h")
+    source = read(MAIN / "smtp_service.cpp")
+
+    assert "SendOracleEmail" in header
+    assert "direct SMTP" in source
+    assert "text-only" in source
+    assert "attachment failed" in source
+
+
+def test_button_events_cover_voice_and_setup_recovery():
+    events = read(MAIN / "app_events.h")
+    buttons = read(MAIN / "button_controller.cpp")
+    app_main = read(MAIN / "app_main.cpp")
+
+    assert "StartVoiceRecording" in events
+    assert "FinishVoiceRecording" in events
+    assert "ForceWifiSetup" in events
+    assert "FullConfigReset" in events
+    assert "boot_button_->OnPressDown" in buttons
+    assert "boot_button_->OnPressUp" in buttons
+    assert "BOOT press down" in buttons
+    assert "BOOT hold start" in buttons
+    assert "BOOT release" in buttons
+    assert "BOOT+PWR" in buttons
+    assert "gpio_get_level(BOOT_BUTTON_PIN) == 0" in app_main
+    assert "ForceWifiSetup" in app_main
+
+
+def test_readme_documents_product_setup_and_logo_requirements():
+    readme = read(README)
+
+    for phrase in (
+        "First boot defaults to English",
+        "Bisc8-XXXX",
+        "http://192.168.4.1",
+        "OpenAI API key",
+        "SMTP",
+        "Hold BOOT to ask",
+        "BOOT + PWR",
+        "1024x1024",
+        "64x64",
+        "secrets are stored on the device",
+    ):
+        assert phrase in readme

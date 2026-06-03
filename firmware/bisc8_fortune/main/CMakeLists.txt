@@ -1,11 +1,30 @@
 idf_component_register(
     SRCS 
     "app_main.cpp"
+    "app_config.cpp"
     "audio_service.cpp"
     "board_support.cpp"
     "button_controller.cpp"
+    "connectivity_service.cpp"
     "debug_serial.cpp"
     "display_service.cpp"
     "fortune_service.cpp"
+    "localization.cpp"
+    "smtp_service.cpp"
+    "voice_oracle_service.cpp"
+    "web_portal.cpp"
     INCLUDE_DIRS 
-    "./")
+    "./"
+    PRIV_REQUIRES
+    esp_driver_gpio
+    esp_event
+    esp_http_server
+    esp_netif
+    esp_wifi
+    espressif__esp_io_expander
+    espressif__esp_io_expander_tca9554
+    REQUIRES
+    esp_driver_usb_serial_jtag
+    my_button
+    nvs_flash
+    port_bsp)

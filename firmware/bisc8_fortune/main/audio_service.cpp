@@ -8,6 +8,7 @@
 
 #include "debug_serial.h"
 #include "display_service.h"
+#include "app_config.h"
 #include "port_codec.h"
 
 namespace bisc8 {
@@ -73,6 +74,22 @@ void AudioService::PlayBeep() {
     }
     esp_err_t err = Codec_PlaybackData(beep_buffer_, beep_bytes_);
     DebugSerial::Log("[AUDIO]", "beep bytes=%u result=%s", static_cast<unsigned>(beep_bytes_), esp_err_to_name(err));
+}
+
+void AudioService::StartVoiceRecording() {
+    voice_recording_ = true;
+    DebugSerial::LogAlways("[AUDIO]", "voice recording started limit_ms=%u mono_wav_spool=pending",
+                           static_cast<unsigned>(kVoiceRecordLimitMs));
+}
+
+const char *AudioService::FinishVoiceRecording() {
+    if (!voice_recording_) {
+        DebugSerial::LogAlways("[AUDIO]", "voice recording finish ignored; no active recording");
+        return nullptr;
+    }
+    voice_recording_ = false;
+    DebugSerial::LogAlways("[AUDIO]", "voice recording finished; wav spool path pending");
+    return "/spool/question.wav";
 }
 
 void AudioService::RunMicTest(DisplayService &display) {

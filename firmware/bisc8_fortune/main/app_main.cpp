@@ -8,15 +8,20 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <driver/gpio.h>
 
 #include "app_events.h"
+#include "app_config.h"
 #include "audio_service.h"
 #include "board_support.h"
 #include "button_controller.h"
+#include "connectivity_service.h"
 #include "debug_serial.h"
 #include "display_service.h"
 #include "epaper_config.h"
 #include "fortune_service.h"
+#include "voice_oracle_service.h"
+#include "web_portal.h"
 #include "sdkconfig.h"
 
 using namespace bisc8;
@@ -28,15 +33,17 @@ QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
 bool g_board_ready = false;
 bool g_audio_ready = false;
+bool g_config_ready = false;
 size_t g_fortune_count = 0;
 uint32_t g_fortune_presses = 0;
 uint32_t g_mic_tests = 0;
 
 void print_status() {
-    printf("[STATUS] state=%s board=%s audio=%s debug=%s fortune_count=%u fortune_presses=%lu mic_tests=%lu free_heap=%lu\n",
+    printf("[STATUS] state=%s board=%s audio=%s config=%s debug=%s fortune_count=%u fortune_presses=%lu mic_tests=%lu free_heap=%lu\n",
            g_state,
            g_board_ready ? "ready" : "not-ready",
            g_audio_ready ? "ready" : "off",
+           g_config_ready ? "ready" : "not-ready",
            DebugSerial::Verbose() ? "on" : "off",
            static_cast<unsigned>(g_fortune_count),
            static_cast<unsigned long>(g_fortune_presses),
@@ -66,6 +73,12 @@ bool handle_serial_command(const char *line) {
     if (strcmp(line, "MIC") == 0) {
         return post_serial_event(AppEvent::MicTest, "mic");
     }
+    if (strcmp(line, "WIFI SETUP") == 0) {
+        return post_serial_event(AppEvent::ForceWifiSetup, "wifi setup");
+    }
+    if (strcmp(line, "WIFI RESET") == 0 || strcmp(line, "CONFIG RESET") == 0) {
+        return post_serial_event(AppEvent::FullConfigReset, "config reset");
+    }
     return false;
 }
 
@@ -86,9 +99,32 @@ extern "C" void app_main(void) {
     FortuneService fortunes;
     AudioService audio;
     ButtonController buttons;
+    ConfigStore config_store;
+    DeviceSettings settings;
+    ConnectivityService connectivity;
+    VoiceOracleService oracle;
+    WebPortal portal;
+    portal.BindStatus(&connectivity.Status(), &settings);
     g_fortune_count = fortunes.Count();
 
-    esp_err_t err = board.Initialize();
+    esp_err_t err = config_store.Init();
+    if (err == ESP_OK) {
+        err = config_store.Load(&settings);
+    }
+    g_config_ready = (err == ESP_OK);
+    if (!g_config_ready) {
+        DebugSerial::LogAlways("[CONFIG]", "config load failed: %s", esp_err_to_name(err));
+    } else {
+        DebugSerial::LogAlways("[CONFIG]",
+                               "loaded language=%s wifi_count=%u openai_key=%s smtp=%s recipient=%s",
+                               settings.language.c_str(),
+                               static_cast<unsigned>(settings.wifi_count),
+                               settings.openai.api_key.empty() ? "missing" : "set",
+                               settings.smtp.enabled ? "enabled" : "disabled",
+                               settings.smtp.recipient.empty() ? "missing" : "set");
+    }
+
+    err = board.Initialize();
     g_board_ready = (err == ESP_OK);
     if (!g_board_ready) {
         DebugSerial::LogAlways("[BOOT]", "board init failed: %s", esp_err_to_name(err));
@@ -103,11 +139,21 @@ extern "C" void app_main(void) {
     display.ShowBoot();
     vTaskDelay(pdMS_TO_TICKS(3600));
 
+    bool setup_mode_active = false;
+    if (gpio_get_level(BOOT_BUTTON_PIN) == 0) {
+        DebugSerial::LogAlways("[BOOT]", "BOOT held during startup; forcing Wi-Fi setup");
+        connectivity.StartSetupPortal(display, portal);
+        setup_mode_active = true;
+    } else if (connectivity.TryKnownNetworks(settings, display) != ESP_OK) {
+        connectivity.StartSetupPortal(display, portal);
+        setup_mode_active = true;
+    }
+
     err = audio.Initialize();
     g_audio_ready = (err == ESP_OK);
     if (!g_audio_ready) {
         display.ShowAudioUnavailable();
-    } else {
+    } else if (!setup_mode_active) {
         display.ShowIdle(g_fortune_count);
     }
 
@@ -158,6 +204,44 @@ extern "C" void app_main(void) {
                 g_mic_tests++;
                 audio.RunMicTest(display);
                 g_state = "idle";
+                break;
+
+            case AppEvent::StartVoiceRecording:
+                g_state = "listening";
+                display.ShowVoiceListening();
+                audio.StartVoiceRecording();
+                break;
+
+            case AppEvent::FinishVoiceRecording: {
+                g_state = "thinking";
+                const char *wav_path = audio.FinishVoiceRecording();
+                display.ShowVoiceThinking();
+                OracleResponse response;
+                err = oracle.AskFromRecordedAudio(wav_path, &response);
+                if (err == ESP_OK) {
+                    display.ShowVoiceSpeaking(response.oracle_answer_screen);
+                } else {
+                    display.ShowError("Voice oracle is not configured yet.");
+                }
+                g_state = "idle";
+                break;
+            }
+
+            case AppEvent::ForceWifiSetup:
+                g_state = "wifi-setup";
+                display.ShowWifiSetup();
+                portal.Start();
+                print_status();
+                break;
+
+            case AppEvent::FullConfigReset:
+                g_state = "config-reset";
+                err = config_store.Reset();
+                g_config_ready = (err == ESP_OK);
+                DebugSerial::LogAlways("[CONFIG]", "full config reset requested: %s", esp_err_to_name(err));
+                display.ShowWifiSetup();
+                portal.Start();
+                print_status();
                 break;
 
             case AppEvent::Sleep:

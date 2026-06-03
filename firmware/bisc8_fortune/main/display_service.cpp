@@ -117,7 +117,7 @@ void DisplayService::CreateScreen() {
         lv_obj_remove_flag(screen_, LV_OBJ_FLAG_SCROLLABLE);
 
         CreateOracleFrame();
-        CreateCookieIcon();
+        CreateLogoIcon();
         CreateSeal();
 
         title_label_ = lv_label_create(screen_);
@@ -165,6 +165,10 @@ void DisplayService::CreateCookieIcon() {
     create_dot(cookie_group_, 22, 17, 4);
     create_dot(cookie_group_, 38, 21, 4);
     create_dot(cookie_group_, 24, 32, 4);
+}
+
+void DisplayService::CreateLogoIcon() {
+    CreateCookieIcon();
 }
 
 void DisplayService::CreateSeal() {
@@ -252,7 +256,7 @@ void DisplayService::SetScreenText(const char *title, const char *body, const ch
 void DisplayService::ShowBoot() {
     if (Lvgl_lock(-1)) {
         ApplyBootLayout();
-        SetScreenTextLocked("Bisc8", "by Netmilk Studio", "oracolo in carica");
+        SetScreenTextLocked("Bisc8", "by Netmilk Studio", "oracle loading");
         Lvgl_unlock();
     }
 }
@@ -269,12 +273,32 @@ void DisplayService::ShowPowerOff() {
 
 void DisplayService::ShowIdle(size_t fortune_count) {
     char footer[64];
-    snprintf(footer, sizeof(footer), "BOOT oracolo\nPWR microfono");
+    snprintf(footer, sizeof(footer), "Hold BOOT to ask\nPWR power");
     char body[80];
-    snprintf(body, sizeof(body), "%u risposte\nnel grimorio", static_cast<unsigned>(fortune_count));
+    snprintf(body, sizeof(body), "%u answers\nin the grimoire", static_cast<unsigned>(fortune_count));
     if (Lvgl_lock(-1)) {
         ApplyIdleLayout();
         SetScreenTextLocked("Bisc8", body, footer);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left) {
+    char body[96];
+    snprintf(body, sizeof(body), "Trying\n%s", ssid == nullptr ? "saved Wi-Fi" : ssid);
+    char footer[48];
+    snprintf(footer, sizeof(footer), "%d seconds", seconds_left);
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked("Wi-Fi", body, footer);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowWifiSetup() {
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked("Setup Wi-Fi", "Join Bisc8-XXXX\nOpen 192.168.4.1", "Captive portal ready");
         Lvgl_unlock();
     }
 }
@@ -289,10 +313,34 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
     }
 }
 
+void DisplayService::ShowVoiceListening() {
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked("Listening", "Speak now.\nRelease BOOT to send.", "15 seconds max");
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowVoiceThinking() {
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked("Thinking", "The oracle is reading your question.", "OpenAI");
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowVoiceSpeaking(const char *screen_answer) {
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked("Bisc8", screen_answer == nullptr ? "The answer is arriving." : screen_answer, "voice answer");
+        Lvgl_unlock();
+    }
+}
+
 void DisplayService::ShowMicRecording() {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Ascolto", "Parla ora.\nRegistro un secondo.", "PWR test mic");
+        SetScreenTextLocked("Listening", "Speak now.\nRecording one second.", "PWR mic test");
         Lvgl_unlock();
     }
 }
@@ -300,7 +348,7 @@ void DisplayService::ShowMicRecording() {
 void DisplayService::ShowMicPlayback() {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Riascolto", "Riproduco il campione.", "controllo audio");
+        SetScreenTextLocked("Playback", "Playing the sample.", "audio check");
         Lvgl_unlock();
     }
 }
@@ -308,7 +356,7 @@ void DisplayService::ShowMicPlayback() {
 void DisplayService::ShowMicDone() {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Fatto", "Microfono e speaker hanno risposto.", "BOOT nuova risposta");
+        SetScreenTextLocked("Done", "Microphone and speaker responded.", "Hold BOOT to ask");
         Lvgl_unlock();
     }
 }
@@ -316,7 +364,7 @@ void DisplayService::ShowMicDone() {
 void DisplayService::ShowAudioUnavailable() {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Audio off", "Il codec non e pronto.\nLe fortune funzionano.", "STATUS per dettagli");
+        SetScreenTextLocked("Audio off", "The codec is not ready.\nOffline fortunes still work.", "STATUS for details");
         Lvgl_unlock();
     }
 }
@@ -324,7 +372,7 @@ void DisplayService::ShowAudioUnavailable() {
 void DisplayService::ShowSleep() {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Sonno", "L'oracolo resta impresso sulla carta.", "riavvia via USB");
+        SetScreenTextLocked("Sleep", "The oracle stays printed on paper.", "wake by button");
         Lvgl_unlock();
     }
 }
@@ -332,7 +380,7 @@ void DisplayService::ShowSleep() {
 void DisplayService::ShowError(const char *message) {
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Errore", message, "vedi seriale");
+        SetScreenTextLocked("Error", message, "see serial");
         Lvgl_unlock();
     }
 }

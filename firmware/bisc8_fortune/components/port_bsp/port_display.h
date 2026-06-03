@@ -19,11 +19,11 @@ typedef enum {
 
 void PortLvgl_Start_Init();
 void PortDisplay_Init();
-void EPD_Init();    /* 墨水屏初始化 */
-void EPD_Clear();   /* 清空屏幕 */
-void EPD_Display(); /* 刷buffer到墨水屏 */
+void EPD_Init();    /* Initialize the e-paper display. */
+void EPD_Clear();   /* Clear the screen. */
+void EPD_Display(); /* Flush the frame buffer to the screen. */
 
-/*局部刷新*/
+/* Partial refresh. */
 void EPD_DisplayPartBaseImage();
 void EPD_Init_Partial();
 void EPD_DisplayPart();

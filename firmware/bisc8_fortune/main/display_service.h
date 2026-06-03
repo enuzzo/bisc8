@@ -13,7 +13,12 @@ public:
     void ShowBoot();
     void ShowPowerOff();
     void ShowIdle(size_t fortune_count);
+    void ShowWifiConnecting(const char *ssid, int seconds_left);
+    void ShowWifiSetup();
     void ShowFortune(const char *fortune, size_t index, size_t count);
+    void ShowVoiceListening();
+    void ShowVoiceThinking();
+    void ShowVoiceSpeaking(const char *screen_answer);
     void ShowMicRecording();
     void ShowMicPlayback();
     void ShowMicDone();
@@ -25,6 +30,7 @@ private:
     void CreateScreen();
     void CreateOracleFrame();
     void CreateCookieIcon();
+    void CreateLogoIcon();
     void CreateSeal();
     void ApplyBootLayout();
     void ApplyIdleLayout();

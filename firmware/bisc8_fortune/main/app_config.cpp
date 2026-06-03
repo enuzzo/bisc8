@@ -1,0 +1,324 @@
+#include "app_config.h"
+
+#include <algorithm>
+
+#include <esp_check.h>
+#include <nvs.h>
+#include <nvs_flash.h>
+
+namespace bisc8 {
+namespace {
+
+constexpr const char *kConfigNamespace = "bisc8";
+constexpr const char *kSchemaKey = "schema";
+constexpr const char *kLanguageKey = "language";
+constexpr const char *kWifiCountKey = "wifi_count";
+constexpr const char *kOpenAiKeyKey = "openai_key";
+constexpr const char *kOpenAiTranscriptionModelKey = "openai_stt";
+constexpr const char *kOpenAiResponseModelKey = "openai_resp";
+constexpr const char *kOpenAiSpeechModelKey = "openai_tts";
+constexpr const char *kOpenAiVoiceKey = "openai_voice";
+constexpr const char *kSmtpEnabledKey = "smtp_enabled";
+constexpr const char *kSmtpHostKey = "smtp_host";
+constexpr const char *kSmtpPortKey = "smtp_port";
+constexpr const char *kSmtpTlsKey = "smtp_tls";
+constexpr const char *kSmtpUsernameKey = "smtp_user";
+constexpr const char *kSmtpPasswordKey = "smtp_pass";
+constexpr const char *kSmtpFromKey = "smtp_from";
+constexpr const char *kSmtpRecipientKey = "smtp_recipient";
+
+void ApplyDefaults(DeviceSettings *settings) {
+    settings->language = "en";
+    settings->openai = DefaultOpenAiSettings();
+    settings->smtp = SmtpSettings{};
+    settings->wifi_count = 0;
+    for (size_t i = 0; i < kMaxWifiCredentials; ++i) {
+        settings->wifi[i] = WifiCredential{};
+    }
+}
+
+std::string IndexedKey(const char *prefix, size_t index) {
+    return std::string(prefix) + std::to_string(index);
+}
+
+esp_err_t GetString(nvs_handle_t handle, const char *key, std::string *value) {
+    size_t length = 0;
+    esp_err_t err = nvs_get_str(handle, key, nullptr, &length);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        return ESP_OK;
+    }
+    if (err != ESP_OK) {
+        return err;
+    }
+    std::string buffer(length, '\0');
+    err = nvs_get_str(handle, key, buffer.data(), &length);
+    if (err != ESP_OK) {
+        return err;
+    }
+    if (!buffer.empty() && buffer.back() == '\0') {
+        buffer.pop_back();
+    }
+    *value = buffer;
+    return ESP_OK;
+}
+
+esp_err_t SetString(nvs_handle_t handle, const char *key, const std::string &value) {
+    return nvs_set_str(handle, key, value.c_str());
+}
+
+esp_err_t LoadWifi(nvs_handle_t handle, DeviceSettings *settings) {
+    uint32_t stored_count = 0;
+    esp_err_t err = nvs_get_u32(handle, kWifiCountKey, &stored_count);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        return ESP_OK;
+    }
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    settings->wifi_count = std::min(static_cast<size_t>(stored_count), kMaxWifiCredentials);
+    for (size_t i = 0; i < settings->wifi_count; ++i) {
+        std::string ssid_key = IndexedKey("wifi_ssid_", i);
+        std::string password_key = IndexedKey("wifi_pass_", i);
+        err = GetString(handle, ssid_key.c_str(), &settings->wifi[i].ssid);
+        if (err != ESP_OK) {
+            return err;
+        }
+        err = GetString(handle, password_key.c_str(), &settings->wifi[i].password);
+        if (err != ESP_OK) {
+            return err;
+        }
+    }
+    return ESP_OK;
+}
+
+esp_err_t SaveWifi(nvs_handle_t handle, const DeviceSettings &settings) {
+    const size_t count = std::min(settings.wifi_count, kMaxWifiCredentials);
+    esp_err_t err = nvs_set_u32(handle, kWifiCountKey, static_cast<uint32_t>(count));
+    if (err != ESP_OK) {
+        return err;
+    }
+    for (size_t i = 0; i < kMaxWifiCredentials; ++i) {
+        std::string ssid_key = IndexedKey("wifi_ssid_", i);
+        std::string password_key = IndexedKey("wifi_pass_", i);
+        if (i < count) {
+            err = SetString(handle, ssid_key.c_str(), settings.wifi[i].ssid);
+            if (err != ESP_OK) {
+                return err;
+            }
+            err = SetString(handle, password_key.c_str(), settings.wifi[i].password);
+            if (err != ESP_OK) {
+                return err;
+            }
+        } else {
+            nvs_erase_key(handle, ssid_key.c_str());
+            nvs_erase_key(handle, password_key.c_str());
+        }
+    }
+    return ESP_OK;
+}
+
+}  // namespace
+
+OpenAiSettings DefaultOpenAiSettings() {
+    OpenAiSettings settings;
+    settings.transcription_model = "gpt-4o-mini-transcribe";
+    settings.response_model = "gpt-4o-mini";
+    settings.speech_model = "gpt-4o-mini-tts";
+    settings.voice = "alloy";
+    return settings;
+}
+
+std::string MaskSecret(const std::string &secret) {
+    if (secret.empty()) {
+        return "";
+    }
+    if (secret.size() <= 6) {
+        return "***";
+    }
+    return secret.substr(0, 3) + "***" + secret.substr(secret.size() - 3);
+}
+
+esp_err_t ConfigStore::Init() {
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_RETURN_ON_ERROR(nvs_flash_erase(), "CONFIG", "erase NVS after init failure");
+        err = nvs_flash_init();
+    }
+    return err;
+}
+
+esp_err_t ConfigStore::Load(DeviceSettings *settings) {
+    if (settings == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    ApplyDefaults(settings);
+
+    nvs_handle_t handle = 0;
+    esp_err_t err = nvs_open(kConfigNamespace, NVS_READONLY, &handle);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        return ESP_OK;
+    }
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    uint32_t schema = 0;
+    err = nvs_get_u32(handle, kSchemaKey, &schema);
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
+        nvs_close(handle);
+        return err;
+    }
+
+    err = GetString(handle, kLanguageKey, &settings->language);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kOpenAiKeyKey, &settings->openai.api_key);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kOpenAiTranscriptionModelKey, &settings->openai.transcription_model);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kOpenAiResponseModelKey, &settings->openai.response_model);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kOpenAiSpeechModelKey, &settings->openai.speech_model);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kOpenAiVoiceKey, &settings->openai.voice);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+
+    uint8_t smtp_enabled = 0;
+    if (nvs_get_u8(handle, kSmtpEnabledKey, &smtp_enabled) == ESP_OK) {
+        settings->smtp.enabled = smtp_enabled != 0;
+    }
+    uint8_t smtp_tls = 1;
+    if (nvs_get_u8(handle, kSmtpTlsKey, &smtp_tls) == ESP_OK) {
+        settings->smtp.use_tls = smtp_tls != 0;
+    }
+    uint16_t smtp_port = 587;
+    if (nvs_get_u16(handle, kSmtpPortKey, &smtp_port) == ESP_OK) {
+        settings->smtp.port = smtp_port;
+    }
+    err = GetString(handle, kSmtpHostKey, &settings->smtp.host);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kSmtpUsernameKey, &settings->smtp.username);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kSmtpPasswordKey, &settings->smtp.password);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kSmtpFromKey, &settings->smtp.from);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = GetString(handle, kSmtpRecipientKey, &settings->smtp.recipient);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
+    err = LoadWifi(handle, settings);
+    nvs_close(handle);
+    return err;
+}
+
+esp_err_t ConfigStore::Save(const DeviceSettings &settings) {
+    nvs_handle_t handle = 0;
+    esp_err_t err = nvs_open(kConfigNamespace, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = nvs_set_u32(handle, kSchemaKey, kConfigSchemaVersion);
+    if (err == ESP_OK) {
+        err = SetString(handle, kLanguageKey, settings.language);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiKeyKey, settings.openai.api_key);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiTranscriptionModelKey, settings.openai.transcription_model);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiResponseModelKey, settings.openai.response_model);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiSpeechModelKey, settings.openai.speech_model);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiVoiceKey, settings.openai.voice);
+    }
+    if (err == ESP_OK) {
+        err = nvs_set_u8(handle, kSmtpEnabledKey, settings.smtp.enabled ? 1 : 0);
+    }
+    if (err == ESP_OK) {
+        err = nvs_set_u8(handle, kSmtpTlsKey, settings.smtp.use_tls ? 1 : 0);
+    }
+    if (err == ESP_OK) {
+        err = nvs_set_u16(handle, kSmtpPortKey, settings.smtp.port);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kSmtpHostKey, settings.smtp.host);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kSmtpUsernameKey, settings.smtp.username);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kSmtpPasswordKey, settings.smtp.password);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kSmtpFromKey, settings.smtp.from);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kSmtpRecipientKey, settings.smtp.recipient);
+    }
+    if (err == ESP_OK) {
+        err = SaveWifi(handle, settings);
+    }
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    return err;
+}
+
+esp_err_t ConfigStore::Reset() {
+    nvs_handle_t handle = 0;
+    esp_err_t err = nvs_open(kConfigNamespace, NVS_READWRITE, &handle);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        return ESP_OK;
+    }
+    if (err != ESP_OK) {
+        return err;
+    }
+    err = nvs_erase_all(handle);
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    return err;
+}
+
+}  // namespace bisc8

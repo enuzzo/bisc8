@@ -4,11 +4,47 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 
 ## Current Behavior
 
-- BOOT click: pick a random non-repeating fortune from the generated grimorio data and play a beep.
+- First boot defaults to English.
+- BOOT click: pick a random non-repeating fortune from the generated grimoire data and play a beep.
+- Hold BOOT to ask a voice question. Release BOOT to send it to the voice-oracle flow when OpenAI settings are configured.
+- BOOT long press forces Wi-Fi setup. BOOT + PWR long press performs a full configuration reset.
 - PWR click: run the microphone record/playback test.
 - PWR long press: show the Bisc8 power-off prompt, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
-- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `HELP`.
+- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
+- Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, SMTP settings, and recipient email.
+- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects.
+- Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
+- Captive probe HTTP routes redirect to `/`; the e-paper fallback still shows manual connection instructions because captive detection can be unreliable.
+
+## Product Setup Roadmap
+
+Bisc8 is moving toward a no-recompile product setup flow:
+
+- The local web UI currently serves the setup shell and masked status JSON.
+- The next web UI milestone will add real POST handlers for Wi-Fi, language, OpenAI API key, SMTP, status, and reset.
+- OpenAI, Wi-Fi, and SMTP secrets are stored on the device. Enable flash encryption before production use.
+- SMTP is direct from the device with user-provided SMTP host, port, security, username, password, sender, and recipient.
+
+## Voice Oracle Flow
+
+The intended online flow is:
+
+1. Hold BOOT and speak a question.
+2. Release BOOT, or hit the 15 second recording limit.
+3. Bisc8 uploads the recorded audio for speech-to-text.
+4. The model detects the question language and writes a contextual oracle answer in that language.
+5. The e-paper shows a short answer of at most 100 characters.
+6. Text-to-speech generates the spoken answer and Bisc8 plays it.
+7. If SMTP is configured, Bisc8 sends the transcript, full answer, and audio when feasible.
+
+Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
+
+Audio is not stored in NVS. The firmware reserves a flash `spool` partition for temporary WAV/PCM payloads so 15 second questions do not have to fit in RAM.
+
+## Logo Asset
+
+Create the source logo as a square `1024x1024` PNG. Use pure black on white or transparency, no text, no gradients, and a strong silhouette readable at `64x64`. The firmware pipeline will convert it into a clean `64x64` 1-bit bitmap for the 200x200 e-paper boot screen.
 
 ## Firmware
 
@@ -38,6 +74,8 @@ Source fortunes are stored in:
 assets/grimorio.txt
 ```
 
+Localized grimoire assets will live beside it as `assets/grimorio.en.txt` and `assets/grimorio.es.txt`. Each line must stay under 120 characters for the current 200x200 e-paper layout.
+
 Generate firmware flash data:
 
 ```sh
@@ -63,11 +101,11 @@ screenshots/epaper/
 ## Tests
 
 ```sh
-python3 -m pytest tests/test_display_design_static.py tests/test_generate_fortunes.py tests/test_snapshot_png.py -q
+.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests
 ```
 
-Latest local result before repository initialization:
+Latest local result:
 
 ```text
-18 passed
+33 passed
 ```

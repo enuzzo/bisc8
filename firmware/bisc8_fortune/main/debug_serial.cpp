@@ -111,7 +111,7 @@ void command_task(void *) {
         } else if (strcmp(line, "SNAP") == 0) {
             dump_snapshot();
         } else if (strcmp(line, "HELP") == 0) {
-            DebugSerial::LogAlways("[SERIAL]", "commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, HELP");
+            DebugSerial::LogAlways("[SERIAL]", "commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, WIFI SETUP, WIFI RESET, CONFIG RESET, HELP");
         } else if (g_command_handler != nullptr && g_command_handler(line)) {
             continue;
         } else {
@@ -127,7 +127,7 @@ void DebugSerial::Start(StatusPrinter status_printer, CommandHandler command_han
     g_command_handler = command_handler;
     configure_usb_console();
     xTaskCreatePinnedToCore(command_task, "debug_serial", 4096, nullptr, 3, nullptr, 0);
-    LogAlways("[SERIAL]", "ready; commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, HELP");
+    LogAlways("[SERIAL]", "ready; commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, WIFI SETUP, WIFI RESET, CONFIG RESET, HELP");
 }
 
 void DebugSerial::SetVerbose(bool enabled) {
