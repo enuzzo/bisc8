@@ -104,7 +104,8 @@ extern "C" void app_main(void) {
     ConnectivityService connectivity;
     VoiceOracleService oracle;
     WebPortal portal;
-    portal.BindStatus(&connectivity.Status(), &settings);
+    portal.BindStatus(&connectivity.Status());
+    portal.BindConfig(&config_store, &settings);
     g_fortune_count = fortunes.Count();
 
     esp_err_t err = config_store.Init();

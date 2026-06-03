@@ -9,6 +9,7 @@ namespace bisc8 {
 
 struct DeviceSettings;
 struct WifiStatus;
+class ConfigStore;
 
 using HttpHandler = esp_err_t (*)(httpd_req_t *req);
 
@@ -18,7 +19,8 @@ const char *PortalIndexHtml();
 
 class WebPortal {
 public:
-    void BindStatus(const WifiStatus *wifi, const DeviceSettings *settings);
+    void BindStatus(const WifiStatus *wifi);
+    void BindConfig(ConfigStore *config_store, DeviceSettings *settings);
     esp_err_t Start();
     void Stop();
     bool Running() const;
@@ -26,14 +28,22 @@ public:
 private:
     static esp_err_t HandleIndex(httpd_req_t *req);
     static esp_err_t HandleStatus(httpd_req_t *req);
-    static esp_err_t HandlePlaceholderApi(httpd_req_t *req);
+    static esp_err_t HandleWifiScan(httpd_req_t *req);
+    static esp_err_t HandleWifiCredentials(httpd_req_t *req);
+    static esp_err_t HandleSettings(httpd_req_t *req);
+    static esp_err_t HandleOpenAi(httpd_req_t *req);
+    static esp_err_t HandleSmtp(httpd_req_t *req);
+    static esp_err_t HandleReset(httpd_req_t *req);
     static esp_err_t HandleCaptiveRedirect(httpd_req_t *req);
-    esp_err_t RegisterGet(const char *uri, HttpHandler handler);
+    esp_err_t RegisterRoute(const char *uri, httpd_method_t method, HttpHandler handler);
     esp_err_t SendStatusJson(httpd_req_t *req) const;
+    esp_err_t SendWifiScanJson(httpd_req_t *req) const;
+    esp_err_t SaveCurrentSettings();
 
     httpd_handle_t server_ = nullptr;
     const WifiStatus *wifi_ = nullptr;
-    const DeviceSettings *settings_ = nullptr;
+    DeviceSettings *settings_ = nullptr;
+    ConfigStore *config_store_ = nullptr;
     bool running_ = false;
 };
 

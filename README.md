@@ -21,8 +21,9 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 
 Bisc8 is moving toward a no-recompile product setup flow:
 
-- The local web UI currently serves the setup shell and masked status JSON.
-- The next web UI milestone will add real POST handlers for Wi-Fi, language, OpenAI API key, SMTP, status, and reset.
+- The local web UI serves responsive forms for Wi-Fi, language, OpenAI API key, SMTP, status, and reset.
+- API responses mask stored secrets; blank secret fields keep the currently stored value.
+- The next web UI milestone will add richer validation and hardware QA for captive portal behavior across phones and laptops.
 - OpenAI, Wi-Fi, and SMTP secrets are stored on the device. Enable flash encryption before production use.
 - SMTP is direct from the device with user-provided SMTP host, port, security, username, password, sender, and recipient.
 

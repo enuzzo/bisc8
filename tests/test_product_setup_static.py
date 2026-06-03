@@ -123,6 +123,44 @@ def test_portal_runs_http_server_and_redirects_captive_probes():
     assert "esp_http_server" in cmake
 
 
+def test_portal_has_real_forms_post_handlers_and_config_save():
+    header = read(MAIN / "web_portal.h")
+    source = read(MAIN / "web_portal.cpp")
+
+    for token in (
+        "BindConfig",
+        "ConfigStore",
+        "HTTP_POST",
+        "HandleWifiCredentials",
+        "HandleSettings",
+        "HandleOpenAi",
+        "HandleSmtp",
+        "HandleReset",
+        "ReadRequestBody",
+        "UrlDecode",
+        "ParseForm",
+        "config_store_->Save",
+        "config_store_->Reset",
+        "esp_wifi_scan_start",
+        "esp_wifi_scan_get_ap_records",
+    ):
+        assert token in source or token in header
+    for html in (
+        "data-bind=\"setup_ssid\"",
+        "name=\"ssid\"",
+        "name=\"language\"",
+        "name=\"api_key\"",
+        "name=\"host\"",
+        "name=\"recipient\"",
+        "api('/api/status')",
+        "data-api=\"/api/wifi/credentials\"",
+        "data-api=\"/api/openai\"",
+        "data-api=\"/api/smtp\"",
+        "api('/api/reset'",
+    ):
+        assert html in source
+
+
 def test_connectivity_service_documents_multi_wifi_attempt_policy():
     header = read(MAIN / "connectivity_service.h")
     source = read(MAIN / "connectivity_service.cpp")
