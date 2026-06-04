@@ -13,6 +13,7 @@
 #include "app_events.h"
 #include "app_config.h"
 #include "audio_service.h"
+#include "battery.h"
 #include "board_support.h"
 #include "button_controller.h"
 #include "connectivity_service.h"
@@ -153,6 +154,9 @@ extern "C" void app_main(void) {
         return;
     }
 
+    BatteryInit();
+    DebugSerial::LogAlways("[BATT]", "level=%u voltage=%.2fV", BatteryLevel(), BatteryVoltage());
+
     err = display.Initialize();
     if (err != ESP_OK) {
         DebugSerial::LogAlways("[DISPLAY]", "display init failed: %s", esp_err_to_name(err));
@@ -171,6 +175,7 @@ extern "C" void app_main(void) {
         audio.PlayCueAsync(AudioCue::Boot);
     }
     WaitForMinimumBootSplash(boot_started);
+    display.SetBattery(BatteryLevel());
     display.ShowIntro(startup_language);
 
     bool setup_mode_active = false;
@@ -215,6 +220,7 @@ extern "C" void app_main(void) {
         }
 #endif
 
+        display.SetBattery(BatteryLevel());
         switch (event) {
             case AppEvent::GenerateFortune: {
                 g_state = "fortune";

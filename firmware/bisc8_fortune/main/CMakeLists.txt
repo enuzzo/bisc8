@@ -1,8 +1,9 @@
 idf_component_register(
-    SRCS 
+    SRCS
     "app_main.cpp"
     "app_config.cpp"
     "audio_service.cpp"
+    "battery.cpp"
     "board_support.cpp"
     "button_controller.cpp"
     "captive_dns_service.cpp"
@@ -19,6 +20,7 @@ idf_component_register(
     INCLUDE_DIRS 
     "./"
     PRIV_REQUIRES
+    esp_adc
     esp_driver_gpio
     esp_event
     esp_http_server

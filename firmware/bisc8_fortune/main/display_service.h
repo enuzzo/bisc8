@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include <esp_err.h>
 #include <lvgl.h>
@@ -33,6 +34,9 @@ public:
     void ShowSleep(Language language);
     void ShowError(const char *message, Language language);
 
+    // Latest battery charge (0-100, or 255 = unknown -> indicator hidden).
+    void SetBattery(uint8_t pct);
+
 private:
     void CreateScreen();
     void BuildChrome();
@@ -43,10 +47,11 @@ private:
     void LayoutBoot();                 // full-screen splash + mascot, no chrome
     void LayoutIntro();                // chrome + instruction + arrow toward BOOT
     void LayoutMessage();              // chrome + small-caps title + centered body
-    void LayoutResponso(const char *count);  // chrome + big body + count footer
+    void LayoutResponso();             // chrome + big body + count footer
     void LayoutWifiSetup();            // chrome + network line + big IP + hint
 
     void SetText(const char *title, const char *body, const char *footer);
+    void RenderBattery();              // footer-right battery % (or blank if unknown)
 
     lv_obj_t *screen_ = nullptr;
     lv_obj_t *chrome_group_ = nullptr;
@@ -58,6 +63,7 @@ private:
     lv_obj_t *body_label_ = nullptr;
     lv_obj_t *footer_left_ = nullptr;
     lv_obj_t *footer_right_ = nullptr;
+    uint8_t battery_pct_ = 255;          // 255 = unknown
 };
 
 }  // namespace bisc8

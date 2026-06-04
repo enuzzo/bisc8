@@ -233,6 +233,23 @@ void DisplayService::SetText(const char *title, const char *body, const char *fo
     lv_obj_update_layout(screen_);
 }
 
+void DisplayService::SetBattery(uint8_t pct) {
+    battery_pct_ = pct;
+}
+
+void DisplayService::RenderBattery() {
+    if (footer_right_ == nullptr) {
+        return;
+    }
+    if (battery_pct_ <= 100) {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%u%%", battery_pct_);
+        lv_label_set_text(footer_right_, buf);
+    } else {
+        lv_label_set_text(footer_right_, "");
+    }
+}
+
 void DisplayService::LayoutBoot() {
     set_hidden(splash_group_, false);
     set_hidden(chrome_group_, true);
@@ -290,7 +307,7 @@ void DisplayService::LayoutMessage() {
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
-    set_hidden(footer_right_, true);
+    set_hidden(footer_right_, false);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 32);
@@ -303,10 +320,15 @@ void DisplayService::LayoutMessage() {
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
-    lv_obj_set_size(footer_left_, 184, 16);
+    lv_obj_set_size(footer_left_, 118, 16);
+
+    style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
+    lv_obj_set_pos(footer_right_, 126, 182);
+    lv_obj_set_size(footer_right_, 66, 16);
+    RenderBattery();
 }
 
-void DisplayService::LayoutResponso(const char *count) {
+void DisplayService::LayoutResponso() {
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, true);
@@ -323,12 +345,12 @@ void DisplayService::LayoutResponso(const char *count) {
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
-    lv_obj_set_size(footer_left_, 80, 16);
+    lv_obj_set_size(footer_left_, 100, 16);
 
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_set_pos(footer_right_, 112, 182);
-    lv_obj_set_size(footer_right_, 80, 16);
-    lv_label_set_text(footer_right_, count != nullptr ? count : "");
+    lv_obj_set_pos(footer_right_, 108, 182);
+    lv_obj_set_size(footer_right_, 84, 16);
+    RenderBattery();
 }
 
 void DisplayService::LayoutWifiSetup() {
@@ -459,9 +481,9 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
     char counter[24];
     snprintf(counter, sizeof(counter), "%u/%u", static_cast<unsigned>(index + 1), static_cast<unsigned>(count));
     if (Lvgl_lock(-1)) {
-        LayoutResponso(counter);
+        LayoutResponso();
         lv_label_set_text(body_label_, fortune != nullptr ? fortune : "");
-        lv_label_set_text(footer_left_, "");
+        lv_label_set_text(footer_left_, counter);
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
