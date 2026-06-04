@@ -19,13 +19,13 @@ public:
     void RunMicTest(DisplayService &display);
 
 private:
-    void PrepareBeep();
+    void PrepareChime();
 
     bool available_ = false;
     uint8_t *record_buffer_ = nullptr;
     size_t record_bytes_ = 0;
-    uint8_t *beep_buffer_ = nullptr;
-    size_t beep_bytes_ = 0;
+    uint8_t *feedback_buffer_ = nullptr;
+    size_t feedback_bytes_ = 0;
     bool voice_recording_ = false;
 };
 

@@ -1,5 +1,6 @@
 #include "audio_service.h"
 
+#include <math.h>
 #include <string.h>
 
 #include <esp_heap_caps.h>
@@ -18,9 +19,10 @@ constexpr int kSampleRate = 16000;
 constexpr int kChannels = 2;
 constexpr int kBytesPerSample = 2;
 constexpr int kRecordMillis = 1000;
-constexpr int kBeepMillis = 90;
-constexpr int kBeepFrequencyHz = 880;
-constexpr int16_t kBeepAmplitude = 9000;
+constexpr int kChimeMillis = 120;
+constexpr float kChimeAttackRatio = 0.16f;
+constexpr float kChimeAmplitude = 7800.0f;
+constexpr float kPi = 3.14159265f;
 }  // namespace
 
 esp_err_t AudioService::Initialize() {
@@ -40,26 +42,32 @@ esp_err_t AudioService::Initialize() {
         return ESP_ERR_NO_MEM;
     }
 
-    PrepareBeep();
-    available_ = beep_buffer_ != nullptr;
-    DebugSerial::LogAlways("[AUDIO]", "ready record_bytes=%u beep_bytes=%u", static_cast<unsigned>(record_bytes_), static_cast<unsigned>(beep_bytes_));
+    PrepareChime();
+    available_ = feedback_buffer_ != nullptr;
+    DebugSerial::LogAlways("[AUDIO]", "ready record_bytes=%u feedback_bytes=%u", static_cast<unsigned>(record_bytes_), static_cast<unsigned>(feedback_bytes_));
     return available_ ? ESP_OK : ESP_ERR_NO_MEM;
 }
 
-void AudioService::PrepareBeep() {
-    const int samples = kSampleRate * kBeepMillis / 1000;
-    beep_bytes_ = samples * kChannels * kBytesPerSample;
-    beep_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(beep_bytes_, MALLOC_CAP_DEFAULT));
-    if (beep_buffer_ == nullptr) {
+void AudioService::PrepareChime() {
+    const int samples = kSampleRate * kChimeMillis / 1000;
+    feedback_bytes_ = samples * kChannels * kBytesPerSample;
+    feedback_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(feedback_bytes_, MALLOC_CAP_DEFAULT));
+    if (feedback_buffer_ == nullptr) {
         return;
     }
 
-    int16_t *pcm = reinterpret_cast<int16_t *>(beep_buffer_);
-    const int half_period = kSampleRate / (kBeepFrequencyHz * 2);
+    int16_t *pcm = reinterpret_cast<int16_t *>(feedback_buffer_);
     for (int i = 0; i < samples; i++) {
-        const int16_t sample = ((i / half_period) % 2 == 0) ? kBeepAmplitude : -kBeepAmplitude;
-        pcm[i * 2] = sample;
-        pcm[i * 2 + 1] = sample;
+        const float t = static_cast<float>(i) / static_cast<float>(kSampleRate);
+        const float progress = static_cast<float>(i) / static_cast<float>(samples);
+        const float attack = progress < kChimeAttackRatio ? progress / kChimeAttackRatio : 1.0f;
+        const float decay = 1.0f - progress;
+        const float envelope = attack * decay * decay;
+        const float fundamental = sinf(2.0f * kPi * 1174.66f * t);
+        const float sparkle = sinf(2.0f * kPi * 1760.00f * t) * 0.42f;
+        const int16_t sample = static_cast<int16_t>((fundamental + sparkle) * kChimeAmplitude * envelope);
+        pcm[i * kChannels] = sample;
+        pcm[i * kChannels + 1] = sample;
     }
 }
 
@@ -68,12 +76,12 @@ bool AudioService::Available() const {
 }
 
 void AudioService::PlayBeep() {
-    if (!available_ || beep_buffer_ == nullptr) {
+    if (!available_ || feedback_buffer_ == nullptr) {
         DebugSerial::Log("[AUDIO]", "beep skipped; audio unavailable");
         return;
     }
-    esp_err_t err = Codec_PlaybackData(beep_buffer_, beep_bytes_);
-    DebugSerial::Log("[AUDIO]", "beep bytes=%u result=%s", static_cast<unsigned>(beep_bytes_), esp_err_to_name(err));
+    esp_err_t err = Codec_PlaybackData(feedback_buffer_, feedback_bytes_);
+    DebugSerial::Log("[AUDIO]", "chime bytes=%u result=%s", static_cast<unsigned>(feedback_bytes_), esp_err_to_name(err));
 }
 
 void AudioService::StartVoiceRecording() {

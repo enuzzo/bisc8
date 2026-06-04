@@ -140,6 +140,13 @@ extern "C" void app_main(void) {
     display.ShowBoot();
     vTaskDelay(pdMS_TO_TICKS(3600));
 
+    err = audio.Initialize();
+    g_audio_ready = (err == ESP_OK);
+    if (!g_audio_ready) {
+        DebugSerial::LogAlways("[AUDIO]", "audio init failed: %s", esp_err_to_name(err));
+        display.ShowAudioUnavailable();
+    }
+
     bool setup_mode_active = false;
     if (gpio_get_level(BOOT_BUTTON_PIN) == 0) {
         DebugSerial::LogAlways("[BOOT]", "BOOT held during startup; forcing Wi-Fi setup");
@@ -150,11 +157,7 @@ extern "C" void app_main(void) {
         setup_mode_active = true;
     }
 
-    err = audio.Initialize();
-    g_audio_ready = (err == ESP_OK);
-    if (!g_audio_ready) {
-        display.ShowAudioUnavailable();
-    } else if (!setup_mode_active) {
+    if (g_audio_ready && !setup_mode_active) {
         display.ShowIdle(g_fortune_count);
     }
 

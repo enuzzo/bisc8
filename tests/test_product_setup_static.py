@@ -229,6 +229,26 @@ def test_voice_oracle_contract_and_audio_limits_are_explicit():
     assert "FinishVoiceRecording" in audio_header
 
 
+def test_audio_initializes_before_wifi_and_setup_portal():
+    app_main = read(MAIN / "app_main.cpp")
+
+    audio_init = app_main.index("err = audio.Initialize();")
+    wifi_try = app_main.index("connectivity.TryKnownNetworks")
+    setup_start = app_main.index("connectivity.StartSetupPortal")
+    assert audio_init < wifi_try
+    assert audio_init < setup_start
+
+
+def test_audio_feedback_uses_short_generated_chime():
+    source = read(MAIN / "audio_service.cpp")
+
+    assert "PrepareChime" in source
+    assert "kChimeMillis" in source
+    assert "sinf" in source
+    assert "decay" in source
+    assert "Codec_PlaybackData" in source
+
+
 def test_smtp_service_is_direct_from_device_and_degrades_to_text_only():
     header = read(MAIN / "smtp_service.h")
     source = read(MAIN / "smtp_service.cpp")
