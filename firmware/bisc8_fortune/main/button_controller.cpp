@@ -60,6 +60,11 @@ void ButtonController::Initialize(QueueHandle_t queue) {
         send_event(AppEvent::ShowStatus);
     });
 
+    power_button_->OnMultipleClick([]() {
+        DebugSerial::LogAlways("[BUTTON]", "PWR triple click: full config reset");
+        send_event(AppEvent::FullConfigReset);
+    }, 3);
+
     power_button_->OnLongPress([]() {
         DebugSerial::LogAlways("[BUTTON]", "PWR long press");
         send_event(AppEvent::Sleep);

@@ -616,6 +616,9 @@ def test_button_events_cover_voice_and_setup_recovery():
     assert "BOOT+PWR" in buttons
     assert "power_button_->OnClick" in buttons
     assert "AppEvent::ShowStatus" in buttons
+    assert "power_button_->OnMultipleClick" in buttons
+    assert "PWR triple click: full config reset" in buttons
+    assert "send_event(AppEvent::FullConfigReset)" in buttons
     assert "send_event(AppEvent::MicTest)" not in buttons
     assert "VOICE START" in app_main
     assert "VOICE STOP" in app_main
@@ -668,6 +671,7 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "OpenAI API key",
         "email relay",
         "Hold BOOT to ask",
+        "PWR triple click",
         "BOOT + PWR",
         "1024x1024",
         "64x64",
@@ -693,6 +697,7 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
         "Setup PIN",
         "sensitive POST routes",
         "GET status and Wi-Fi scan do not expose secrets or the PIN",
+        "PWR triple click",
         "CONFIG_BISC8_EMAIL_RELAY_URL",
         "Run this before claiming completion",
     ):

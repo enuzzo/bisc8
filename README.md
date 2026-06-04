@@ -11,7 +11,7 @@ For future AI agents and contributors, start with the extended project map in [`
 - BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
 - Hold BOOT to ask by recording a voice question. Release BOOT to enter the voice-oracle flow; OpenAI transport is still pending and currently returns an unconfigured/error state.
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
-- BOOT long press starts the voice/dictation flow. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` for a reliable full configuration reset.
+- BOOT long press starts the voice/dictation flow. PWR triple click performs a full configuration reset and reopens the setup portal with a fresh PIN. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` as a maintenance fallback.
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
