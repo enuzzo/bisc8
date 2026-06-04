@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bisc8</title>
+<style>
+@font-face{font-family:'Pixelify';font-style:normal;font-weight:400 700;font-display:swap;src:url(data:font/woff2;base64,__FONT_B64__) format('woff2');}
+:root{--ink:#000;--paper:#fff;--desk:#cfc9bd;}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{background:repeating-conic-gradient(var(--desk) 0% 25%,#c6c0b3 0% 50%) 0 0/3px 3px;
+     font-family:'Pixelify',ui-sans-serif,sans-serif;color:var(--ink);padding:14px 10px 96px;-webkit-font-smoothing:none;}
+.mascot{background:url(data:image/png;base64,__MASCOT_B64__) center/contain no-repeat;display:inline-block;}
+.app{max-width:390px;margin:0 auto;background:var(--paper);border:2px solid var(--ink);box-shadow:5px 5px 0 rgba(0,0,0,.35);}
+.titlebar{position:relative;height:26px;border-bottom:2px solid var(--ink);
+          background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);display:flex;align-items:center;justify-content:center;}
+.close{position:absolute;left:8px;top:6px;width:12px;height:12px;border:2px solid var(--ink);background:var(--paper);}
+.ttl{background:var(--paper);padding:0 12px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.ttl .mascot{width:18px;height:18px;}
+.wrap{padding:14px 13px 16px;}
+.status{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);margin-bottom:16px;}
+.status .cell{padding:7px 9px;border-top:2px solid var(--ink);border-left:2px solid var(--ink);}
+.status .cell:nth-child(1),.status .cell:nth-child(2){border-top:none;}
+.status .cell:nth-child(odd){border-left:none;}
+.status .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+.status .v{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group{position:relative;border:2px solid var(--ink);padding:16px 12px 13px;margin:0 0 16px;}
+.group>.glabel{position:absolute;top:-9px;left:10px;background:var(--paper);padding:0 6px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.hint{font-size:13px;line-height:1.4;margin:0 0 11px;}
+.hint.below{margin:10px 0 0;}
+label.fld{display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 4px;}
+input,select{font-family:inherit;width:100%;min-height:42px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:8px 10px;font-size:16px;border-radius:0;}
+input:focus,select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--ink);}
+.field{margin-bottom:11px;}.pwd{position:relative;display:block;}.pwd>input{padding-right:48px;}.pwd .eye{position:absolute;right:2px;top:2px;bottom:2px;width:42px;border:0;border-left:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0;}.pwd .eye.on{background:var(--ink);color:var(--paper);}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;}
+.btn{font-family:inherit;font-size:15px;font-weight:700;background:var(--ink);color:var(--paper);border:2px solid var(--ink);padding:9px 16px;box-shadow:3px 3px 0 var(--ink);cursor:pointer;}
+.btn:active{transform:translate(3px,3px);box-shadow:none;}
+.btn.sec{background:var(--paper);color:var(--ink);}
+.btn:disabled{opacity:.55;cursor:wait;}
+.seg{display:inline-flex;border:2px solid var(--ink);}
+.seg b{font-weight:700;padding:9px 16px;cursor:pointer;font-size:15px;min-width:46px;text-align:center;user-select:none;}
+.seg b+b{border-left:2px solid var(--ink);}
+.seg b.on{background:var(--ink);color:var(--paper);}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:2px dotted var(--ink);font-size:15px;}
+.row:first-child{border-top:none;}
+.muted{font-size:13px;}
+.pill{border:2px solid var(--ink);padding:3px 9px;box-shadow:2px 2px 0 var(--ink);font-size:13px;font-family:ui-monospace,monospace;}
+.scan{border:2px solid var(--ink);margin:0 0 11px;max-height:120px;overflow:auto;}
+.scan .h{background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-bottom:2px solid var(--ink);}
+.scan .h span{background:var(--paper);padding:0 4px;}
+.scan button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--ink);background:transparent;font-family:inherit;font-size:14px;padding:8px 9px;cursor:pointer;}
+.scan button:last-child{border-bottom:0;}
+.scan button:hover{background:var(--ink);color:var(--paper);}
+details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;letter-spacing:.5px;}
+.foot{font-size:12px;line-height:1.45;margin-top:14px;}
+.diac{margin-top:14px;border-top:2px dotted var(--ink);padding-top:10px;}
+.diac .k{font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.diac p{font-size:17px;margin:5px 0 0;line-height:1.5;}
+.rebar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:390px;background:var(--ink);color:var(--paper);padding:11px 12px 12px;display:none;align-items:center;gap:11px;z-index:60;}
+.rebar.show{display:flex;}
+.rebar::before{content:"";position:absolute;top:-3px;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,var(--paper) 0 4px,transparent 4px 8px);}
+.rebar .ic{width:30px;height:30px;flex:none;background:var(--paper);display:grid;place-items:center;}
+.rebar .ic .mascot{width:24px;height:24px;}
+.rebar .txt{flex:1;font-size:14px;line-height:1.22;}
+.rebar .txt b{display:block;font-size:15px;font-weight:700;}
+.rebar .go{font-family:inherit;font-size:15px;font-weight:700;background:var(--paper);color:var(--ink);border:2px solid var(--paper);padding:9px 14px;box-shadow:3px 3px 0 rgba(255,255,255,.35);cursor:pointer;flex:none;}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--ink);color:var(--paper);padding:9px 14px;font-size:14px;font-weight:700;display:none;z-index:70;}
+.toast.show{display:block;}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar"><div class="close"></div><div class="ttl"><span class="mascot"></span>Bisc8</div></div>
+  <div class="wrap">
+
+    <div class="status">
+      <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
+      <div class="cell"><div class="k" data-i18n="st_net">Rete</div><div class="v" data-bind="network_label">setup</div></div>
+      <div class="cell"><div class="k" data-i18n="st_addr">Indirizzo</div><div class="v" data-bind="device_address">192.168.4.1</div></div>
+      <div class="cell"><div class="k" data-i18n="st_lang">Lingua</div><div class="v" data-bind="language">IT</div></div>
+    </div>
+
+    <div class="group">
+      <span class="glabel" data-i18n="wifi_label">Wi-Fi</span>
+      <p class="hint" data-i18n="wifi_hint">.</p>
+      <div class="actions" style="margin-bottom:11px">
+        <button class="btn sec" type="button" id="scan" data-i18n="wifi_scan">Cerca reti</button>
+        <span class="muted" id="scanState" data-i18n="wifi_scan_note">.</span>
+      </div>
+      <div class="scan"><div class="h"><span data-i18n="scan_h">Reti trovate</span></div><div id="scanList"></div></div>
+      <form data-api="/api/wifi/credentials">
+        <div class="field"><label class="fld" data-i18n="ssid">SSID</label><input id="ssid" name="ssid" autocomplete="off" required></div>
+        <div class="field"><label class="fld" data-i18n="password">Password</label><span class="pwd"><input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="pwd_ph"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+        <div class="actions"><button class="btn" type="submit" data-i18n="save_wifi">Salva Wi-Fi</button></div>
+      </form>
+      <form data-api="/api/wifi/credentials" class="remove">
+        <input type="hidden" name="action" value="remove">
+        <div class="row" style="margin-top:11px">
+          <span data-i18n="forget_label">Dimentica slot</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <input name="index" inputmode="numeric" placeholder="0" style="width:58px;min-height:38px;text-align:center">
+            <button class="btn sec" type="submit" data-i18n="forget">Dimentica</button>
+          </span>
+        </div>
+      </form>
+    </div>
+
+    <div class="group">
+      <span class="glabel" data-i18n="lang_label">Lingua</span>
+      <p class="hint" data-i18n="lang_hint">.</p>
+      <div class="seg" id="langSeg"><b data-lang="it">IT</b><b data-lang="en">EN</b><b data-lang="es">ES</b></div>
+    </div>
+
+    <div class="group">
+      <span class="glabel" data-i18n="oracle_label">Oracolo</span>
+      <p class="hint" data-i18n="oracle_hint">.</p>
+      <form data-api="/api/openai">
+        <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+        <div class="two">
+          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-4o-mini"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-4o-mini-tts"></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><input name="voice" placeholder="alloy"></div>
+        </div>
+        <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>
+      </form>
+      <p class="hint below"><span data-i18n="key_stored">Chiave salvata:</span> <span data-bind="openai_key">missing</span></p>
+    </div>
+
+    <div class="group">
+      <span class="glabel" data-i18n="email_label">Email</span>
+      <form data-api="/api/email">
+        <div class="field"><label class="fld" data-i18n="recipient">Destinatario</label><input name="recipient" type="email" data-i18n-placeholder="recipient_ph"></div>
+        <div class="row">
+          <span data-i18n="send_resp">Manda i responsi</span>
+          <span class="seg" id="emailSeg"><b data-val="1" data-i18n="yes">Si</b><b data-val="0" data-i18n="no">No</b></span>
+          <input type="hidden" name="enabled" id="emailEnabled" value="0">
+        </div>
+        <details>
+          <summary><span data-i18n="relay_adv">Relay (avanzato)</span></summary>
+          <div class="field"><label class="fld" data-i18n="relay_url">URL relay</label><input name="relay_url" inputmode="url" placeholder="https://relay.example.com/v1/bisc8/email"></div>
+          <div class="field"><label class="fld" data-i18n="relay_token">Token relay</label><span class="pwd"><input name="relay_token" type="password" data-i18n-placeholder="keep_token"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+        </details>
+        <div class="actions"><button class="btn" type="submit" data-i18n="save_email">Salva Email</button></div>
+      </form>
+      <p class="hint below"><span data-i18n="rec_lbl">Destinatario</span>: <span data-bind="email_recipient">missing</span>. <span data-i18n="relay_lbl">Relay</span>: <span data-bind="email_relay">missing</span></p>
+    </div>
+
+    <div class="group">
+      <span class="glabel" data-i18n="reset_label">Reset</span>
+      <div class="actions" style="margin-bottom:9px"><button class="btn sec" type="button" id="reset" data-i18n="reset_btn">Reset totale</button></div>
+      <p class="hint" style="margin:0" data-i18n="reset_hint">.</p>
+    </div>
+
+    <div class="row"><span data-i18n="firmware">Firmware</span><span class="pill" data-bind="build_version">r----</span></div>
+    <p class="foot" data-i18n="secret_warn">.</p>
+
+    <div class="diac">
+      <div class="k" data-i18n="diac_label">test</div>
+      <p>&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &aacute;&iacute;&oacute;&uacute; &ntilde; &uuml; &ccedil; &iquest;&iexcl;</p>
+    </div>
+  </div>
+</div>
+
+<div class="rebar" id="rebar">
+  <div class="ic"><span class="mascot"></span></div>
+  <div class="txt"><b data-i18n="reboot_title">Wi-Fi pronta.</b><span data-i18n="reboot_msg">Testata e salvata. Riavvia per applicarla.</span></div>
+  <button class="go" type="button" id="reboot" data-i18n="reboot_now">Riavvia ora</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const I18N={
+ it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",
+ wifi_label:"Wi-Fi",wifi_hint:"Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.",
+ wifi_scan:"Cerca reti",wifi_scan_note:"le reti vicine, niente di piu'.",scan_h:"Reti trovate",
+ ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
+ lang_label:"Lingua",lang_hint:"In che lingua vaticina l'oracolo. I responsi cambiano con lei.",
+ oracle_label:"Oracolo",oracle_hint:"La chiave vive solo qui. Non la sbandieriamo a nessuno.",
+ api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",
+ save_oracle:"Salva Oracolo",key_stored:"Chiave salvata:",
+ email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@esempio.it",send_resp:"Manda i responsi",yes:"Si",no:"No",
+ relay_adv:"Relay (avanzato)",relay_url:"URL relay",relay_token:"Token relay",keep_token:"lascia vuoto per non toccarlo",save_email:"Salva Email",
+ rec_lbl:"Destinatario",relay_lbl:"Relay",
+ reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
+ firmware:"Firmware",secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
+ reboot_title:"Wi-Fi pronta.",reboot_msg:"Testata e salvata. Riavvia per applicarla.",reboot_now:"Riavvia ora",
+ diac_label:"test diacritici",
+ missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
+ saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
+ resetConfirm:"Cancellare tutta la configurazione locale?",resetDone:"Configurazione cancellata"},
+ en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",
+ wifi_label:"Wi-Fi",wifi_hint:"Saved networks stay right here, on the device. No cloud, no nonsense.",
+ wifi_scan:"Scan",wifi_scan_note:"the networks nearby, nothing more.",scan_h:"Networks found",
+ ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
+ lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The responsi follow suit.",
+ oracle_label:"Oracle",oracle_hint:"The key lives here and nowhere else. We don't go bragging about it.",
+ api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",
+ save_oracle:"Save Oracle",key_stored:"Stored key:",
+ email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the responsi",yes:"Yes",no:"No",
+ relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
+ rec_lbl:"Recipient",relay_lbl:"Relay",
+ reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
+ firmware:"Firmware",secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
+ reboot_title:"Wi-Fi ready.",reboot_msg:"Tested and saved. Reboot to apply it.",reboot_now:"Reboot now",
+ diac_label:"diacritics test",
+ missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
+ saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
+ resetConfirm:"Wipe all local configuration?",resetDone:"Configuration wiped"},
+ es:{st_state:"Estado",st_net:"Red",st_addr:"Direccion",st_lang:"Idioma",
+ wifi_label:"Wi-Fi",wifi_hint:"Las redes guardadas se quedan aqui, en el dispositivo. Sin nube, sin lios.",
+ wifi_scan:"Buscar redes",wifi_scan_note:"las redes cercanas, nada mas.",scan_h:"Redes encontradas",
+ ssid:"SSID",password:"Contrasena",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
+ lang_label:"Idioma",lang_hint:"En que lengua vaticina el oraculo. Los responsi la siguen.",
+ oracle_label:"Oraculo",oracle_hint:"La clave vive solo aqui. No la andamos pregonando.",
+ api_key:"Clave API",keep_key:"dejalo vacio para no tocarla",stt:"Voz a texto",model:"Modelo del oraculo",tts:"Texto a voz",voice:"Voz",
+ save_oracle:"Guardar Oraculo",key_stored:"Clave guardada:",
+ email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda los responsi",yes:"Si",no:"No",
+ relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"dejalo vacio para no tocarlo",save_email:"Guardar Email",
+ rec_lbl:"Destinatario",relay_lbl:"Relay",
+ reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oraculo, email e idioma. Vuelta a cero, en ayunas.",
+ firmware:"Firmware",secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de produccion.",
+ reboot_title:"Wi-Fi lista.",reboot_msg:"Probada y guardada. Reinicia para aplicarla.",reboot_now:"Reiniciar ahora",
+ diac_label:"test de diacriticos",
+ missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
+ saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",
+ resetConfirm:"Borrar toda la configuracion local?",resetDone:"Configuracion borrada"}
+};
+let currentLanguage='en';
+const $=function(s){return document.querySelector(s)};
+const toast=function(){return document.getElementById('toast')}();
+function tr(k){return (I18N[currentLanguage]&&I18N[currentLanguage][k])||I18N.en[k]||k}
+function note(t){toast.textContent=tr(t)||t;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show')},2600)}
+async function api(u,o){const r=await fetch(u,o);const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
+function body(f){return new URLSearchParams(new FormData(f)).toString()}
+function applyLanguage(l){currentLanguage=I18N[l]?l:'en';document.documentElement.lang=currentLanguage;
+ document.querySelectorAll('[data-i18n]').forEach(function(e){e.textContent=tr(e.dataset.i18n)});
+ document.querySelectorAll('[data-i18n-placeholder]').forEach(function(e){e.placeholder=tr(e.dataset.i18nPlaceholder)});
+ document.querySelectorAll('#langSeg b').forEach(function(b){b.classList.toggle('on',b.dataset.lang===currentLanguage)});}
+function valueText(k,v){if(k==='language')return (v||'').toUpperCase();
+ if(v===''||v==null||v==='missing')return tr('missing');
+ if(v==='setup mode')return tr('setupMode');if(v==='online')return tr('onlineMode');if(v==='offline')return tr('offlineMode');
+ if(v==='configured')return tr('configured');return v;}
+function setEmailEnabled(on){document.getElementById('emailEnabled').value=on?'1':'0';
+ document.querySelectorAll('#emailSeg b').forEach(function(b){b.classList.toggle('on',(b.dataset.val==='1')===!!on)});}
+function fill(s){if(s.language)applyLanguage(s.language);
+ for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(function(el){el.textContent=valueText(k,s[k])})}
+ if(typeof s.email_enabled!=='undefined')setEmailEnabled(s.email_enabled);
+ document.getElementById('rebar').classList.toggle('show',!!s.reboot_required);}
+async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
+document.querySelectorAll('form[data-api]').forEach(function(form){form.addEventListener('submit',async function(e){e.preventDefault();const b=form.querySelector('button[type=submit]')||form.querySelector('button');if(b)b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{if(b)b.disabled=false}})});
+document.querySelectorAll('#langSeg b').forEach(function(b){b.addEventListener('click',async function(){try{fill(await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'language='+b.dataset.lang}));note('saved')}catch(e){note(e.message)}})});
+document.querySelectorAll('#emailSeg b').forEach(function(b){b.addEventListener('click',function(){setEmailEnabled(b.dataset.val==='1')})});
+document.getElementById('scan').addEventListener('click',async function(){const st=document.getElementById('scanState');const list=document.getElementById('scanList');st.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');st.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(function(n){const x=document.createElement('button');x.type='button';x.textContent=n.ssid+' · '+n.band+' · '+n.rssi;x.onclick=function(){document.getElementById('ssid').value=n.ssid};list.appendChild(x)})}catch(e){st.textContent=e.message}});
+document.getElementById('reboot').addEventListener('click',async function(){try{await api('/api/reboot',{method:'POST'});note('rebooting')}catch(e){note(e.message)}});
+document.getElementById('reset').addEventListener('click',async function(){if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
+document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);});});applyLanguage('en');refresh();
+</script>
+</body>
+</html>
