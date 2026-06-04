@@ -102,10 +102,10 @@ Build and flash:
 
 ```sh
 cd firmware/bisc8_fortune
-export IDF_TOOLS_PATH=/Users/enuzzo/Library/CloudStorage/Dropbox/Mitnick/bisc8/.espressif
+export IDF_TOOLS_PATH="$PWD/../../.espressif"
 source ../../.esp/esp-idf/export.sh
 idf.py build
-idf.py -p /dev/cu.usbmodem83201 flash
+idf.py -p /dev/cu.usbmodemXXXX flash
 ```
 
 The current firmware profile targets the 16 MB flash board and maps the full chip. The custom partition table keeps the app at `0x10000`, reserves a 6 MB app partition, a 5 MB raw `assets` partition for future bundled media/data, and a raw `spool` partition from `0xb10000` to the end of flash for recorded voice audio and temporary generated payloads. The `assets` partition is reserved but not mounted yet.
@@ -123,7 +123,7 @@ public/flash
 After a successful build, copy the bootloader, partition table, and app binary into the public flasher folder:
 
 ```sh
-python3 tools/prepare_web_flash.py --build-dir /private/tmp/bisc8-fortune-build12
+python3 tools/prepare_web_flash.py --build-dir path/to/bisc8-fortune-build
 ```
 
 The page uses ESP Web Tools with the ESP32-C6 offsets `0x0`, `0x8000`, and `0x10000`. Host it over HTTPS or localhost, then send users to the Bisc8 hotspot and `http://192.168.4.1` after flashing. Do not publish firmware images that contain private API keys, Wi-Fi credentials, or email relay tokens.

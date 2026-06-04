@@ -53,6 +53,13 @@ def generate(spec: FontSpec) -> None:
         "--force-fast-kern-format",
     ]
     subprocess.run(command, check=True)
+    normalize_generated_comment(output)
+
+
+def normalize_generated_comment(output: Path) -> None:
+    source = output.read_text(encoding="utf-8")
+    source = source.replace(str(ROOT) + "/", "")
+    output.write_text(source, encoding="utf-8")
 
 
 def main() -> int:

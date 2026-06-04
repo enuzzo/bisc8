@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 25 px
  * Bpp: 4
- * Opts: --no-compress --no-prefilter --bpp 4 --size 25 --font /Users/enuzzo/Library/CloudStorage/Dropbox/Mitnick/bisc8/firmware/bisc8_fortune/managed_components/lvgl__lvgl/scripts/built_in_font/Montserrat-Medium.ttf -r 0x20-0xFF --format lvgl --lv-include lvgl.h -o /Users/enuzzo/Library/CloudStorage/Dropbox/Mitnick/bisc8/firmware/bisc8_fortune/components/externlib/ui_res/bisc8_font_title_25.c --force-fast-kern-format
+ * Opts: --no-compress --no-prefilter --bpp 4 --size 25 --font firmware/bisc8_fortune/managed_components/lvgl__lvgl/scripts/built_in_font/Montserrat-Medium.ttf -r 0x20-0xFF --format lvgl --lv-include lvgl.h -o firmware/bisc8_fortune/components/externlib/ui_res/bisc8_font_title_25.c --force-fast-kern-format
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
