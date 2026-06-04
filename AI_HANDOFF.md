@@ -90,7 +90,7 @@ Runtime button behavior:
 - BOOT hold: begin voice recording.
 - BOOT release: finish recording, show "Cooking", play the voice submit cue, call the unfinished oracle service.
 - BOOT long press: begin voice/dictation mode.
-- PWR triple click: full config reset, then reopen setup portal with a fresh PIN.
+- PWR triple click: full config reset, then reopen setup portal.
 - BOOT + PWR long hold: legacy full config reset fallback, but on the current board this can be intercepted as a reboot before firmware sees the event; prefer PWR triple click or serial `CONFIG RESET`.
 - PWR click: show Wi-Fi/status instructions and IP.
 - PWR long press: show power-off screen, play shutdown cue, then deep sleep.
@@ -132,12 +132,11 @@ If no known network connects:
 
 - SoftAP starts as `Bisc8-XXXX`.
 - Portal URL is `http://192.168.4.1`.
-- A short Setup PIN is generated for that setup session and shown on the e-paper.
 - DNS captive redirect listens on UDP 53.
 - Common captive probe paths redirect to `/`.
 - PWR status gives manual fallback instructions because phone captive detection can be unreliable.
-- The sensitive POST routes require the Setup PIN: `/api/wifi/credentials`, `/api/openai`, `/api/email`, `/api/smtp`, and `/api/reset`.
-- GET status and Wi-Fi scan do not expose secrets or the PIN, so phones and laptops can still load status/scan without copying sensitive values.
+- The setup portal intentionally does not require a PIN; the product favors low-friction local setup while the SoftAP is active.
+- API responses mask stored secrets, so status and scan do not copy sensitive values back to the browser.
 
 Web routes:
 
