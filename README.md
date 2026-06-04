@@ -80,6 +80,16 @@ Then set `Bisc8 -> Default Bisc8 email relay URL` and, only for private/provisio
 
 Create the source logo as a square `1024x1024` PNG. Use pure black on white or transparency, no text, no gradients, and a strong silhouette readable at `64x64`. The firmware pipeline will convert it into a clean `64x64` 1-bit bitmap for the 200x200 e-paper boot screen.
 
+## Display Fonts
+
+Bisc8 display fonts are generated from Montserrat Medium with full Latin-1 coverage (`0x20-0xFF`) so localized Italian, Spanish, French, Portuguese, and similar European-language text keeps required accents. Do not strip accents from display strings to fit ASCII.
+
+Regenerate the LVGL font sources with:
+
+```sh
+python3 tools/generate_display_fonts.py
+```
+
 ## Firmware
 
 The ESP-IDF project lives in:

@@ -10,9 +10,8 @@
 #include "port_display.h"
 #include "port_lvgl.h"
 
-LV_FONT_DECLARE(lv_font_montserratMedium_16)
-LV_FONT_DECLARE(lv_font_montserratMedium_25)
-LV_FONT_DECLARE(lv_font_montserrat_14)
+LV_FONT_DECLARE(bisc8_font_title_25)
+LV_FONT_DECLARE(bisc8_font_ui_14)
 LV_FONT_DECLARE(bisc8_font_body_16)
 
 namespace bisc8 {
@@ -122,14 +121,14 @@ void DisplayService::CreateScreen() {
         CreateButtonHints();
 
         title_label_ = lv_label_create(screen_);
-        style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
+        style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
 
         body_label_ = lv_label_create(screen_);
         style_label(body_label_, &bisc8_font_body_16, LV_TEXT_ALIGN_CENTER);
         lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
 
         footer_label_ = lv_label_create(screen_);
-        style_label(footer_label_, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
+        style_label(footer_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
         lv_obj_set_style_text_line_space(footer_label_, 1, LV_PART_MAIN);
 
         ApplyBootLayout();
@@ -205,16 +204,16 @@ void DisplayService::CreateButtonHints() {
 
 void DisplayService::ApplyBootLayout() {
     SetDecorations(true, false, false);
-    style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
+    style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 84);
     lv_obj_set_size(title_label_, 200, 32);
 
-    style_label(body_label_, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
+    style_label(body_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(body_label_, 0, 116);
     lv_obj_set_size(body_label_, 200, 20);
     lv_obj_set_style_text_line_space(body_label_, 0, LV_PART_MAIN);
 
-    style_label(footer_label_, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
+    style_label(footer_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_label_, 0, 163);
     lv_obj_set_size(footer_label_, 200, 18);
     lv_obj_set_style_text_line_space(footer_label_, 0, LV_PART_MAIN);
@@ -222,7 +221,7 @@ void DisplayService::ApplyBootLayout() {
 
 void DisplayService::ApplyIdleLayout() {
     SetDecorations(false, true, true);
-    style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
+    style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 18);
     lv_obj_set_size(title_label_, 200, 34);
 
@@ -232,7 +231,7 @@ void DisplayService::ApplyIdleLayout() {
     lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
 
     lv_obj_set_pos(seal_group_, 53, 128);
-    style_label(footer_label_, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
+    style_label(footer_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_label_, 8, 154);
     lv_obj_set_size(footer_label_, 184, 34);
     lv_obj_set_style_text_line_space(footer_label_, 1, LV_PART_MAIN);
@@ -240,7 +239,7 @@ void DisplayService::ApplyIdleLayout() {
 
 void DisplayService::ApplyOracleLayout() {
     SetDecorations(false, true, false);
-    style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
+    style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 18);
     lv_obj_set_size(title_label_, 200, 34);
 
@@ -250,7 +249,7 @@ void DisplayService::ApplyOracleLayout() {
     lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
 
     lv_obj_set_pos(seal_group_, 53, 142);
-    style_label(footer_label_, &lv_font_montserrat_14, LV_TEXT_ALIGN_CENTER);
+    style_label(footer_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_label_, 8, 158);
     lv_obj_set_size(footer_label_, 184, 30);
     lv_obj_set_style_text_line_space(footer_label_, 1, LV_PART_MAIN);

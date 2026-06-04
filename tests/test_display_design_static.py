@@ -4,10 +4,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DISPLAY_CPP = ROOT / "firmware/bisc8_fortune/main/display_service.cpp"
 DISPLAY_H = ROOT / "firmware/bisc8_fortune/main/display_service.h"
+FACTEST_C = ROOT / "firmware/bisc8_fortune/components/externlib/ui/FacTest_ui.c"
+FACTEST_H = ROOT / "firmware/bisc8_fortune/components/externlib/ui/FacTest_ui.h"
 APP_MAIN_CPP = ROOT / "firmware/bisc8_fortune/main/app_main.cpp"
 BOARD_CPP = ROOT / "firmware/bisc8_fortune/main/board_support.cpp"
 BOARD_H = ROOT / "firmware/bisc8_fortune/main/board_support.h"
 KCONFIG = ROOT / "firmware/bisc8_fortune/main/Kconfig.projbuild"
+LOCALIZATION_CPP = ROOT / "firmware/bisc8_fortune/main/localization.cpp"
+UI_RES = ROOT / "firmware/bisc8_fortune/components/externlib/ui_res"
+FONT_GEN = ROOT / "tools/generate_display_fonts.py"
 
 
 def test_display_service_exposes_boot_brand_screen():
@@ -26,6 +31,29 @@ def test_display_service_builds_occult_clean_frame():
     assert "CreateCookieIcon" in source
     assert "CreateLogoIcon" in source
     assert "SetDecorations" in source
+
+
+def test_display_fonts_cover_latin_1_accents():
+    display = DISPLAY_CPP.read_text(encoding="utf-8")
+    generator = FONT_GEN.read_text(encoding="utf-8")
+    body = (UI_RES / "bisc8_font_body_16.c").read_text(encoding="utf-8")
+    ui = (UI_RES / "bisc8_font_ui_14.c").read_text(encoding="utf-8")
+    title = (UI_RES / "bisc8_font_title_25.c").read_text(encoding="utf-8")
+    factest_c = FACTEST_C.read_text(encoding="utf-8")
+    factest_h = FACTEST_H.read_text(encoding="utf-8")
+
+    assert "LV_FONT_DECLARE(bisc8_font_title_25)" in display
+    assert "LV_FONT_DECLARE(bisc8_font_ui_14)" in display
+    assert "lv_font_montserrat" not in display
+    assert 'LATIN_1_RANGE = "0x20-0xFF"' in generator
+    assert "--lv-include" in generator
+    for font in (body, ui, title):
+        assert "0x20-0xFF" in font
+        assert 'U+00E8 "è"' in font
+    assert "bisc8_font_title_25" in factest_c
+    assert "bisc8_font_title_25" in factest_h
+    assert "lv_font_montserratMedium" not in factest_c
+    assert "lv_font_montserratMedium" not in factest_h
 
 
 def test_boot_screen_uses_background_jingle_instead_of_blocking_delay():
@@ -152,3 +180,21 @@ def test_display_service_exposes_wifi_and_localized_voice_states():
     assert "Open 192.168.4.1" in source
     assert "strings.listening_body" in source
     assert "strings.cooking_title" in source
+
+
+def test_localized_display_strings_keep_required_accents_and_english_cooking():
+    source = LOCALIZATION_CPP.read_text(encoding="utf-8")
+
+    for phrase in (
+        "oráculo cargando",
+        "Mantén BOOT",
+        "PWR energía",
+        "Únete a Bisc8-XXXX",
+        "El oráculo lee tu pregunta.",
+        "La pregunta está al fuego.",
+    ):
+        assert phrase in source
+    assert '"Cooking"' in source
+    assert "Bisc8 sta cucinando" not in source
+    assert "Bisc8 esta cocinando" not in source
+    assert "La domanda è sul fuoco." in source
