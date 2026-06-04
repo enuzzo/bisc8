@@ -1,6 +1,7 @@
 #include "display_service.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -46,6 +47,35 @@ void style_label(lv_obj_t *label, const lv_font_t *font, lv_text_align_t align) 
     lv_obj_set_style_pad_all(label, 0, LV_PART_MAIN);
     lv_obj_remove_flag(label, LV_OBJ_FLAG_SCROLLABLE);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+}
+
+void SetupConnectionInfoLineLayout(lv_obj_t *label) {
+    style_label(label, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(label, 2, 82);
+    lv_obj_set_size(label, 196, 20);
+    lv_obj_set_style_text_line_space(label, 0, LV_PART_MAIN);
+}
+
+const char *SetupDisplayAddress(const char *url, char *buffer, size_t buffer_len) {
+    if (buffer == nullptr || buffer_len == 0) {
+        return "";
+    }
+
+    const char *source = (url == nullptr || url[0] == '\0') ? "192.168.4.1" : url;
+    if (strncmp(source, "http://", 7) == 0) {
+        source += 7;
+    } else if (strncmp(source, "https://", 8) == 0) {
+        source += 8;
+    }
+
+    size_t i = 0;
+    while (source[i] != '\0' && source[i] != '/' && i + 1 < buffer_len) {
+        buffer[i] = source[i];
+        ++i;
+    }
+    buffer[i] = '\0';
+    return buffer;
 }
 
 void style_plain_obj(lv_obj_t *obj) {
@@ -299,16 +329,20 @@ void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
     if (status.online) {
         snprintf(body, sizeof(body), strings.status_online_body, status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str());
     } else if (status.setup_active) {
+        char address[32];
         snprintf(body,
                  sizeof(body),
                  strings.status_setup_body,
                  status.setup_ssid.empty() ? "Bisc8-XXXX" : status.setup_ssid.c_str(),
-                 status.setup_url.empty() ? "192.168.4.1" : status.setup_url.c_str());
+                 SetupDisplayAddress(status.setup_url.c_str(), address, sizeof(address)));
     } else {
         snprintf(body, sizeof(body), "%s", strings.status_offline_body);
     }
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
+        if (status.setup_active) {
+            SetupConnectionInfoLineLayout(body_label_);
+        }
         SetScreenTextLocked(strings.status_title, body, strings.status_footer);
         Lvgl_unlock();
     }
@@ -355,6 +389,7 @@ void DisplayService::ShowWifiSetup(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
+        SetupConnectionInfoLineLayout(body_label_);
         SetScreenTextLocked(strings.wifi_setup_title, strings.wifi_setup_body, strings.wifi_setup_footer);
         Lvgl_unlock();
     }

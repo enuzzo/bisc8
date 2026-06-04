@@ -184,6 +184,20 @@ def test_display_service_exposes_wifi_and_localized_voice_states():
     assert "strings.cooking_title" in source
 
 
+def test_setup_connection_info_keeps_device_name_and_ip_on_one_line():
+    display = DISPLAY_CPP.read_text(encoding="utf-8")
+    localization = LOCALIZATION_CPP.read_text(encoding="utf-8")
+
+    assert "SetupConnectionInfoLineLayout" in display
+    assert "SetupDisplayAddress" in display
+    assert "http://" in display
+    assert "Bisc8-XXXX | 192.168.4.1" in localization
+    assert '"%s | %s"' in localization
+    assert "Bisc8-XXXX\\nOpen 192.168.4.1" not in localization
+    assert "Bisc8-XXXX\\nAbre 192.168.4.1" not in localization
+    assert "Bisc8-XXXX\\nApri 192.168.4.1" not in localization
+
+
 def test_localized_display_strings_keep_required_accents_and_english_cooking():
     source = LOCALIZATION_CPP.read_text(encoding="utf-8")
 
@@ -191,7 +205,7 @@ def test_localized_display_strings_keep_required_accents_and_english_cooking():
         "oráculo cargando",
         "Mantén BOOT",
         "PWR energía",
-        "Únete a Bisc8-XXXX",
+        "Bisc8-XXXX | 192.168.4.1",
         "El oráculo lee tu pregunta.",
         "La pregunta está al fuego.",
     ):
