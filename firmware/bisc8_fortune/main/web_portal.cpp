@@ -127,7 +127,7 @@ function fill(s){for(const k in s){document.querySelectorAll('[data-bind="'+k+'"
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
 function body(form){return new URLSearchParams(new FormData(form)).toString()}
 document.querySelectorAll('form[data-api]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const b=form.querySelector('button');b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('Saved')}catch(err){note(err.message)}finally{b.disabled=false}}));
-document.getElementById('scan').addEventListener('click',async()=>{const state=document.getElementById('scanState');const list=document.getElementById('scanList');state.textContent='Scanning...';list.textContent='';try{const j=await api('/api/wifi/scan');state.textContent=j.networks.length+' networks found';j.networks.forEach(n=>{const btn=document.createElement('button');btn.type='button';btn.textContent=n.ssid+'  RSSI '+n.rssi;btn.onclick=()=>{document.getElementById('ssid').value=n.ssid};list.appendChild(btn)})}catch(e){state.textContent=e.message}});
+document.getElementById('scan').addEventListener('click',async()=>{const state=document.getElementById('scanState');const list=document.getElementById('scanList');state.textContent='Scanning...';list.textContent='';try{const j=await api('/api/wifi/scan');state.textContent=j.networks.length+' networks found';j.networks.forEach(n=>{const btn=document.createElement('button');btn.type='button';btn.textContent=n.ssid+' · '+n.band+' · RSSI '+n.rssi;btn.onclick=()=>{document.getElementById('ssid').value=n.ssid};list.appendChild(btn)})}catch(e){state.textContent=e.message}});
 document.getElementById('reset').addEventListener('click',async()=>{if(!confirm('Clear all local configuration?'))return;try{fill(await api('/api/reset',{method:'POST'}));note('Configuration cleared')}catch(e){note(e.message)}});
 refresh();
 </script>
@@ -152,6 +152,16 @@ std::string JsonString(const std::string &value) {
     }
     out.push_back('"');
     return out;
+}
+
+const char *WifiBandLabel(uint8_t channel) {
+    if (channel >= 1 && channel <= 14) {
+        return "2.4 GHz";
+    }
+    if (channel >= 36) {
+        return "5 GHz";
+    }
+    return "unknown";
 }
 
 int HexValue(char ch) {
@@ -565,6 +575,10 @@ esp_err_t WebPortal::SendWifiScanJson(httpd_req_t *req) const {
         json += JsonString(reinterpret_cast<const char *>(records[i].ssid));
         json += ",\"rssi\":";
         json += std::to_string(records[i].rssi);
+        json += ",\"channel\":";
+        json += std::to_string(records[i].primary);
+        json += ",\"band\":";
+        json += JsonString(WifiBandLabel(records[i].primary));
         json += "}";
     }
     json += "]}";

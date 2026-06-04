@@ -144,6 +144,9 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "config_store_->Reset",
         "esp_wifi_scan_start",
         "esp_wifi_scan_get_ap_records",
+        "WifiBandLabel",
+        '\\"channel\\"',
+        '\\"band\\"',
     ):
         assert token in source or token in header
     for html in (
@@ -158,6 +161,7 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "data-api=\"/api/openai\"",
         "data-api=\"/api/smtp\"",
         "api('/api/reset'",
+        "n.band",
     ):
         assert html in source
 
