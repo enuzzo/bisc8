@@ -364,6 +364,8 @@ esp_err_t WebPortal::RegisterRoute(const char *uri, httpd_method_t method, HttpH
 esp_err_t WebPortal::HandleIndex(httpd_req_t *req) {
     DebugSerial::Log("[WEB]", "GET / free_heap=%u", static_cast<unsigned>(esp_get_free_heap_size()));
     httpd_resp_set_type(req, "text/html; charset=utf-8");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store, max-age=0");
+    httpd_resp_set_hdr(req, "Pragma", "no-cache");
     return httpd_resp_send(req, kIndexHtml, HTTPD_RESP_USE_STRLEN);
 }
 

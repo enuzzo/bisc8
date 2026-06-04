@@ -176,9 +176,8 @@ extern "C" void app_main(void) {
         connectivity.StartSetupPortal(display, portal, startup_language, true);
         setup_mode_active = true;
     } else if (connectivity.TryKnownNetworks(settings, display, startup_language, false) != ESP_OK) {
-        connectivity.StartSetupPortal(display, portal, startup_language, false);
+        connectivity.StartSetupPortal(display, portal, startup_language, true);
         setup_mode_active = true;
-        display.ShowIntro(startup_language);
     }
 
     if (!setup_mode_active && connectivity.Online()) {

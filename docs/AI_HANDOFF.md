@@ -89,8 +89,8 @@ Runtime button behavior:
 - BOOT click: draw a localized fortune and play the oracle button cue.
 - BOOT hold: begin voice recording.
 - BOOT release: finish recording, show "Cooking", play the voice submit cue, call the unfinished oracle service.
-- BOOT long press: force Wi-Fi setup mode.
-- BOOT + PWR long hold: full config reset.
+- BOOT long press: begin voice/dictation mode.
+- BOOT + PWR long hold: intended full config reset, but on the current board this can be intercepted as a reboot before firmware sees the event; prefer serial `CONFIG RESET` for reliable reset.
 - PWR click: show Wi-Fi/status instructions and IP.
 - PWR long press: show power-off screen, play shutdown cue, then deep sleep.
 

@@ -170,6 +170,8 @@ def test_portal_runs_http_server_and_redirects_captive_probes():
         "httpd_register_uri_handler",
         "max_uri_handlers",
         "httpd_resp_send",
+        'httpd_resp_set_hdr(req, "Cache-Control", "no-store, max-age=0")',
+        'httpd_resp_set_hdr(req, "Pragma", "no-cache")',
         "httpd_resp_set_status(req, \"302 Found\")",
         "httpd_resp_set_hdr(req, \"Location\", \"/\")",
         "httpd_stop",
@@ -305,6 +307,17 @@ def test_setup_pin_is_displayed_on_epaper_not_exposed_in_status_json():
     status_json = web.split("esp_err_t WebPortal::SendStatusJson", 1)[1].split("esp_err_t WebPortal::SendWifiScanJson", 1)[0]
     assert '"setup_pin"' not in status_json
     assert "PairingPin()" not in status_json
+
+
+def test_automatic_setup_portal_displays_pairing_pin_screen():
+    app_main = read(MAIN / "app_main.cpp")
+
+    automatic_setup = app_main.split(
+        "connectivity.TryKnownNetworks(settings, display, startup_language, false) != ESP_OK",
+        1,
+    )[1].split("if (!setup_mode_active", 1)[0]
+    assert "connectivity.StartSetupPortal(display, portal, startup_language, true)" in automatic_setup
+    assert "display.ShowIntro(startup_language)" not in automatic_setup
 
 
 def test_portal_ui_localizes_setup_pin_entry_for_supported_languages():
@@ -616,7 +629,7 @@ def test_button_events_cover_voice_and_setup_recovery():
     boot_section = app_main[app_main.index("display.ShowIntro"):app_main.index("buttons.Initialize")]
     assert "display.ShowIdle" not in boot_section
     assert "connectivity.TryKnownNetworks(settings, display, startup_language, false)" in boot_section
-    assert "connectivity.StartSetupPortal(display, portal, startup_language, false)" in boot_section
+    assert "connectivity.StartSetupPortal(display, portal, startup_language, true)" in boot_section
 
 
 def test_fortune_service_selects_grimoire_by_language():
