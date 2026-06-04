@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bisc8 - web config (mobile) reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#000; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; padding:24px 12px 60px; background:#e9e7e2;
+        font-family:'Pixelify Sans',ui-sans-serif,sans-serif; color:var(--ink); }
+  .note{ max-width:390px; margin:0 auto 16px; font-family:ui-monospace,monospace;
+         font-size:11px; color:#555; line-height:1.5; }
+  .app{ max-width:390px; margin:0 auto; background:var(--paper); border:2px solid var(--ink); }
+  .titlebar{ position:relative; height:24px; border-bottom:2px solid var(--ink);
+             background:repeating-linear-gradient(#000 0 1px,#fff 1px 3px);
+             display:flex; align-items:center; justify-content:center; }
+  .close{ position:absolute; left:8px; top:6px; width:11px; height:11px;
+          border:2px solid var(--ink); background:var(--paper); }
+  .ttl{ background:var(--paper); padding:0 12px; font-size:14px; font-weight:600;
+        display:flex; align-items:center; gap:7px; }
+  .wrap{ padding:14px; }
+  .hero{ border:2px solid var(--ink); padding:12px; margin-bottom:14px; }
+  .lbl{ font-size:11px; letter-spacing:1px; }
+  .resp{ font-size:17px; font-weight:600; margin:6px 0 10px; line-height:1.25; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:600; background:var(--ink);
+        color:var(--paper); border:2px solid var(--ink); padding:7px 14px; box-shadow:3px 3px 0 var(--ink);
+        cursor:pointer; }
+  .row{ display:flex; align-items:center; justify-content:space-between; font-size:14px;
+        padding:11px 0; border-top:2px dotted var(--ink); }
+  .row:first-of-type{ border-top:none; }
+  .seg{ display:flex; border:2px solid var(--ink); }
+  .seg b{ padding:2px 9px; font-weight:600; }
+  .seg b + b{ border-left:2px solid var(--ink); }
+  .seg b.on{ background:var(--ink); color:var(--paper); }
+  .slider{ position:relative; width:130px; height:14px; border:2px solid var(--ink); background:var(--paper); }
+  .slider > i{ position:absolute; left:0; top:0; bottom:0; width:68%;
+               background:repeating-conic-gradient(#000 0% 25%,#fff 0% 50%) 0/3px 3px; display:block; }
+  .slider > b{ position:absolute; left:calc(68% - 5px); top:-4px; width:10px; height:20px;
+               background:var(--paper); border:2px solid var(--ink); display:block; }
+  .pill{ border:2px solid var(--ink); padding:1px 8px; box-shadow:2px 2px 0 var(--ink); font-size:12px; }
+  .muted{ font-size:12px; }
+</style>
+</head>
+<body>
+  <p class="note">// web config, mobile-first (~390px), System 6 1-bit, mascotte rubberhose nel glifo di testata.<br>
+  // ATTENZIONE: questo file mostra il LINGUAGGIO visivo, non la struttura finale.<br>
+  // Le righe sotto sono esempi di stile (segmented, slider, pill, dither). Le sezioni reali<br>
+  // vanno ricavate dal repo. Non aggiungere controlli senza una funzione reale. Niente menu finti.</p>
+
+  <div class="app">
+    <div class="titlebar">
+      <div class="close"></div>
+      <div class="ttl">
+        <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+          <circle cx="10" cy="10" r="8" fill="#fff" stroke="#000" stroke-width="2"/>
+          <circle cx="7" cy="8.5" r="1.3" fill="#000"/><circle cx="13" cy="8.5" r="1.3" fill="#000"/>
+          <path d="M7 12 Q10 15 13 12" fill="none" stroke="#000" stroke-width="1.5"/>
+          <circle cx="6" cy="5" r="1" fill="#000"/><circle cx="14" cy="6" r="1" fill="#000"/>
+        </svg>Bisc8</div>
+    </div>
+    <div class="wrap">
+
+      <div class="hero">
+        <div class="lbl">ULTIMO RESPONSO</div>
+        <div class="resp">Si'. Ma non dirlo a nessuno.</div>
+        <button class="btn">Pesca un responso</button>
+      </div>
+
+      <div class="row">
+        <span>Registro</span>
+        <span class="seg"><b class="on">IT</b><b>EN</b><b>ES</b><b>Crasi</b></span>
+      </div>
+
+      <div class="row">
+        <span>Contrasto</span>
+        <span class="slider"><i></i><b></b></span>
+      </div>
+
+      <div class="row">
+        <span>Refresh e-ink</span>
+        <span class="seg"><b class="on">Auto</b><b>Completo</b></span>
+      </div>
+
+      <div class="row">
+        <span>Responsi</span>
+        <span class="muted">gestisci &#9656;</span>
+      </div>
+
+      <div class="row">
+        <span>Wi-Fi</span>
+        <span class="muted">configura &#9656;</span>
+      </div>
+
+      <div class="row">
+        <span>Firmware</span>
+        <span class="pill">Aggiorna</span>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

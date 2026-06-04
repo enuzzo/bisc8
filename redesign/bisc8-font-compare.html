@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bisc8 - confronto font</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Jersey+10&family=DotGothic16&family=VT323&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#0a0a0a; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; padding:22px 14px 60px; background:#cfc9bd; color:#111;
+        font-family:ui-sans-serif,system-ui,sans-serif; -webkit-font-smoothing:none; }
+  h1{ font-size:18px; margin:0 0 2px; }
+  .lead{ font-size:12px; color:#333; margin:0 0 20px; max-width:900px; }
+  .grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+  .col h2{ font-family:ui-monospace,monospace; font-size:13px; margin:0 0 8px; }
+  .col .verdict{ font-family:ui-monospace,monospace; font-size:11px; color:#444; margin:0 0 8px; }
+
+  .card{ font-family:var(--f); max-width:430px; background:var(--paper); border:2px solid var(--ink); }
+  .tb{ position:relative; height:25px; border-bottom:2px solid var(--ink);
+       background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+       display:flex; align-items:center; justify-content:center; }
+  .x{ position:absolute; left:8px; top:6px; width:11px; height:11px; border:2px solid var(--ink); background:var(--paper); }
+  .tt{ background:var(--paper); padding:0 12px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .tt img{ width:17px; height:17px; image-rendering:pixelated; }
+  .wrap{ padding:13px; }
+  .status{ display:flex; gap:0; border:2px solid var(--ink); margin-bottom:13px; font-size:13px; }
+  .status div{ flex:1; padding:6px 9px; }
+  .status div+div{ border-left:2px solid var(--ink); }
+  .status b{ display:block; font-size:9px; letter-spacing:1px; text-transform:uppercase; color:#000; }
+  .group{ position:relative; border:2px solid var(--ink); padding:15px 11px 12px; margin-bottom:13px; }
+  .glabel{ position:absolute; top:-9px; left:10px; background:var(--paper); padding:0 6px;
+           font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .hint{ font-size:13px; margin:0 0 9px; line-height:1.35; }
+  label{ display:block; font-size:10px; letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+  input{ font-family:inherit; width:100%; min-height:38px; border:2px solid var(--ink); background:var(--paper);
+         padding:7px 9px; font-size:15px; border-radius:0; margin-bottom:10px; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:700; background:var(--ink); color:var(--paper);
+        border:2px solid var(--ink); padding:8px 15px; box-shadow:3px 3px 0 var(--ink); }
+  .seg{ display:inline-flex; border:2px solid var(--ink); margin-top:13px; }
+  .seg b{ font-weight:700; padding:7px 14px; font-size:14px; }
+  .seg b+b{ border-left:2px solid var(--ink); }
+  .seg b.on{ background:var(--ink); color:var(--paper); }
+  .resp{ font-size:19px; font-weight:600; margin:13px 0 8px; line-height:1.25; }
+  .diac{ font-size:15px; line-height:1.5; border-top:2px dotted var(--ink); padding-top:8px; margin-top:11px; }
+  .small{ font-size:11px; color:#444; }
+</style>
+</head>
+<body>
+  <h1>Bisc8 - confronto typeface (stessa config, 4 pixel font candidate)</h1>
+  <p class="lead">Tutte pixel/display, ma piu' leggibili di Pixelify Sans. Stessi corpi in px per un confronto onesto (poi si tara).
+  Guarda il corpo del testo, la riga responso e soprattutto la riga diacritici (deve renderizzare ł ő ű ē š ž č ć đ senza buchi).</p>
+
+  <div class="grid">
+
+    <div class="col" style="--f:'Pixelify Sans'">
+      <h2>A. Pixelify Sans</h2>
+      <p class="verdict">// quella attuale - tu dici: dura da leggere</p>
+      <div class="card">
+        <div class="tb"><div class="x"></div><div class="tt"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div></div>
+        <div class="wrap">
+          <div class="status"><div><b>Stato</b>setup</div><div><b>Rete</b>Bisc8-AB12</div></div>
+          <div class="group"><span class="glabel">Wi-Fi</span>
+            <p class="hint">Le reti salvate restano qui, sul dispositivo.</p>
+            <label>SSID</label><input value="Casa Mortal Kombat">
+            <button class="btn">Salva Wi-Fi</button>
+            <div class="seg"><b class="on">IT</b><b>EN</b><b>ES</b></div>
+          </div>
+          <div class="resp">Si'. Ma non dirlo a nessuno.</div>
+          <div class="diac">&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &ccedil;&ntilde; &uuml;&ouml;&auml; &szlig; &oslash;&aring;&aelig;&oelig; ł ő ű ē š ž č ć đ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col" style="--f:'Jersey 10'">
+      <h2>B. Jersey 10</h2>
+      <p class="verdict">// pixel pulito, griglia regolare, molto leggibile</p>
+      <div class="card">
+        <div class="tb"><div class="x"></div><div class="tt"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div></div>
+        <div class="wrap">
+          <div class="status"><div><b>Stato</b>setup</div><div><b>Rete</b>Bisc8-AB12</div></div>
+          <div class="group"><span class="glabel">Wi-Fi</span>
+            <p class="hint">Le reti salvate restano qui, sul dispositivo.</p>
+            <label>SSID</label><input value="Casa Mortal Kombat">
+            <button class="btn">Salva Wi-Fi</button>
+            <div class="seg"><b class="on">IT</b><b>EN</b><b>ES</b></div>
+          </div>
+          <div class="resp">Si'. Ma non dirlo a nessuno.</div>
+          <div class="diac">&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &ccedil;&ntilde; &uuml;&ouml;&auml; &szlig; &oslash;&aring;&aelig;&oelig; ł ő ű ē š ž č ć đ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col" style="--f:'DotGothic16'">
+      <h2>C. DotGothic16</h2>
+      <p class="verdict">// dot-matrix, vibe e-ink/LCD, ottima resa su display</p>
+      <div class="card">
+        <div class="tb"><div class="x"></div><div class="tt"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div></div>
+        <div class="wrap">
+          <div class="status"><div><b>Stato</b>setup</div><div><b>Rete</b>Bisc8-AB12</div></div>
+          <div class="group"><span class="glabel">Wi-Fi</span>
+            <p class="hint">Le reti salvate restano qui, sul dispositivo.</p>
+            <label>SSID</label><input value="Casa Mortal Kombat">
+            <button class="btn">Salva Wi-Fi</button>
+            <div class="seg"><b class="on">IT</b><b>EN</b><b>ES</b></div>
+          </div>
+          <div class="resp">Si'. Ma non dirlo a nessuno.</div>
+          <div class="diac">&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &ccedil;&ntilde; &uuml;&ouml;&auml; &szlig; &oslash;&aring;&aelig;&oelig; ł ő ű ē š ž č ć đ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col" style="--f:'VT323'">
+      <h2>D. VT323</h2>
+      <p class="verdict">// terminale, grande e nitido, piu' "computer" che Mac</p>
+      <div class="card">
+        <div class="tb"><div class="x"></div><div class="tt"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div></div>
+        <div class="wrap">
+          <div class="status"><div><b>Stato</b>setup</div><div><b>Rete</b>Bisc8-AB12</div></div>
+          <div class="group"><span class="glabel">Wi-Fi</span>
+            <p class="hint">Le reti salvate restano qui, sul dispositivo.</p>
+            <label>SSID</label><input value="Casa Mortal Kombat">
+            <button class="btn">Salva Wi-Fi</button>
+            <div class="seg"><b class="on">IT</b><b>EN</b><b>ES</b></div>
+          </div>
+          <div class="resp">Si'. Ma non dirlo a nessuno.</div>
+          <div class="diac">&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &ccedil;&ntilde; &uuml;&ouml;&auml; &szlig; &oslash;&aring;&aelig;&oelig; ł ő ű ē š ž č ć đ</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
