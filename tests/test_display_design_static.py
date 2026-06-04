@@ -177,9 +177,9 @@ def test_display_service_exposes_wifi_and_localized_voice_states():
     ):
         assert method in header
         assert method in source
-    assert "Setup Wi-Fi" in source
-    assert "Join Bisc8-XXXX" in source
-    assert "Open 192.168.4.1" in source
+    assert "strings.wifi_setup_title" in source
+    assert "strings.wifi_setup_body" in source
+    assert "strings.wifi_setup_footer" in source
     assert "strings.listening_body" in source
     assert "strings.cooking_title" in source
 

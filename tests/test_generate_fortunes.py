@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from tools.generate_fortunes import DEFAULT_SOURCE, DEFAULT_SOURCES_BY_LANGUAGE, generate_header, parse_fortunes
+from tools.generate_fortunes import (
+    DEFAULT_SOURCE,
+    DEFAULT_SOURCES_BY_LANGUAGE,
+    generate_combined_header,
+    generate_header,
+    parse_fortunes,
+)
 
 
 def test_default_source_is_grimorio():
@@ -36,6 +42,24 @@ def test_generate_header_supports_language_specific_symbol_names():
     assert "kFortunes_en" in header
     assert "kFortuneCount_en = 1" in header
     assert 'kFortuneLanguage_en[] = "en"' in header
+
+
+def test_generate_combined_header_embeds_all_runtime_languages():
+    fortunes_by_language = {
+        "it": ["Sì. La soglia risponde."],
+        "en": ["Yes. The threshold answers."],
+        "es": ["Sí. El umbral responde."],
+    }
+
+    header = generate_combined_header(fortunes_by_language)
+
+    assert "kFortunes[]" in header
+    assert "kFortunes_en[]" in header
+    assert "kFortunes_es[]" in header
+    assert "kFortuneCount = 1" in header
+    assert "kFortuneCount_en = 1" in header
+    assert "kFortuneCount_es = 1" in header
+    assert '"Sí. El umbral responde."' in header
 
 
 def test_parse_fortunes_rejects_lines_over_hard_limit(tmp_path: Path):

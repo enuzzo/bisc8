@@ -306,28 +306,28 @@ const char *AudioService::FinishVoiceRecording() {
     return kVoiceQuestionPath;
 }
 
-void AudioService::RunMicTest(DisplayService &display) {
+void AudioService::RunMicTest(DisplayService &display, Language language) {
     if (!available_ || record_buffer_ == nullptr) {
-        display.ShowAudioUnavailable();
+        display.ShowAudioUnavailable(language);
         DebugSerial::LogAlways("[AUDIO]", "mic test skipped; audio unavailable");
         return;
     }
 
     memset(record_buffer_, 0, record_bytes_);
-    display.ShowMicRecording();
+    display.ShowMicRecording(language);
     vTaskDelay(pdMS_TO_TICKS(250));
     esp_err_t err = Codec_RecordData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "record bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
     if (err != ESP_OK) {
-        display.ShowError("Recording failed.");
+        display.ShowError(StringsFor(language).recording_failed_body, language);
         return;
     }
 
-    display.ShowMicPlayback();
+    display.ShowMicPlayback(language);
     vTaskDelay(pdMS_TO_TICKS(250));
     err = Codec_PlaybackData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "playback bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
-    display.ShowMicDone();
+    display.ShowMicDone(language);
 }
 
 esp_err_t AudioService::PrepareSpool() {

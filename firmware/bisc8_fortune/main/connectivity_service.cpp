@@ -152,7 +152,7 @@ esp_err_t ConnectivityService::ScanKnownNetworks(const DeviceSettings &settings,
     return ESP_OK;
 }
 
-esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *password, DisplayService &display) {
+esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *password, DisplayService &display, Language language, bool show_progress) {
     if (ssid == nullptr || password == nullptr) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -184,7 +184,9 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
 
     const int seconds = static_cast<int>(kWifiAttemptTimeoutMs / 1000);
     for (int remaining = seconds; remaining > 0; --remaining) {
-        display.ShowWifiConnecting(ssid, remaining);
+        if (show_progress) {
+            display.ShowWifiConnecting(ssid, remaining, language);
+        }
         EventBits_t bits = xEventGroupWaitBits(g_wifi_events,
                                                WIFI_CONNECTED_BIT | WIFI_FAILED_BIT,
                                                pdFALSE,
@@ -208,7 +210,7 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
     return ESP_ERR_TIMEOUT;
 }
 
-esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, DisplayService &display) {
+esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, DisplayService &display, Language language, bool show_progress) {
     dns_.Stop();
     online_ = false;
     status_ = WifiStatus{};
@@ -241,7 +243,7 @@ esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, 
         if (!visible[i]) {
             continue;
         }
-        err = ConnectToNetwork(settings.wifi[i].ssid.c_str(), settings.wifi[i].password.c_str(), display);
+        err = ConnectToNetwork(settings.wifi[i].ssid.c_str(), settings.wifi[i].password.c_str(), display, language, show_progress);
         if (err == ESP_OK) {
             return ESP_OK;
         }
@@ -258,7 +260,7 @@ void ConnectivityService::BuildSetupSsid(char *ssid, size_t ssid_len) const {
     snprintf(ssid, ssid_len, "Bisc8-%02X%02X", mac[4], mac[5]);
 }
 
-esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPortal &portal) {
+esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPortal &portal, Language language, bool show_display) {
     esp_err_t err = EnsureInitialized();
     if (err != ESP_OK) {
         return err;
@@ -305,7 +307,9 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
     if (err != ESP_OK) {
         DebugSerial::LogAlways("[WIFI]", "captive DNS failed: %s", esp_err_to_name(err));
     }
-    display.ShowWifiSetup();
+    if (show_display) {
+        display.ShowWifiSetup(language);
+    }
     return portal.Start();
 }
 

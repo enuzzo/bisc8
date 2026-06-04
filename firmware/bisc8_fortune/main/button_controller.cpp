@@ -57,7 +57,7 @@ void ButtonController::Initialize(QueueHandle_t queue) {
 
     power_button_->OnClick([]() {
         DebugSerial::LogAlways("[BUTTON]", "PWR click");
-        send_event(AppEvent::MicTest);
+        send_event(AppEvent::ShowStatus);
     });
 
     power_button_->OnLongPress([]() {

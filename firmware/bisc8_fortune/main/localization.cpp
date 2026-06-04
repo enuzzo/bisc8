@@ -27,6 +27,22 @@ constexpr LocalizedStrings kEnglish = {
     "No known Wi-Fi.\nSetup portal is open.",
     "Press PWR\nto turn me on",
     "Error",
+    "Bisc8",
+    "Text oracle\nready",
+    "BOOT oracle\nPWR status",
+    "Status",
+    "Connected\n%s",
+    "Join %s\nOpen %s",
+    "No network\nSetup unavailable",
+    "BOOT oracle",
+    "Trying\n%s",
+    "%d seconds",
+    "15 seconds max",
+    "voice answer",
+    "Audio unavailable.",
+    "Recording failed.",
+    "Voice oracle is not configured yet.",
+    "see serial",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -50,6 +66,22 @@ constexpr LocalizedStrings kSpanish = {
     "No hay Wi-Fi conocida.\nPortal abierto.",
     "Pulsa PWR\npara encenderme",
     "Error",
+    "Bisc8",
+    "Oráculo texto\nlisto",
+    "BOOT oráculo\nPWR estado",
+    "Estado",
+    "Conectado\n%s",
+    "Únete a %s\nAbre %s",
+    "Sin red\nPortal no listo",
+    "BOOT oráculo",
+    "Probando\n%s",
+    "%d segundos",
+    "15 segundos máx",
+    "respuesta voz",
+    "Audio no disponible.",
+    "La grabación falló.",
+    "El oráculo de voz aún no está configurado.",
+    "ver serial",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -73,6 +105,22 @@ constexpr LocalizedStrings kItalian = {
     "Nessuna Wi-Fi nota.\nPortale aperto.",
     "Premi PWR\nper accendermi",
     "Errore",
+    "Bisc8",
+    "Oracolo testo\npronto",
+    "BOOT oracolo\nPWR stato",
+    "Stato",
+    "Connesso\n%s",
+    "Entra in %s\nApri %s",
+    "Senza rete\nPortale non pronto",
+    "BOOT oracolo",
+    "Provo\n%s",
+    "%d secondi",
+    "15 secondi max",
+    "risposta vocale",
+    "Audio non disponibile.",
+    "Registrazione fallita.",
+    "L'oracolo vocale non è ancora configurato.",
+    "vedi seriale",
 };
 
 }  // namespace
@@ -137,6 +185,39 @@ const char *LocalizedValue(Language language, const char *key) {
     }
     if (strcmp(key, "sleep_footer") == 0) {
         return strings.sleep_footer;
+    }
+    if (strcmp(key, "intro_title") == 0) {
+        return strings.intro_title;
+    }
+    if (strcmp(key, "intro_body") == 0) {
+        return strings.intro_body;
+    }
+    if (strcmp(key, "intro_footer") == 0) {
+        return strings.intro_footer;
+    }
+    if (strcmp(key, "status_title") == 0) {
+        return strings.status_title;
+    }
+    if (strcmp(key, "status_online_body") == 0) {
+        return strings.status_online_body;
+    }
+    if (strcmp(key, "status_setup_body") == 0) {
+        return strings.status_setup_body;
+    }
+    if (strcmp(key, "status_footer") == 0) {
+        return strings.status_footer;
+    }
+    if (strcmp(key, "voice_footer") == 0) {
+        return strings.voice_footer;
+    }
+    if (strcmp(key, "recording_failed_body") == 0) {
+        return strings.recording_failed_body;
+    }
+    if (strcmp(key, "voice_oracle_unconfigured_body") == 0) {
+        return strings.voice_oracle_unconfigured_body;
+    }
+    if (strcmp(key, "error_footer") == 0) {
+        return strings.error_footer;
     }
     return "";
 }

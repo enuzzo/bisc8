@@ -59,80 +59,90 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 <body>
 <main>
 <section class="top">
-<div class="brand"><div class="mark">B8</div><div><h1>Bisc8 Setup</h1><p class="sub">Local configuration for the small oracle.</p></div></div>
+<div class="brand"><div class="mark">B8</div><div><h1 data-i18n="appTitle">Bisc8 Setup</h1><p class="sub" data-i18n="subtitle">Local configuration for the small oracle.</p></div></div>
 <div class="status">
-<div class="pill"><b>Hotspot</b><span data-bind="setup_ssid">Bisc8-XXXX</span></div>
-<div class="pill"><b>Address</b><span data-bind="setup_url">http://192.168.4.1</span></div>
-<div class="pill"><b>Network</b><span data-bind="connected_ssid">setup mode</span></div>
-<div class="pill"><b>Language</b><span data-bind="language">en</span></div>
+<div class="pill"><b data-i18n="hotspot">Hotspot</b><span data-bind="setup_ssid">Bisc8-XXXX</span></div>
+<div class="pill"><b data-i18n="address">Address</b><span data-bind="setup_url">http://192.168.4.1</span></div>
+<div class="pill"><b data-i18n="network">Network</b><span data-bind="connected_ssid">setup mode</span></div>
+<div class="pill"><b data-i18n="language">Language</b><span data-bind="language">en</span></div>
 </div>
 </section>
 <section class="grid">
 <article class="panel">
-<h2>Wi-Fi</h2>
-<div class="actions"><button class="btn secondary" type="button" id="scan">Scan</button><span class="hint" id="scanState">Saved networks stay on the device.</span></div>
+<h2 data-i18n="wifiTitle">Wi-Fi</h2>
+<div class="actions"><button class="btn secondary" type="button" id="scan" data-i18n="scan">Scan</button><span class="hint" id="scanState" data-i18n="scanState">Saved networks stay on the device.</span></div>
 <div class="scan" id="scanList"></div>
 <form data-api="/api/wifi/credentials">
-<div class="row"><label for="ssid">SSID</label><input id="ssid" name="ssid" autocomplete="off" required></div>
-<div class="row"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password"></div>
-<div class="actions"><button class="btn" type="submit">Save Wi-Fi</button></div>
+<div class="row"><label for="ssid" data-i18n="ssid">SSID</label><input id="ssid" name="ssid" autocomplete="off" required></div>
+<div class="row"><label for="password" data-i18n="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password"></div>
+<div class="actions"><button class="btn" type="submit" data-i18n="saveWifi">Save Wi-Fi</button></div>
 </form>
 <form data-api="/api/wifi/credentials" class="remove">
 <input type="hidden" name="action" value="remove">
-<div class="row"><label for="remove_index">Remove saved slot</label><input id="remove_index" name="index" inputmode="numeric" placeholder="0"></div>
-<div class="actions"><button class="btn secondary" type="submit">Remove</button></div>
+<div class="row"><label for="remove_index" data-i18n="removeSlot">Remove saved slot</label><input id="remove_index" name="index" inputmode="numeric" placeholder="0"></div>
+<div class="actions"><button class="btn secondary" type="submit" data-i18n="remove">Remove</button></div>
 </form>
 </article>
 <article class="panel">
-<h2>Language</h2>
+<h2 data-i18n="languageTitle">Language</h2>
 <form data-api="/api/settings">
-<div class="row"><label for="language">Display language</label><select id="language" name="language"><option value="en">English</option><option value="es">Spanish</option><option value="it">Italian</option></select></div>
-<div class="actions"><button class="btn" type="submit">Save language</button></div>
+<div class="row"><label for="language" data-i18n="displayLanguage">Display language</label><select id="language" name="language"><option value="en">English</option><option value="es">Español</option><option value="it">Italiano</option></select></div>
+<div class="actions"><button class="btn" type="submit" data-i18n="saveLanguage">Save language</button></div>
 </form>
-<p class="hint">First boot starts in English.</p>
+<p class="hint" data-i18n="firstBoot">First boot starts in English.</p>
 </article>
 <article class="panel">
-<h2>OpenAI</h2>
+<h2 data-i18n="openaiTitle">OpenAI</h2>
 <form data-api="/api/openai">
-<div class="row"><label for="api_key">API key</label><input id="api_key" name="api_key" type="password" placeholder="Leave blank to keep current key"></div>
-<div class="row two"><div><label for="transcription_model">Speech to text</label><input id="transcription_model" name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div><div><label for="response_model">Oracle model</label><input id="response_model" name="response_model" placeholder="gpt-4o-mini"></div></div>
-<div class="row two"><div><label for="speech_model">Text to speech</label><input id="speech_model" name="speech_model" placeholder="gpt-4o-mini-tts"></div><div><label for="voice">Voice</label><input id="voice" name="voice" placeholder="alloy"></div></div>
-<div class="actions"><button class="btn" type="submit">Save OpenAI</button></div>
+<div class="row"><label for="api_key" data-i18n="apiKey">API key</label><input id="api_key" name="api_key" type="password" placeholder="Leave blank to keep current key" data-i18n-placeholder="keepKey"></div>
+<div class="row two"><div><label for="transcription_model" data-i18n="stt">Speech to text</label><input id="transcription_model" name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div><div><label for="response_model" data-i18n="oracleModel">Oracle model</label><input id="response_model" name="response_model" placeholder="gpt-4o-mini"></div></div>
+<div class="row two"><div><label for="speech_model" data-i18n="tts">Text to speech</label><input id="speech_model" name="speech_model" placeholder="gpt-4o-mini-tts"></div><div><label for="voice" data-i18n="voice">Voice</label><input id="voice" name="voice" placeholder="alloy"></div></div>
+<div class="actions"><button class="btn" type="submit" data-i18n="saveOpenai">Save OpenAI</button></div>
 </form>
-<p class="hint">Stored key: <span data-bind="openai_key">missing</span></p>
+<p class="hint"><span data-i18n="storedKey">Stored key</span>: <span data-bind="openai_key">missing</span></p>
 </article>
 <article class="panel">
-<h2>Email</h2>
+<h2 data-i18n="emailTitle">Email</h2>
 <form data-api="/api/email">
-<div class="row"><label for="recipient">Recipient</label><input id="recipient" name="recipient" type="email" placeholder="you@example.com"></div>
-<div class="row"><label for="email_enabled">Send oracle emails</label><select id="email_enabled" name="enabled"><option value="1">Yes</option><option value="0">No</option></select></div>
+<div class="row"><label for="recipient" data-i18n="recipient">Recipient</label><input id="recipient" name="recipient" type="email" placeholder="you@example.com"></div>
+<div class="row"><label for="email_enabled" data-i18n="sendEmails">Send oracle emails</label><select id="email_enabled" name="enabled"><option value="1" data-i18n="yes">Yes</option><option value="0" data-i18n="no">No</option></select></div>
 <details>
-<summary>Advanced relay settings</summary>
-<div class="row"><label for="relay_url">Relay URL</label><input id="relay_url" name="relay_url" inputmode="url" placeholder="https://relay.example.com/v1/bisc8/email"></div>
-<div class="row"><label for="relay_token">Relay token</label><input id="relay_token" name="relay_token" type="password" placeholder="Leave blank to keep current token"></div>
+<summary data-i18n="advancedRelay">Advanced relay settings</summary>
+<div class="row"><label for="relay_url" data-i18n="relayUrl">Relay URL</label><input id="relay_url" name="relay_url" inputmode="url" placeholder="https://relay.example.com/v1/bisc8/email"></div>
+<div class="row"><label for="relay_token" data-i18n="relayToken">Relay token</label><input id="relay_token" name="relay_token" type="password" placeholder="Leave blank to keep current token" data-i18n-placeholder="keepToken"></div>
 </details>
-<div class="actions"><button class="btn" type="submit">Save email</button></div>
+<div class="actions"><button class="btn" type="submit" data-i18n="saveEmail">Save email</button></div>
 </form>
-<p class="hint">Recipient: <span data-bind="email_recipient">missing</span>. Relay: <span data-bind="email_relay">missing</span></p>
+<p class="hint"><span data-i18n="recipientStatus">Recipient</span>: <span data-bind="email_recipient">missing</span>. <span data-i18n="relayStatus">Relay</span>: <span data-bind="email_relay">missing</span></p>
 </article>
 <article class="panel wide">
-<h2>Reset</h2>
-<div class="actions"><button class="btn warn" id="reset" type="button">Full config reset</button><span class="hint">This clears Wi-Fi, OpenAI, email, and language.</span></div>
-<p class="hint">Secrets are stored on this device. Enable flash encryption before production use.</p>
+<h2 data-i18n="resetTitle">Reset</h2>
+<div class="actions"><button class="btn warn" id="reset" type="button" data-i18n="resetButton">Full config reset</button><span class="hint" data-i18n="resetHint">This clears Wi-Fi, OpenAI, email, and language.</span></div>
+<p class="hint" data-i18n="secretWarning">Secrets are stored on this device. Enable flash encryption before production use.</p>
 </article>
 </section>
 <div class="toast" id="toast"></div>
 </main>
 <script>
+const I18N={
+en:{appTitle:'Bisc8 Setup',subtitle:'Local configuration for the small oracle.',hotspot:'Hotspot',address:'Address',network:'Network',language:'Language',wifiTitle:'Wi-Fi',scan:'Scan',scanState:'Saved networks stay on the device.',ssid:'SSID',password:'Password',saveWifi:'Save Wi-Fi',removeSlot:'Remove saved slot',remove:'Remove',languageTitle:'Language',displayLanguage:'Display language',saveLanguage:'Save language',firstBoot:'First boot starts in English.',openaiTitle:'OpenAI',apiKey:'API key',keepKey:'Leave blank to keep current key',stt:'Speech to text',oracleModel:'Oracle model',tts:'Text to speech',voice:'Voice',saveOpenai:'Save OpenAI',storedKey:'Stored key',emailTitle:'Email',recipient:'Recipient',sendEmails:'Send oracle emails',yes:'Yes',no:'No',advancedRelay:'Advanced relay settings',relayUrl:'Relay URL',relayToken:'Relay token',keepToken:'Leave blank to keep current token',saveEmail:'Save email',recipientStatus:'Recipient',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Full config reset',resetHint:'This clears Wi-Fi, OpenAI, email, and language.',secretWarning:'Secrets are stored on this device. Enable flash encryption before production use.',missing:'missing',setupMode:'setup mode',saved:'Saved',scanning:'Scanning...',networksFound:'networks found',resetConfirm:'Clear all local configuration?',resetDone:'Configuration cleared'},
+es:{appTitle:'Configuración Bisc8',subtitle:'Configuración local del pequeño oráculo.',hotspot:'Hotspot',address:'Dirección',network:'Red',language:'Idioma',wifiTitle:'Wi-Fi',scan:'Escanear',scanState:'Las redes guardadas permanecen en el dispositivo.',ssid:'SSID',password:'Contraseña',saveWifi:'Guardar Wi-Fi',removeSlot:'Eliminar ranura guardada',remove:'Eliminar',languageTitle:'Idioma',displayLanguage:'Idioma de pantalla',saveLanguage:'Guardar idioma',firstBoot:'El primer arranque empieza en inglés.',openaiTitle:'OpenAI',apiKey:'Clave API',keepKey:'Déjalo vacío para conservar la clave actual',stt:'Voz a texto',oracleModel:'Modelo del oráculo',tts:'Texto a voz',voice:'Voz',saveOpenai:'Guardar OpenAI',storedKey:'Clave guardada',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Enviar emails del oráculo',yes:'Sí',no:'No',advancedRelay:'Ajustes avanzados del relay',relayUrl:'URL del relay',relayToken:'Token del relay',keepToken:'Déjalo vacío para conservar el token actual',saveEmail:'Guardar email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset total',resetHint:'Borra Wi-Fi, OpenAI, email e idioma.',secretWarning:'Los secretos se guardan en este dispositivo. Activa flash encryption antes de producción.',missing:'falta',setupMode:'modo setup',saved:'Guardado',scanning:'Escaneando...',networksFound:'redes encontradas',resetConfirm:'¿Borrar toda la configuración local?',resetDone:'Configuración borrada'},
+it:{appTitle:'Configurazione Bisc8',subtitle:'Configurazione locale del piccolo oracolo.',hotspot:'Hotspot',address:'Indirizzo',network:'Rete',language:'Lingua',wifiTitle:'Wi-Fi',scan:'Scansiona',scanState:'Le reti salvate restano sul dispositivo.',ssid:'SSID',password:'Password',saveWifi:'Salva Wi-Fi',removeSlot:'Rimuovi slot salvato',remove:'Rimuovi',languageTitle:'Lingua',displayLanguage:'Lingua display',saveLanguage:'Salva lingua',firstBoot:'Il primo avvio parte in inglese.',openaiTitle:'OpenAI',apiKey:'Chiave API',keepKey:'Lascia vuoto per tenere la chiave attuale',stt:'Voce in testo',oracleModel:'Modello oracolo',tts:'Testo in voce',voice:'Voce',saveOpenai:'Salva OpenAI',storedKey:'Chiave salvata',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Invia email oracolo',yes:'Sì',no:'No',advancedRelay:'Impostazioni relay avanzate',relayUrl:'URL relay',relayToken:'Token relay',keepToken:'Lascia vuoto per tenere il token attuale',saveEmail:'Salva email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset completo',resetHint:'Cancella Wi-Fi, OpenAI, email e lingua.',secretWarning:'I segreti sono salvati su questo dispositivo. Abilita la flash encryption prima della produzione.',missing:'manca',setupMode:'modalità setup',saved:'Salvato',scanning:'Scansiono...',networksFound:'reti trovate',resetConfirm:'Cancellare tutta la configurazione locale?',resetDone:'Configurazione cancellata'}
+};
+let currentLanguage='en';
 const toast=document.getElementById('toast');
-function note(text){toast.textContent=text;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2800)}
+function tr(key){return (I18N[currentLanguage]&&I18N[currentLanguage][key])||I18N.en[key]||key}
+function note(keyOrText){toast.textContent=tr(keyOrText)||keyOrText;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2800)}
 async function api(url,opts){const r=await fetch(url,opts);const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
-function fill(s){for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(el=>{el.textContent=s[k]||'missing'})}if(s.language)document.getElementById('language').value=s.language}
+function applyLanguage(language){currentLanguage=I18N[language]?language:'en';document.documentElement.lang=currentLanguage;document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=tr(el.dataset.i18n)});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=tr(el.dataset.i18nPlaceholder)})}
+function valueText(key,value){if(!value||value==='missing')return tr('missing');if(key==='connected_ssid'&&value==='setup mode')return tr('setupMode');return value}
+function fill(s){if(s.language)applyLanguage(s.language);for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(el=>{el.textContent=valueText(k,s[k])})}if(s.language)document.getElementById('language').value=s.language}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
 function body(form){return new URLSearchParams(new FormData(form)).toString()}
-document.querySelectorAll('form[data-api]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const b=form.querySelector('button');b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('Saved')}catch(err){note(err.message)}finally{b.disabled=false}}));
-document.getElementById('scan').addEventListener('click',async()=>{const state=document.getElementById('scanState');const list=document.getElementById('scanList');state.textContent='Scanning...';list.textContent='';try{const j=await api('/api/wifi/scan');state.textContent=j.networks.length+' networks found';j.networks.forEach(n=>{const btn=document.createElement('button');btn.type='button';btn.textContent=n.ssid+' · '+n.band+' · RSSI '+n.rssi;btn.onclick=()=>{document.getElementById('ssid').value=n.ssid};list.appendChild(btn)})}catch(e){state.textContent=e.message}});
-document.getElementById('reset').addEventListener('click',async()=>{if(!confirm('Clear all local configuration?'))return;try{fill(await api('/api/reset',{method:'POST'}));note('Configuration cleared')}catch(e){note(e.message)}});
+document.querySelectorAll('form[data-api]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const b=form.querySelector('button');b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{b.disabled=false}}));
+document.getElementById('scan').addEventListener('click',async()=>{const state=document.getElementById('scanState');const list=document.getElementById('scanList');state.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');state.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(n=>{const btn=document.createElement('button');btn.type='button';btn.textContent=n.ssid+' · '+n.band+' · RSSI '+n.rssi;btn.onclick=()=>{document.getElementById('ssid').value=n.ssid};list.appendChild(btn)})}catch(e){state.textContent=e.message}});
+document.getElementById('reset').addEventListener('click',async()=>{if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
+applyLanguage('en');
 refresh();
 </script>
 </body>

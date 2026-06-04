@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 
+#include "localization.h"
+
 namespace bisc8 {
 
 struct FortunePick {
@@ -12,8 +14,8 @@ struct FortunePick {
 
 class FortuneService {
 public:
-    FortunePick PickRandom();
-    size_t Count() const;
+    FortunePick PickRandom(Language language);
+    size_t Count(Language language) const;
 
 private:
     int last_index_ = -1;

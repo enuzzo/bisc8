@@ -112,7 +112,7 @@ extern "C" void app_main(void) {
     WebPortal portal;
     portal.BindStatus(&connectivity.Status());
     portal.BindConfig(&config_store, &settings);
-    g_fortune_count = fortunes.Count();
+    g_fortune_count = fortunes.Count(Language::English);
 
     esp_err_t err = config_store.Init();
     if (err == ESP_OK) {
@@ -122,6 +122,7 @@ extern "C" void app_main(void) {
     if (!g_config_ready) {
         DebugSerial::LogAlways("[CONFIG]", "config load failed: %s", esp_err_to_name(err));
     } else {
+        g_fortune_count = fortunes.Count(ParseLanguage(settings.language.c_str()));
         DebugSerial::LogAlways("[CONFIG]",
                                "loaded language=%s wifi_count=%u openai_key=%s email=%s recipient=%s relay=%s",
                                settings.language.c_str(),
@@ -145,28 +146,31 @@ extern "C" void app_main(void) {
         return;
     }
     display.ShowBoot();
+    const Language startup_language = ParseLanguage(settings.language.c_str());
 
     err = audio.Initialize();
     g_audio_ready = (err == ESP_OK);
     if (!g_audio_ready) {
         DebugSerial::LogAlways("[AUDIO]", "audio init failed: %s", esp_err_to_name(err));
-        display.ShowAudioUnavailable();
+        display.ShowAudioUnavailable(startup_language);
     } else {
         audio.PlayCueAsync(AudioCue::Boot);
     }
+    display.ShowIntro(startup_language);
 
     bool setup_mode_active = false;
     if (gpio_get_level(BOOT_BUTTON_PIN) == 0) {
         DebugSerial::LogAlways("[BOOT]", "BOOT held during startup; forcing Wi-Fi setup");
-        connectivity.StartSetupPortal(display, portal);
+        connectivity.StartSetupPortal(display, portal, startup_language, true);
         setup_mode_active = true;
-    } else if (connectivity.TryKnownNetworks(settings, display) != ESP_OK) {
-        connectivity.StartSetupPortal(display, portal);
+    } else if (connectivity.TryKnownNetworks(settings, display, startup_language, false) != ESP_OK) {
+        connectivity.StartSetupPortal(display, portal, startup_language, false);
         setup_mode_active = true;
+        display.ShowIntro(startup_language);
     }
 
     if (g_audio_ready && !setup_mode_active) {
-        display.ShowIdle(g_fortune_count, ParseLanguage(settings.language.c_str()));
+        display.ShowIntro(startup_language);
     }
 
     buttons.Initialize(g_event_queue);
@@ -197,7 +201,8 @@ extern "C" void app_main(void) {
             case AppEvent::GenerateFortune: {
                 g_state = "fortune";
                 g_fortune_presses++;
-                FortunePick pick = fortunes.PickRandom();
+                const Language language = ParseLanguage(settings.language.c_str());
+                FortunePick pick = fortunes.PickRandom(language);
                 display.ShowFortune(pick.text, pick.index, pick.count);
                 audio.PlayCue(AudioCue::OracleButton);
 #if CONFIG_BISC8_AUTO_SLEEP_AFTER_FORTUNE
@@ -214,7 +219,7 @@ extern "C" void app_main(void) {
             case AppEvent::MicTest:
                 g_state = "mic-test";
                 g_mic_tests++;
-                audio.RunMicTest(display);
+                audio.RunMicTest(display, ParseLanguage(settings.language.c_str()));
                 g_state = "idle";
                 break;
 
@@ -234,9 +239,9 @@ extern "C" void app_main(void) {
                 OracleResponse response;
                 err = oracle.AskFromRecordedAudio(wav_path, &response);
                 if (err == ESP_OK) {
-                    display.ShowVoiceSpeaking(response.oracle_answer_screen);
+                    display.ShowVoiceSpeaking(response.oracle_answer_screen, language);
                 } else {
-                    display.ShowError("Voice oracle is not configured yet.");
+                    display.ShowError(StringsFor(language).voice_oracle_unconfigured_body, language);
                 }
                 g_state = "idle";
                 break;
@@ -244,7 +249,7 @@ extern "C" void app_main(void) {
 
             case AppEvent::ForceWifiSetup:
                 g_state = "wifi-setup";
-                connectivity.StartSetupPortal(display, portal);
+                connectivity.StartSetupPortal(display, portal, ParseLanguage(settings.language.c_str()), true);
                 print_status();
                 break;
 
@@ -253,9 +258,21 @@ extern "C" void app_main(void) {
                 err = config_store.Reset();
                 g_config_ready = (err == ESP_OK);
                 DebugSerial::LogAlways("[CONFIG]", "full config reset requested: %s", esp_err_to_name(err));
-                connectivity.StartSetupPortal(display, portal);
+                connectivity.StartSetupPortal(display, portal, ParseLanguage(settings.language.c_str()), true);
                 print_status();
                 break;
+
+            case AppEvent::ShowStatus: {
+                g_state = "status";
+                const Language language = ParseLanguage(settings.language.c_str());
+                if (!connectivity.Online() && !connectivity.Status().setup_active) {
+                    connectivity.StartSetupPortal(display, portal, language, false);
+                }
+                display.ShowStatus(connectivity.Status(), language);
+                print_status();
+                g_state = "idle";
+                break;
+            }
 
             case AppEvent::Sleep:
                 g_state = "power-off";

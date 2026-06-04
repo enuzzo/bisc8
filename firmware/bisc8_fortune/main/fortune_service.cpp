@@ -7,26 +7,52 @@
 
 namespace bisc8 {
 
-FortunePick FortuneService::PickRandom() {
-    if (kFortuneCount == 0) {
-        return {"Nessuna risposta caricata.", 0, 0};
+namespace {
+
+struct FortuneTable {
+    const char *const *fortunes;
+    size_t count;
+    const char *language;
+};
+
+FortuneTable FortuneTableFor(Language language) {
+    switch (language) {
+        case Language::Spanish:
+            return {kFortunes_es, kFortuneCount_es, kFortuneLanguage_es};
+        case Language::Italian:
+            return {kFortunes, kFortuneCount, kFortuneLanguage};
+        case Language::English:
+        default:
+            return {kFortunes_en, kFortuneCount_en, kFortuneLanguage_en};
+    }
+}
+
+}  // namespace
+
+FortunePick FortuneService::PickRandom(Language language) {
+    const FortuneTable table = FortuneTableFor(language);
+    if (table.count == 0) {
+        return {"No answer loaded.", 0, 0};
     }
 
     size_t next = 0;
-    if (kFortuneCount == 1) {
+    if (table.count == 1) {
         next = 0;
     } else {
         do {
-            next = esp_random() % kFortuneCount;
+            next = esp_random() % table.count;
         } while (static_cast<int>(next) == last_index_);
     }
     last_index_ = static_cast<int>(next);
-    DebugSerial::Log("[FORTUNE]", "selected index=%u count=%u", static_cast<unsigned>(next), static_cast<unsigned>(kFortuneCount));
-    return {kFortunes[next], next, kFortuneCount};
+    DebugSerial::Log("[FORTUNE]", "selected language=%s index=%u count=%u",
+                     table.language,
+                     static_cast<unsigned>(next),
+                     static_cast<unsigned>(table.count));
+    return {table.fortunes[next], next, table.count};
 }
 
-size_t FortuneService::Count() const {
-    return kFortuneCount;
+size_t FortuneService::Count(Language language) const {
+    return FortuneTableFor(language).count;
 }
 
 }  // namespace bisc8

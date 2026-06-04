@@ -11,6 +11,7 @@ enum class AppEvent : uint8_t {
     FinishVoiceRecording,
     ForceWifiSetup,
     FullConfigReset,
+    ShowStatus,
     Sleep,
 };
 

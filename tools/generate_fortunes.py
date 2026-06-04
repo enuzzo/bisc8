@@ -13,6 +13,7 @@ DEFAULT_SOURCES_BY_LANGUAGE = {
 }
 DEFAULT_OUTPUT = Path("firmware/bisc8_fortune/main/generated/fortune_data.h")
 MAX_FORTUNE_CHARS = 120
+LANGUAGE_ORDER = ("it", "en", "es")
 
 
 def parse_fortunes(path: Path, max_chars: int = MAX_FORTUNE_CHARS) -> list[str]:
@@ -57,18 +58,61 @@ static constexpr char kFortuneLanguage{suffix}[] = "{language}";
 """
 
 
+def generate_combined_header(fortunes_by_language: dict[str, list[str]]) -> str:
+    sections: list[str] = [
+        "#pragma once",
+        "",
+        "#include <stddef.h>",
+        "",
+        "namespace bisc8 {",
+        "",
+    ]
+    for language in LANGUAGE_ORDER:
+        fortunes = fortunes_by_language[language]
+        suffix = _symbol_suffix(language)
+        entries = "\n".join(f'    "{_escape_c_string(fortune)}",' for fortune in fortunes)
+        sections.extend([
+            f"static constexpr const char *kFortunes{suffix}[] = {{",
+            entries,
+            "};",
+            "",
+            f"static constexpr size_t kFortuneCount{suffix} = {len(fortunes)};",
+            f"static constexpr char kFortuneLanguage{suffix}[] = \"{language}\";",
+            "",
+        ])
+    sections.append("}  // namespace bisc8")
+    sections.append("")
+    return "\n".join(sections)
+
+
 def write_header(source: Path, output: Path, language: str = "it") -> None:
     fortunes = parse_fortunes(source)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(generate_header(fortunes, language=language), encoding="utf-8")
 
 
+def write_combined_header(output: Path) -> None:
+    fortunes_by_language = {
+        language: parse_fortunes(DEFAULT_SOURCES_BY_LANGUAGE[language])
+        for language in LANGUAGE_ORDER
+    }
+    counts = {len(fortunes) for fortunes in fortunes_by_language.values()}
+    if len(counts) != 1:
+        raise ValueError("All grimoire language files must contain the same number of lines")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(generate_combined_header(fortunes_by_language), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate Bisc8 firmware fortune data.")
-    parser.add_argument("--language", choices=sorted(DEFAULT_SOURCES_BY_LANGUAGE), default="it")
+    parser.add_argument("--language", choices=["all", *sorted(DEFAULT_SOURCES_BY_LANGUAGE)], default="all")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
+    if args.language == "all":
+        write_combined_header(args.output)
+        print(f"Generated {args.output} from all grimoire languages")
+        return 0
     if args.source == DEFAULT_SOURCE and args.language != "it":
         args.source = DEFAULT_SOURCES_BY_LANGUAGE[args.language]
     write_header(args.source, args.output, language=args.language)

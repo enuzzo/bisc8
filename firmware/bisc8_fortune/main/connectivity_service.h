@@ -5,6 +5,7 @@
 #include <string>
 
 #include "captive_dns_service.h"
+#include "localization.h"
 
 namespace bisc8 {
 
@@ -23,15 +24,15 @@ struct WifiStatus {
 
 class ConnectivityService {
 public:
-    esp_err_t TryKnownNetworks(const DeviceSettings &settings, DisplayService &display);
-    esp_err_t StartSetupPortal(DisplayService &display, WebPortal &portal);
+    esp_err_t TryKnownNetworks(const DeviceSettings &settings, DisplayService &display, Language language, bool show_progress = true);
+    esp_err_t StartSetupPortal(DisplayService &display, WebPortal &portal, Language language, bool show_display = true);
     bool Online() const;
     const WifiStatus &Status() const;
 
 private:
     esp_err_t EnsureInitialized();
     esp_err_t ScanKnownNetworks(const DeviceSettings &settings, bool *visible, bool *found);
-    esp_err_t ConnectToNetwork(const char *ssid, const char *password, DisplayService &display);
+    esp_err_t ConnectToNetwork(const char *ssid, const char *password, DisplayService &display, Language language, bool show_progress);
     void BuildSetupSsid(char *ssid, size_t ssid_len) const;
 
     bool online_ = false;

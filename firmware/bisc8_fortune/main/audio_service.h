@@ -8,6 +8,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "localization.h"
+
 namespace bisc8 {
 
 class DisplayService;
@@ -30,7 +32,7 @@ public:
     void StopPlayback();
     void StartVoiceRecording();
     const char *FinishVoiceRecording();
-    void RunMicTest(DisplayService &display);
+    void RunMicTest(DisplayService &display, Language language);
 
 private:
     struct QueuedSound;

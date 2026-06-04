@@ -97,11 +97,24 @@ def test_localization_exposes_required_languages_and_display_states():
         "speaking_title",
         "offline_title",
         "sleep_footer",
+        "intro_title",
+        "intro_body",
+        "intro_footer",
+        "status_title",
+        "status_online_body",
+        "status_setup_body",
+        "status_footer",
+        "voice_footer",
+        "recording_failed_body",
+        "voice_oracle_unconfigured_body",
+        "error_footer",
     ):
         assert key in header
         assert key in source
     assert 'DefaultLanguage()' in header
     assert 'return "en";' in source
+    assert "Pulsa PWR" in source
+    assert "Premi PWR" in source
 
 
 def test_portal_declares_required_routes_and_masks_secrets():
@@ -124,6 +137,26 @@ def test_portal_declares_required_routes_and_masks_secrets():
     assert "MaskSecret" in source
     assert "192.168.4.1" in source
     assert "CaptivePortalProbePaths" in header
+
+
+def test_portal_localizes_visible_ui_in_supported_languages():
+    source = read(MAIN / "web_portal.cpp")
+
+    for token in (
+        "const I18N",
+        "applyLanguage",
+        "data-i18n",
+        "data-i18n-placeholder",
+        "Configuración Bisc8",
+        "Configurazione Bisc8",
+        "Guardar Wi-Fi",
+        "Salva Wi-Fi",
+        "Escanear",
+        "Scansiona",
+        "Configuración borrada",
+        "Configurazione cancellata",
+    ):
+        assert token in source
 
 
 def test_portal_runs_http_server_and_redirects_captive_probes():
@@ -405,19 +438,52 @@ def test_button_events_cover_voice_and_setup_recovery():
     assert "FinishVoiceRecording" in events
     assert "ForceWifiSetup" in events
     assert "FullConfigReset" in events
+    assert "ShowStatus" in events
     assert "boot_button_->OnPressDown" in buttons
     assert "boot_button_->OnPressUp" in buttons
     assert "BOOT press down" in buttons
     assert "BOOT hold start" in buttons
     assert "BOOT release" in buttons
     assert "BOOT+PWR" in buttons
+    assert "power_button_->OnClick" in buttons
+    assert "AppEvent::ShowStatus" in buttons
+    assert "send_event(AppEvent::MicTest)" not in buttons
     assert "VOICE START" in app_main
     assert "VOICE STOP" in app_main
     assert "ShowVoiceCooking" in app_main
     assert "AudioCue::VoiceSubmit" in app_main
     assert "gpio_get_level(BOOT_BUTTON_PIN) == 0" in app_main
     assert "ForceWifiSetup" in app_main
-    assert app_main.count("connectivity.StartSetupPortal(display, portal)") >= 4
+    assert "display.ShowIntro" in app_main
+    assert "display.ShowStatus" in app_main
+    assert app_main.count("connectivity.StartSetupPortal(display, portal,") >= 4
+    boot_section = app_main[app_main.index("display.ShowIntro"):app_main.index("buttons.Initialize")]
+    assert "display.ShowIdle" not in boot_section
+    assert "connectivity.TryKnownNetworks(settings, display, startup_language, false)" in boot_section
+    assert "connectivity.StartSetupPortal(display, portal, startup_language, false)" in boot_section
+
+
+def test_fortune_service_selects_grimoire_by_language():
+    header = read(MAIN / "fortune_service.h")
+    source = read(MAIN / "fortune_service.cpp")
+    data = read(MAIN / "generated/fortune_data.h")
+    app_main = read(MAIN / "app_main.cpp")
+
+    for token in (
+        "PickRandom(Language language)",
+        "Count(Language language)",
+        "FortuneTableFor",
+        "kFortunes_en",
+        "kFortunes_es",
+        "kFortuneCount_en",
+        "kFortuneCount_es",
+        "Language::Spanish",
+        "Language::Italian",
+    ):
+        assert token in header or token in source or token in data
+    fortune_case = app_main[app_main.index("case AppEvent::GenerateFortune:"):app_main.index("case AppEvent::MicTest:")]
+    assert "ParseLanguage(settings.language.c_str())" in fortune_case
+    assert "fortunes.PickRandom(language)" in fortune_case
 
 
 def test_readme_documents_product_setup_and_logo_requirements():

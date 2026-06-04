@@ -6,6 +6,7 @@
 #include <freertos/task.h>
 
 #include "debug_serial.h"
+#include "connectivity_service.h"
 #include "epaper_config.h"
 #include "port_display.h"
 #include "port_lvgl.h"
@@ -283,6 +284,36 @@ void DisplayService::ShowBoot() {
     }
 }
 
+void DisplayService::ShowIntro(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    if (Lvgl_lock(-1)) {
+        ApplyIdleLayout();
+        SetScreenTextLocked(strings.intro_title, strings.intro_body, strings.intro_footer);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    char body[96];
+    if (status.online) {
+        snprintf(body, sizeof(body), strings.status_online_body, status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str());
+    } else if (status.setup_active) {
+        snprintf(body,
+                 sizeof(body),
+                 strings.status_setup_body,
+                 status.setup_ssid.empty() ? "Bisc8-XXXX" : status.setup_ssid.c_str(),
+                 status.setup_url.empty() ? "192.168.4.1" : status.setup_url.c_str());
+    } else {
+        snprintf(body, sizeof(body), "%s", strings.status_offline_body);
+    }
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked(strings.status_title, body, strings.status_footer);
+        Lvgl_unlock();
+    }
+}
+
 void DisplayService::ShowPowerOff(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
@@ -307,22 +338,24 @@ void DisplayService::ShowIdle(size_t fortune_count, Language language) {
     }
 }
 
-void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left) {
+void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     char body[96];
-    snprintf(body, sizeof(body), "Trying\n%s", ssid == nullptr ? "saved Wi-Fi" : ssid);
+    snprintf(body, sizeof(body), strings.wifi_connecting_body, ssid == nullptr ? "saved Wi-Fi" : ssid);
     char footer[48];
-    snprintf(footer, sizeof(footer), "%d seconds", seconds_left);
+    snprintf(footer, sizeof(footer), strings.wifi_connecting_footer, seconds_left);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Wi-Fi", body, footer);
+        SetScreenTextLocked(strings.wifi_connecting_title, body, footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowWifiSetup() {
+void DisplayService::ShowWifiSetup(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Setup Wi-Fi", "Join Bisc8-XXXX\nOpen 192.168.4.1", "Captive portal ready");
+        SetScreenTextLocked(strings.wifi_setup_title, strings.wifi_setup_body, strings.wifi_setup_footer);
         Lvgl_unlock();
     }
 }
@@ -341,7 +374,7 @@ void DisplayService::ShowVoiceListening(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked(strings.listening_title, strings.listening_body, "15 seconds max");
+        SetScreenTextLocked(strings.listening_title, strings.listening_body, strings.voice_footer);
         Lvgl_unlock();
     }
 }
@@ -364,58 +397,65 @@ void DisplayService::ShowVoiceThinking(Language language) {
     }
 }
 
-void DisplayService::ShowVoiceSpeaking(const char *screen_answer) {
+void DisplayService::ShowVoiceSpeaking(const char *screen_answer, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Bisc8", screen_answer == nullptr ? "The answer is arriving." : screen_answer, "voice answer");
+        SetScreenTextLocked(strings.speaking_title, screen_answer == nullptr ? strings.speaking_body : screen_answer, strings.speaking_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowMicRecording() {
+void DisplayService::ShowMicRecording(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Listening", "Speak now.\nRecording one second.", "PWR mic test");
+        SetScreenTextLocked(strings.listening_title, strings.listening_body, strings.voice_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowMicPlayback() {
+void DisplayService::ShowMicPlayback(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Playback", "Playing the sample.", "audio check");
+        SetScreenTextLocked(strings.speaking_title, strings.speaking_body, strings.speaking_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowMicDone() {
+void DisplayService::ShowMicDone(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Done", "Microphone and speaker responded.", "Hold BOOT to ask");
+        SetScreenTextLocked(strings.intro_title, strings.intro_body, strings.intro_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowAudioUnavailable() {
+void DisplayService::ShowAudioUnavailable(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Audio off", "The codec is not ready.\nOffline fortunes still work.", "STATUS for details");
+        SetScreenTextLocked(strings.error_title, strings.audio_unavailable_body, strings.error_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowSleep() {
+void DisplayService::ShowSleep(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Sleep", "The oracle stays printed on paper.", "wake by button");
+        SetScreenTextLocked(strings.offline_title, strings.offline_body, strings.sleep_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowError(const char *message) {
+void DisplayService::ShowError(const char *message, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Error", message, "see serial");
+        SetScreenTextLocked(strings.error_title, message, strings.error_footer);
         Lvgl_unlock();
     }
 }

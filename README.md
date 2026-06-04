@@ -5,19 +5,19 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 ## Current Behavior
 
 - First boot defaults to English.
-- Boot plays a longer background startup jingle while the e-paper moves into the first usable screen.
-- BOOT click: pick a random non-repeating fortune from the generated grimoire data and play the oracle-button cue.
+- Boot plays a longer background startup jingle and lands on the localized introductory oracle screen.
+- BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
 - Hold BOOT to ask a voice question. Release BOOT to send it to the voice-oracle flow when OpenAI settings are configured.
-- On voice release, Bisc8 shows a localized "Bisc8 is cooking" state and plays the voice-submit cue while the answer is prepared.
+- On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
 - BOOT long press forces Wi-Fi setup. BOOT + PWR long press performs a full configuration reset.
-- PWR click: run the microphone record/playback test.
+- PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
 - Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
-- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects.
+- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects, while keeping the e-paper on the introductory screen unless setup was explicitly forced.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
-- Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. The e-paper fallback still shows manual connection instructions because captive detection can be unreliable.
+- Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. Press PWR to show the e-paper fallback instructions because captive detection can be unreliable.
 
 ## Product Setup Roadmap
 
@@ -134,9 +134,11 @@ Source fortunes are stored in:
 
 ```sh
 assets/grimorio.txt
+assets/grimorio.en.txt
+assets/grimorio.es.txt
 ```
 
-Localized grimoire assets will live beside it as `assets/grimorio.en.txt` and `assets/grimorio.es.txt`. Each line must stay under 120 characters for the current 200x200 e-paper layout.
+The firmware embeds Italian, English, and Spanish grimoire arrays and picks the active one from the saved language setting. Each language file must keep the same line count, and each line must stay under 120 characters for the current 200x200 e-paper layout.
 
 Generate firmware flash data:
 
@@ -169,5 +171,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-39 passed
+46 passed
 ```

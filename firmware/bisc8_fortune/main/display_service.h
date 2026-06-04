@@ -9,25 +9,29 @@
 
 namespace bisc8 {
 
+struct WifiStatus;
+
 class DisplayService {
 public:
     esp_err_t Initialize();
     void ShowBoot();
+    void ShowIntro(Language language);
+    void ShowStatus(const WifiStatus &status, Language language);
     void ShowPowerOff(Language language);
     void ShowIdle(size_t fortune_count, Language language);
-    void ShowWifiConnecting(const char *ssid, int seconds_left);
-    void ShowWifiSetup();
+    void ShowWifiConnecting(const char *ssid, int seconds_left, Language language);
+    void ShowWifiSetup(Language language);
     void ShowFortune(const char *fortune, size_t index, size_t count);
     void ShowVoiceListening(Language language);
     void ShowVoiceCooking(Language language);
     void ShowVoiceThinking(Language language);
-    void ShowVoiceSpeaking(const char *screen_answer);
-    void ShowMicRecording();
-    void ShowMicPlayback();
-    void ShowMicDone();
-    void ShowAudioUnavailable();
-    void ShowSleep();
-    void ShowError(const char *message);
+    void ShowVoiceSpeaking(const char *screen_answer, Language language);
+    void ShowMicRecording(Language language);
+    void ShowMicPlayback(Language language);
+    void ShowMicDone(Language language);
+    void ShowAudioUnavailable(Language language);
+    void ShowSleep(Language language);
+    void ShowError(const char *message, Language language);
 
 private:
     void CreateScreen();

@@ -29,6 +29,22 @@ struct LocalizedStrings {
     const char *offline_body;
     const char *sleep_footer;
     const char *error_title;
+    const char *intro_title;
+    const char *intro_body;
+    const char *intro_footer;
+    const char *status_title;
+    const char *status_online_body;
+    const char *status_setup_body;
+    const char *status_offline_body;
+    const char *status_footer;
+    const char *wifi_connecting_body;
+    const char *wifi_connecting_footer;
+    const char *voice_footer;
+    const char *speaking_footer;
+    const char *audio_unavailable_body;
+    const char *recording_failed_body;
+    const char *voice_oracle_unconfigured_body;
+    const char *error_footer;
 };
 
 const char *DefaultLanguage();
