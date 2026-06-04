@@ -2,12 +2,14 @@
 
 Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-white board. It turns the device into a small e-paper fortune teller with BOOT/PWR controls, audio feedback, serial debugging, and framebuffer snapshots.
 
+For future AI agents and contributors, start with the extended project map in [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md).
+
 ## Current Behavior
 
 - First boot defaults to English.
 - Boot plays a longer background startup jingle and lands on the localized introductory oracle screen.
 - BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
-- Hold BOOT to ask a voice question. Release BOOT to send it to the voice-oracle flow when OpenAI settings are configured.
+- Hold BOOT to ask by recording a voice question. Release BOOT to enter the voice-oracle flow; OpenAI transport is still pending and currently returns an unconfigured/error state.
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
 - BOOT long press forces Wi-Fi setup. BOOT + PWR long press performs a full configuration reset.
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
@@ -45,6 +47,8 @@ The intended online flow is:
 Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
 
 Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
+
+Current implementation status: recording, UI states, NVS OpenAI settings, and the response contract are in place. The actual OpenAI speech-to-text, Responses API, text-to-speech, generated-audio playback, and email relay transport are not implemented yet. `VoiceOracleService::AskFromRecordedAudio()` currently returns `ESP_ERR_NOT_FINISHED`.
 
 ## Sound Assets
 
@@ -179,5 +183,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-51 passed
+53 passed
 ```

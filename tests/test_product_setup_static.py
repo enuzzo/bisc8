@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "firmware/bisc8_fortune/main"
 README = ROOT / "README.md"
+AI_HANDOFF = ROOT / "docs/AI_HANDOFF.md"
 PARTITIONS = ROOT / "firmware/bisc8_fortune/partitions.csv"
 SDKCONFIG = ROOT / "firmware/bisc8_fortune/sdkconfig"
 SDKCONFIG_DEFAULTS = ROOT / "firmware/bisc8_fortune/sdkconfig.defaults"
@@ -560,6 +561,26 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "secrets are stored on the device",
     ):
         assert phrase in readme
+
+
+def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
+    readme = read(README)
+    handoff = read(AI_HANDOFF)
+
+    assert "docs/AI_HANDOFF.md" in readme
+    for phrase in (
+        "VoiceOracleService",
+        "ESP_ERR_NOT_FINISHED",
+        "OpenAI STT/Responses/TTS transport is not implemented yet",
+        "audio/transcriptions",
+        "responses",
+        "audio/speech",
+        "spool://question.wav",
+        "Bisc8-XXXX",
+        "CONFIG_BISC8_EMAIL_RELAY_URL",
+        "Run this before claiming completion",
+    ):
+        assert phrase in handoff
 
 
 def test_public_flash_page_uses_web_serial_manifest_without_secrets():
