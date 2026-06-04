@@ -128,6 +128,31 @@ def test_portal_runs_http_server_and_redirects_captive_probes():
     assert "esp_http_server" in cmake
 
 
+def test_captive_dns_redirects_setup_clients_to_local_portal():
+    header = read(MAIN / "captive_dns_service.h")
+    source = read(MAIN / "captive_dns_service.cpp")
+    connectivity = read(MAIN / "connectivity_service.cpp")
+    cmake = read(MAIN / "CMakeLists.txt")
+
+    for token in (
+        "CaptiveDnsService",
+        "socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)",
+        "htons(kDnsPort)",
+        "BuildResponse",
+        "0x8180",
+        "0xc00c",
+        "kAnswerTtlSeconds",
+        "sendto",
+        "closesocket",
+    ):
+        assert token in header or token in source
+    assert "kSetupIpHostOrder = 0xC0A80401" in connectivity
+    assert "dns_.Start(kSetupIpHostOrder)" in connectivity
+    assert "dns_.Stop()" in connectivity
+    assert "captive_dns_service.cpp" in cmake
+    assert "lwip" in cmake
+
+
 def test_portal_has_real_forms_post_handlers_and_config_save():
     header = read(MAIN / "web_portal.h")
     source = read(MAIN / "web_portal.cpp")
@@ -202,6 +227,7 @@ def test_connectivity_service_uses_real_wifi_scan_sta_and_softap_fallback():
         "esp_wifi_set_mode(WIFI_MODE_APSTA)",
         "esp_wifi_set_config(WIFI_IF_AP",
         "192.168.4.1",
+        "captive DNS",
     ):
         assert token in source
     assert "DeviceSettings" in header

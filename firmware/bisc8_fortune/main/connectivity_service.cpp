@@ -24,6 +24,7 @@ constexpr EventBits_t WIFI_CONNECTED_BIT = BIT0;
 constexpr EventBits_t WIFI_FAILED_BIT = BIT1;
 constexpr uint16_t kMaxScanRecords = 20;
 constexpr const char *kSetupUrl = "http://192.168.4.1";
+constexpr uint32_t kSetupIpHostOrder = 0xC0A80401;
 
 EventGroupHandle_t g_wifi_events = nullptr;
 esp_netif_t *g_sta_netif = nullptr;
@@ -208,6 +209,7 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
 }
 
 esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, DisplayService &display) {
+    dns_.Stop();
     online_ = false;
     status_ = WifiStatus{};
 
@@ -299,6 +301,10 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
     online_ = false;
 
     DebugSerial::LogAlways("[WIFI]", "starting SoftAP %s and setup portal at %s", setup_ssid, kSetupUrl);
+    err = dns_.Start(kSetupIpHostOrder);
+    if (err != ESP_OK) {
+        DebugSerial::LogAlways("[WIFI]", "captive DNS failed: %s", esp_err_to_name(err));
+    }
     display.ShowWifiSetup();
     return portal.Start();
 }

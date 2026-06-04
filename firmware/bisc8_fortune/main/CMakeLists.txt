@@ -5,6 +5,7 @@ idf_component_register(
     "audio_service.cpp"
     "board_support.cpp"
     "button_controller.cpp"
+    "captive_dns_service.cpp"
     "connectivity_service.cpp"
     "debug_serial.cpp"
     "display_service.cpp"
@@ -21,6 +22,7 @@ idf_component_register(
     esp_http_server
     esp_netif
     esp_wifi
+    lwip
     espressif__esp_io_expander
     espressif__esp_io_expander_tca9554
     REQUIRES

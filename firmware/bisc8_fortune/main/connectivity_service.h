@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include "captive_dns_service.h"
+
 namespace bisc8 {
 
 struct DeviceSettings;
@@ -34,6 +36,7 @@ private:
 
     bool online_ = false;
     bool initialized_ = false;
+    CaptiveDnsService dns_;
     WifiStatus status_;
 };
 

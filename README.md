@@ -15,7 +15,7 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
 - On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
-- Captive probe HTTP routes redirect to `/`; the e-paper fallback still shows manual connection instructions because captive detection can be unreliable.
+- Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. The e-paper fallback still shows manual connection instructions because captive detection can be unreliable.
 
 ## Product Setup Roadmap
 
@@ -123,5 +123,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-36 passed
+37 passed
 ```
