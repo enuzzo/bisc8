@@ -32,7 +32,7 @@ private:
     static esp_err_t HandleWifiCredentials(httpd_req_t *req);
     static esp_err_t HandleSettings(httpd_req_t *req);
     static esp_err_t HandleOpenAi(httpd_req_t *req);
-    static esp_err_t HandleSmtp(httpd_req_t *req);
+    static esp_err_t HandleEmail(httpd_req_t *req);
     static esp_err_t HandleReset(httpd_req_t *req);
     static esp_err_t HandleCaptiveRedirect(httpd_req_t *req);
     esp_err_t RegisterRoute(const char *uri, httpd_method_t method, HttpHandler handler);

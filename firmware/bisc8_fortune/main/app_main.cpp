@@ -117,12 +117,13 @@ extern "C" void app_main(void) {
         DebugSerial::LogAlways("[CONFIG]", "config load failed: %s", esp_err_to_name(err));
     } else {
         DebugSerial::LogAlways("[CONFIG]",
-                               "loaded language=%s wifi_count=%u openai_key=%s smtp=%s recipient=%s",
+                               "loaded language=%s wifi_count=%u openai_key=%s email=%s recipient=%s relay=%s",
                                settings.language.c_str(),
                                static_cast<unsigned>(settings.wifi_count),
                                settings.openai.api_key.empty() ? "missing" : "set",
-                               settings.smtp.enabled ? "enabled" : "disabled",
-                               settings.smtp.recipient.empty() ? "missing" : "set");
+                               settings.email.enabled ? "enabled" : "disabled",
+                               settings.email.recipient.empty() ? "missing" : "set",
+                               settings.email.relay_url.empty() ? "missing" : "set");
     }
 
     err = board.Initialize();
@@ -191,7 +192,7 @@ extern "C" void app_main(void) {
                 g_fortune_presses++;
                 FortunePick pick = fortunes.PickRandom();
                 display.ShowFortune(pick.text, pick.index, pick.count);
-                audio.PlayBeep();
+                audio.PlayChime();
 #if CONFIG_BISC8_AUTO_SLEEP_AFTER_FORTUNE
                 g_state = "sleep";
                 DebugSerial::LogAlways("[POWER]", "auto sleep after fortune in %d ms", CONFIG_BISC8_AUTO_SLEEP_DELAY_MS);

@@ -13,7 +13,7 @@ class AudioService {
 public:
     esp_err_t Initialize();
     bool Available() const;
-    void PlayBeep();
+    void PlayChime();
     void StartVoiceRecording();
     const char *FinishVoiceRecording();
     void RunMicTest(DisplayService &display);

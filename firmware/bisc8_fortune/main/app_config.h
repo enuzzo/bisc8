@@ -13,7 +13,7 @@ constexpr size_t kMaxWifiCredentials = 8;
 constexpr size_t kMaxScreenAnswerChars = 100;
 constexpr uint32_t kWifiAttemptTimeoutMs = 5000;
 constexpr uint32_t kVoiceRecordLimitMs = 15000;
-constexpr uint32_t kConfigSchemaVersion = 1;
+constexpr uint32_t kConfigSchemaVersion = 2;
 
 struct WifiCredential {
     std::string ssid;
@@ -28,26 +28,23 @@ struct OpenAiSettings {
     std::string voice;
 };
 
-struct SmtpSettings {
+struct EmailSettings {
     bool enabled = false;
-    std::string host;
-    uint16_t port = 587;
-    bool use_tls = true;
-    std::string username;
-    std::string password;
-    std::string from;
     std::string recipient;
+    std::string relay_url;
+    std::string relay_token;
 };
 
 struct DeviceSettings {
     std::string language;
     OpenAiSettings openai;
-    SmtpSettings smtp;
+    EmailSettings email;
     WifiCredential wifi[kMaxWifiCredentials];
     size_t wifi_count = 0;
 };
 
 OpenAiSettings DefaultOpenAiSettings();
+EmailSettings DefaultEmailSettings();
 std::string MaskSecret(const std::string &secret);
 
 class ConfigStore {

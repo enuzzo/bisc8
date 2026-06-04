@@ -6,6 +6,8 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 
+#include "sdkconfig.h"
+
 namespace bisc8 {
 namespace {
 
@@ -18,19 +20,16 @@ constexpr const char *kOpenAiTranscriptionModelKey = "openai_stt";
 constexpr const char *kOpenAiResponseModelKey = "openai_resp";
 constexpr const char *kOpenAiSpeechModelKey = "openai_tts";
 constexpr const char *kOpenAiVoiceKey = "openai_voice";
-constexpr const char *kSmtpEnabledKey = "smtp_enabled";
-constexpr const char *kSmtpHostKey = "smtp_host";
-constexpr const char *kSmtpPortKey = "smtp_port";
-constexpr const char *kSmtpTlsKey = "smtp_tls";
-constexpr const char *kSmtpUsernameKey = "smtp_user";
-constexpr const char *kSmtpPasswordKey = "smtp_pass";
-constexpr const char *kSmtpFromKey = "smtp_from";
-constexpr const char *kSmtpRecipientKey = "smtp_recipient";
+constexpr const char *kEmailEnabledKey = "email_enabled";
+constexpr const char *kEmailRecipientKey = "email_recipient";
+constexpr const char *kEmailRelayUrlKey = "email_relay_url";
+constexpr const char *kEmailRelayTokenKey = "email_relay_token";
+constexpr const char *kLegacyEmailRecipientKey = "smtp_recipient";
 
 void ApplyDefaults(DeviceSettings *settings) {
     settings->language = "en";
     settings->openai = DefaultOpenAiSettings();
-    settings->smtp = SmtpSettings{};
+    settings->email = DefaultEmailSettings();
     settings->wifi_count = 0;
     for (size_t i = 0; i < kMaxWifiCredentials; ++i) {
         settings->wifi[i] = WifiCredential{};
@@ -129,6 +128,17 @@ OpenAiSettings DefaultOpenAiSettings() {
     return settings;
 }
 
+EmailSettings DefaultEmailSettings() {
+    EmailSettings settings;
+#ifdef CONFIG_BISC8_EMAIL_RELAY_URL
+    settings.relay_url = CONFIG_BISC8_EMAIL_RELAY_URL;
+#endif
+#ifdef CONFIG_BISC8_EMAIL_RELAY_TOKEN
+    settings.relay_token = CONFIG_BISC8_EMAIL_RELAY_TOKEN;
+#endif
+    return settings;
+}
+
 std::string MaskSecret(const std::string &secret) {
     if (secret.empty()) {
         return "";
@@ -202,39 +212,28 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
         return err;
     }
 
-    uint8_t smtp_enabled = 0;
-    if (nvs_get_u8(handle, kSmtpEnabledKey, &smtp_enabled) == ESP_OK) {
-        settings->smtp.enabled = smtp_enabled != 0;
+    uint8_t email_enabled = 0;
+    if (nvs_get_u8(handle, kEmailEnabledKey, &email_enabled) == ESP_OK) {
+        settings->email.enabled = email_enabled != 0;
     }
-    uint8_t smtp_tls = 1;
-    if (nvs_get_u8(handle, kSmtpTlsKey, &smtp_tls) == ESP_OK) {
-        settings->smtp.use_tls = smtp_tls != 0;
-    }
-    uint16_t smtp_port = 587;
-    if (nvs_get_u16(handle, kSmtpPortKey, &smtp_port) == ESP_OK) {
-        settings->smtp.port = smtp_port;
-    }
-    err = GetString(handle, kSmtpHostKey, &settings->smtp.host);
+    err = GetString(handle, kEmailRecipientKey, &settings->email.recipient);
     if (err != ESP_OK) {
         nvs_close(handle);
         return err;
     }
-    err = GetString(handle, kSmtpUsernameKey, &settings->smtp.username);
+    if (settings->email.recipient.empty()) {
+        err = GetString(handle, kLegacyEmailRecipientKey, &settings->email.recipient);
+        if (err != ESP_OK) {
+            nvs_close(handle);
+            return err;
+        }
+    }
+    err = GetString(handle, kEmailRelayUrlKey, &settings->email.relay_url);
     if (err != ESP_OK) {
         nvs_close(handle);
         return err;
     }
-    err = GetString(handle, kSmtpPasswordKey, &settings->smtp.password);
-    if (err != ESP_OK) {
-        nvs_close(handle);
-        return err;
-    }
-    err = GetString(handle, kSmtpFromKey, &settings->smtp.from);
-    if (err != ESP_OK) {
-        nvs_close(handle);
-        return err;
-    }
-    err = GetString(handle, kSmtpRecipientKey, &settings->smtp.recipient);
+    err = GetString(handle, kEmailRelayTokenKey, &settings->email.relay_token);
     if (err != ESP_OK) {
         nvs_close(handle);
         return err;
@@ -271,28 +270,16 @@ esp_err_t ConfigStore::Save(const DeviceSettings &settings) {
         err = SetString(handle, kOpenAiVoiceKey, settings.openai.voice);
     }
     if (err == ESP_OK) {
-        err = nvs_set_u8(handle, kSmtpEnabledKey, settings.smtp.enabled ? 1 : 0);
+        err = nvs_set_u8(handle, kEmailEnabledKey, settings.email.enabled ? 1 : 0);
     }
     if (err == ESP_OK) {
-        err = nvs_set_u8(handle, kSmtpTlsKey, settings.smtp.use_tls ? 1 : 0);
+        err = SetString(handle, kEmailRecipientKey, settings.email.recipient);
     }
     if (err == ESP_OK) {
-        err = nvs_set_u16(handle, kSmtpPortKey, settings.smtp.port);
+        err = SetString(handle, kEmailRelayUrlKey, settings.email.relay_url);
     }
     if (err == ESP_OK) {
-        err = SetString(handle, kSmtpHostKey, settings.smtp.host);
-    }
-    if (err == ESP_OK) {
-        err = SetString(handle, kSmtpUsernameKey, settings.smtp.username);
-    }
-    if (err == ESP_OK) {
-        err = SetString(handle, kSmtpPasswordKey, settings.smtp.password);
-    }
-    if (err == ESP_OK) {
-        err = SetString(handle, kSmtpFromKey, settings.smtp.from);
-    }
-    if (err == ESP_OK) {
-        err = SetString(handle, kSmtpRecipientKey, settings.smtp.recipient);
+        err = SetString(handle, kEmailRelayTokenKey, settings.email.relay_token);
     }
     if (err == ESP_OK) {
         err = SaveWifi(handle, settings);

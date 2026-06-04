@@ -101,7 +101,7 @@ def test_fortune_auto_sleep_keeps_the_fortune_visible():
     assert "CONFIG_BISC8_AUTO_SLEEP_DELAY_MS" in source
     fortune_case = source.split("case AppEvent::GenerateFortune:", 1)[1].split("case AppEvent::MicTest:", 1)[0]
     assert "display.ShowFortune" in fortune_case
-    assert "audio.PlayBeep" in fortune_case
+    assert "audio.PlayChime" in fortune_case
     assert "board.EnterDeepSleep(\"fortune\", kAnyButtonWakeMask)" in fortune_case
     assert "display.ShowSleep" not in fortune_case
 

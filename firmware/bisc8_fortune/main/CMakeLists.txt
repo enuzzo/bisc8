@@ -10,7 +10,7 @@ idf_component_register(
     "display_service.cpp"
     "fortune_service.cpp"
     "localization.cpp"
-    "smtp_service.cpp"
+    "email_service.cpp"
     "voice_oracle_service.cpp"
     "web_portal.cpp"
     INCLUDE_DIRS 

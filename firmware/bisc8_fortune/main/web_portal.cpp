@@ -28,6 +28,7 @@ const char *const kPortalRoutes[] = {
     "/api/wifi/credentials",
     "/api/settings",
     "/api/openai",
+    "/api/email",
     "/api/smtp",
     "/api/reset",
 };
@@ -101,19 +102,22 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 <p class="hint">Stored key: <span data-bind="openai_key">missing</span></p>
 </article>
 <article class="panel">
-<h2>SMTP</h2>
-<form data-api="/api/smtp">
-<div class="row two"><div><label for="host">Host</label><input id="host" name="host" placeholder="smtp.example.com"></div><div><label for="port">Port</label><input id="port" name="port" inputmode="numeric" placeholder="587"></div></div>
-<div class="row two"><div><label for="username">Username</label><input id="username" name="username" autocomplete="off"></div><div><label for="smtp_password">Password</label><input id="smtp_password" name="password" type="password" placeholder="Leave blank to keep current password"></div></div>
-<div class="row two"><div><label for="from">From</label><input id="from" name="from" type="email"></div><div><label for="recipient">Recipient</label><input id="recipient" name="recipient" type="email"></div></div>
-<div class="row two"><div><label for="enabled">Enabled</label><select id="enabled" name="enabled"><option value="1">Yes</option><option value="0">No</option></select></div><div><label for="use_tls">TLS</label><select id="use_tls" name="use_tls"><option value="1">Yes</option><option value="0">No</option></select></div></div>
-<div class="actions"><button class="btn" type="submit">Save SMTP</button></div>
+<h2>Email</h2>
+<form data-api="/api/email">
+<div class="row"><label for="recipient">Recipient</label><input id="recipient" name="recipient" type="email" placeholder="you@example.com"></div>
+<div class="row"><label for="email_enabled">Send oracle emails</label><select id="email_enabled" name="enabled"><option value="1">Yes</option><option value="0">No</option></select></div>
+<details>
+<summary>Advanced relay settings</summary>
+<div class="row"><label for="relay_url">Relay URL</label><input id="relay_url" name="relay_url" inputmode="url" placeholder="https://relay.example.com/v1/bisc8/email"></div>
+<div class="row"><label for="relay_token">Relay token</label><input id="relay_token" name="relay_token" type="password" placeholder="Leave blank to keep current token"></div>
+</details>
+<div class="actions"><button class="btn" type="submit">Save email</button></div>
 </form>
-<p class="hint">Recipient: <span data-bind="smtp_recipient">missing</span></p>
+<p class="hint">Recipient: <span data-bind="email_recipient">missing</span>. Relay: <span data-bind="email_relay">missing</span></p>
 </article>
 <article class="panel wide">
 <h2>Reset</h2>
-<div class="actions"><button class="btn warn" id="reset" type="button">Full config reset</button><span class="hint">This clears Wi-Fi, OpenAI, SMTP, and language.</span></div>
+<div class="actions"><button class="btn warn" id="reset" type="button">Full config reset</button><span class="hint">This clears Wi-Fi, OpenAI, email, and language.</span></div>
 <p class="hint">Secrets are stored on this device. Enable flash encryption before production use.</p>
 </article>
 </section>
@@ -255,17 +259,6 @@ esp_err_t SendJson(httpd_req_t *req, const std::string &json) {
 esp_err_t SendError(httpd_req_t *req, const char *status, const char *message) {
     httpd_resp_set_status(req, status);
     return SendJson(req, std::string("{\"error\":") + JsonString(message) + "}");
-}
-
-uint16_t ParsePort(const std::string &value, uint16_t fallback) {
-    if (value.empty()) {
-        return fallback;
-    }
-    const long parsed = std::strtol(value.c_str(), nullptr, 10);
-    if (parsed <= 0 || parsed > 65535) {
-        return fallback;
-    }
-    return static_cast<uint16_t>(parsed);
 }
 
 void ApplyDefaultSettings(DeviceSettings *settings) {
@@ -449,7 +442,7 @@ esp_err_t WebPortal::HandleOpenAi(httpd_req_t *req) {
     return portal->SendStatusJson(req);
 }
 
-esp_err_t WebPortal::HandleSmtp(httpd_req_t *req) {
+esp_err_t WebPortal::HandleEmail(httpd_req_t *req) {
     WebPortal *portal = PortalFromRequest(req);
     if (portal == nullptr || portal->settings_ == nullptr) {
         return SendError(req, "500 Internal Server Error", "Configuration is not ready");
@@ -460,17 +453,16 @@ esp_err_t WebPortal::HandleSmtp(httpd_req_t *req) {
         return SendError(req, "400 Bad Request", "Invalid form body");
     }
     const FormFields form = ParseForm(body);
-    portal->settings_->smtp.enabled = FormValue(form, "enabled", "0") == "1";
-    portal->settings_->smtp.use_tls = FormValue(form, "use_tls", "1") == "1";
-    portal->settings_->smtp.host = FormValue(form, "host");
-    portal->settings_->smtp.port = ParsePort(FormValue(form, "port"), 587);
-    portal->settings_->smtp.username = FormValue(form, "username");
-    const std::string password = FormValue(form, "password");
-    if (!password.empty()) {
-        portal->settings_->smtp.password = password;
+    portal->settings_->email.enabled = FormValue(form, "enabled", "0") == "1";
+    portal->settings_->email.recipient = FormValue(form, "recipient");
+    const std::string relay_url = FormValue(form, "relay_url");
+    if (!relay_url.empty()) {
+        portal->settings_->email.relay_url = relay_url;
     }
-    portal->settings_->smtp.from = FormValue(form, "from");
-    portal->settings_->smtp.recipient = FormValue(form, "recipient");
+    const std::string relay_token = FormValue(form, "relay_token");
+    if (!relay_token.empty()) {
+        portal->settings_->email.relay_token = relay_token;
+    }
     err = portal->SaveCurrentSettings();
     if (err != ESP_OK) {
         return SendError(req, "500 Internal Server Error", esp_err_to_name(err));
@@ -516,16 +508,16 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
 
     std::string language = "en";
     std::string openai_key;
-    std::string smtp_host;
-    std::string smtp_recipient;
-    bool smtp_enabled = false;
+    std::string email_recipient;
+    std::string email_relay;
+    bool email_enabled = false;
     size_t wifi_count = 0;
     if (settings_ != nullptr) {
         language = settings_->language;
         openai_key = settings_->openai.api_key.empty() ? "missing" : MaskSecret(settings_->openai.api_key);
-        smtp_host = settings_->smtp.host;
-        smtp_recipient = settings_->smtp.recipient.empty() ? "missing" : MaskSecret(settings_->smtp.recipient);
-        smtp_enabled = settings_->smtp.enabled;
+        email_recipient = settings_->email.recipient.empty() ? "missing" : MaskSecret(settings_->email.recipient);
+        email_relay = settings_->email.relay_url.empty() ? "missing" : "configured";
+        email_enabled = settings_->email.enabled;
         wifi_count = settings_->wifi_count;
     }
 
@@ -539,9 +531,9 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
     json += ",\"language\":" + JsonString(language);
     json += ",\"wifi_count\":" + std::to_string(wifi_count);
     json += ",\"openai_key\":" + JsonString(openai_key);
-    json += ",\"smtp_enabled\":" + std::string(smtp_enabled ? "true" : "false");
-    json += ",\"smtp_host\":" + JsonString(smtp_host);
-    json += ",\"smtp_recipient\":" + JsonString(smtp_recipient);
+    json += ",\"email_enabled\":" + std::string(email_enabled ? "true" : "false");
+    json += ",\"email_recipient\":" + JsonString(email_recipient);
+    json += ",\"email_relay\":" + JsonString(email_relay);
     json += ",\"warning\":\"secrets are stored on this device\"";
     json += "}";
     return SendJson(req, json);
@@ -626,7 +618,10 @@ esp_err_t WebPortal::Start() {
         err = RegisterRoute("/api/openai", HTTP_POST, &WebPortal::HandleOpenAi);
     }
     if (err == ESP_OK) {
-        err = RegisterRoute("/api/smtp", HTTP_POST, &WebPortal::HandleSmtp);
+        err = RegisterRoute("/api/email", HTTP_POST, &WebPortal::HandleEmail);
+    }
+    if (err == ESP_OK) {
+        err = RegisterRoute("/api/smtp", HTTP_POST, &WebPortal::HandleEmail);
     }
     if (err == ESP_OK) {
         err = RegisterRoute("/api/reset", HTTP_POST, &WebPortal::HandleReset);

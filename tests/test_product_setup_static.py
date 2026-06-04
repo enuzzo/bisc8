@@ -22,14 +22,15 @@ def test_config_schema_declares_product_limits_and_secret_masking():
     assert "MaskSecret" in header
     assert 'return "***";' in source
     assert "OpenAiSettings" in header
-    assert "SmtpSettings" in header
+    assert "EmailSettings" in header
+    assert "DefaultEmailSettings" in header
 
 
 def test_config_store_uses_nvs_namespace_keys_and_schema_version():
     header = read(MAIN / "app_config.h")
     source = read(MAIN / "app_config.cpp")
 
-    assert "constexpr uint32_t kConfigSchemaVersion = 1" in header
+    assert "constexpr uint32_t kConfigSchemaVersion = 2" in header
     assert "class ConfigStore" in header
     for method in ("Init", "Load", "Save", "Reset"):
         assert f"esp_err_t {method}" in header
@@ -39,7 +40,9 @@ def test_config_store_uses_nvs_namespace_keys_and_schema_version():
         '"language"',
         '"wifi_count"',
         '"openai_key"',
-        '"smtp_host"',
+        '"email_relay_url"',
+        '"email_relay_token"',
+        '"email_recipient"',
         '"smtp_recipient"',
     ):
         assert token in source
@@ -93,6 +96,7 @@ def test_portal_declares_required_routes_and_masks_secrets():
         '"/api/wifi/credentials"',
         '"/api/settings"',
         '"/api/openai"',
+        '"/api/email"',
         '"/api/smtp"',
         '"/api/reset"',
     ):
@@ -135,7 +139,7 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "HandleWifiCredentials",
         "HandleSettings",
         "HandleOpenAi",
-        "HandleSmtp",
+        "HandleEmail",
         "HandleReset",
         "ReadRequestBody",
         "UrlDecode",
@@ -154,12 +158,13 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "name=\"ssid\"",
         "name=\"language\"",
         "name=\"api_key\"",
-        "name=\"host\"",
         "name=\"recipient\"",
+        "name=\"relay_url\"",
+        "name=\"relay_token\"",
         "api('/api/status')",
         "data-api=\"/api/wifi/credentials\"",
         "data-api=\"/api/openai\"",
-        "data-api=\"/api/smtp\"",
+        "data-api=\"/api/email\"",
         "api('/api/reset'",
         "n.band",
     ):
@@ -249,14 +254,15 @@ def test_audio_feedback_uses_short_generated_chime():
     assert "Codec_PlaybackData" in source
 
 
-def test_smtp_service_is_direct_from_device_and_degrades_to_text_only():
-    header = read(MAIN / "smtp_service.h")
-    source = read(MAIN / "smtp_service.cpp")
+def test_email_service_uses_relay_contract_and_degrades_to_text_only():
+    header = read(MAIN / "email_service.h")
+    source = read(MAIN / "email_service.cpp")
 
     assert "SendOracleEmail" in header
-    assert "direct SMTP" in source
+    assert "EmailSettings" in header
+    assert "relay HTTPS POST" in source
     assert "text-only" in source
-    assert "attachment failed" in source
+    assert "attachment upload pending" in source
 
 
 def test_button_events_cover_voice_and_setup_recovery():
@@ -287,7 +293,7 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "Bisc8-XXXX",
         "http://192.168.4.1",
         "OpenAI API key",
-        "SMTP",
+        "email relay",
         "Hold BOOT to ask",
         "BOOT + PWR",
         "1024x1024",

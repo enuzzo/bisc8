@@ -75,9 +75,9 @@ bool AudioService::Available() const {
     return available_;
 }
 
-void AudioService::PlayBeep() {
+void AudioService::PlayChime() {
     if (!available_ || feedback_buffer_ == nullptr) {
-        DebugSerial::Log("[AUDIO]", "beep skipped; audio unavailable");
+        DebugSerial::Log("[AUDIO]", "chime skipped; audio unavailable");
         return;
     }
     esp_err_t err = Codec_PlaybackData(feedback_buffer_, feedback_bytes_);
@@ -113,7 +113,7 @@ void AudioService::RunMicTest(DisplayService &display) {
     esp_err_t err = Codec_RecordData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "record bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
     if (err != ESP_OK) {
-        display.ShowError("Registrazione fallita.");
+        display.ShowError("Recording failed.");
         return;
     }
 

@@ -11,7 +11,7 @@ config BISC8_AUTO_SLEEP_AFTER_FORTUNE
     bool "Enter deep sleep after showing a fortune"
     default n
     help
-        Shows the selected fortune, plays the beep, then enters deep sleep
+        Shows the selected fortune, plays the chime, then enters deep sleep
         while the e-paper keeps the final image visible.
 
 config BISC8_AUTO_SLEEP_DELAY_MS
@@ -20,7 +20,7 @@ config BISC8_AUTO_SLEEP_DELAY_MS
     range 500 30000
     depends on BISC8_AUTO_SLEEP_AFTER_FORTUNE
     help
-        Milliseconds to stay awake after a fortune is drawn and the beep is
+        Milliseconds to stay awake after a fortune is drawn and the chime is
         played. The displayed fortune remains visible after deep sleep.
 
 config BISC8_IDLE_DEEP_SLEEP_ENABLED
@@ -44,5 +44,20 @@ config BISC8_MANUAL_DEEP_SLEEP_ENABLED
     help
         Enables the power-off deep-sleep path from the PWR long-press event.
         The e-paper shows the Bisc8 wake prompt before sleeping.
+
+config BISC8_EMAIL_RELAY_URL
+    string "Default Bisc8 email relay URL"
+    default ""
+    help
+        Optional HTTPS endpoint that receives oracle email payloads. Leave this
+        empty for public firmware builds that should not contain deployment
+        details.
+
+config BISC8_EMAIL_RELAY_TOKEN
+    string "Default Bisc8 email relay token"
+    default ""
+    help
+        Optional bearer token for the email relay. Do not commit production
+        secrets; prefer provisioning this per build or per device.
 
 endmenu
