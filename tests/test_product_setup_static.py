@@ -93,6 +93,34 @@ def test_all_nvs_keys_fit_esp_idf_key_length_limit():
     )
 
 
+def test_build_version_is_wired_into_portal_and_serial_log():
+    cmake = read(MAIN / "CMakeLists.txt")
+    gen = read(MAIN / "build_info.cmake")
+    portal = read(MAIN / "web_portal.cpp")
+    app_main = read(MAIN / "app_main.cpp")
+
+    # Generator builds the version from git commit count + build timestamp,
+    # and ignores untracked files when deciding the dirty (+) marker.
+    assert "rev-list --count HEAD" in gen
+    assert "BISC8_BUILD_VERSION" in gen
+    assert "TIMESTAMP" in gen
+    assert "--untracked-files=no" in gen
+
+    # Build wires the generator and exposes its generated include dir.
+    assert "build_info.cmake" in cmake
+    assert "build_info" in cmake
+
+    # Portal surfaces the version: JSON field + a data-bind badge in the header.
+    assert '#include "build_info.h"' in portal
+    assert "BISC8_BUILD_VERSION" in portal
+    assert '"build_version"' in portal
+    assert 'data-bind="build_version"' in portal
+
+    # Serial log prints it at boot under a [BUILD] tag.
+    assert "BISC8_BUILD_VERSION" in app_main
+    assert "[BUILD]" in app_main
+
+
 def test_partition_table_reserves_audio_spool_storage():
     partitions = read(PARTITIONS)
     sdkconfig = read(SDKCONFIG)

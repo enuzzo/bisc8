@@ -22,6 +22,7 @@
 #include "fortune_service.h"
 #include "voice_oracle_service.h"
 #include "web_portal.h"
+#include "build_info.h"
 #include "sdkconfig.h"
 
 using namespace bisc8;
@@ -104,6 +105,7 @@ extern "C" void app_main(void) {
     g_event_queue = xQueueCreate(8, sizeof(AppEvent));
     DebugSerial::Start(print_status, handle_serial_command);
     DebugSerial::LogAlways("[BOOT]", "Bisc8 firmware booting");
+    DebugSerial::LogAlways("[BUILD]", "%s", BISC8_BUILD_VERSION);
 
     if (g_event_queue == nullptr) {
         DebugSerial::LogAlways("[BOOT]", "event queue allocation failed");

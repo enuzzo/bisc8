@@ -13,6 +13,7 @@
 #include <freertos/task.h>
 
 #include "app_config.h"
+#include "build_info.h"
 #include "connectivity_service.h"
 #include "debug_serial.h"
 #include "display_service.h"
@@ -54,7 +55,7 @@ const char *const kIndexHtml = R"HTML(<!doctype html>
 <style>
 :root{color-scheme:light;--ink:#17130f;--muted:#675f55;--line:#d8d0c4;--paper:#fbfaf7;--panel:#ffffff;--soft:#f1eee7;--accent:#0f766e;--accent2:#8a4f12;--bad:#9f2a2a;--ok:#17633a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 18% 0,#eef8f5 0 220px,transparent 221px),linear-gradient(180deg,#fff,#f5f1e9);color:var(--ink);font:15px/1.42 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:12px}.mark{width:48px;height:48px;border:2px solid var(--ink);display:grid;place-items:center;font:700 17px/1 Georgia,serif;background:#fff;box-shadow:4px 4px 0 var(--ink)}h1{margin:0;font:700 28px/1.05 Georgia,serif;letter-spacing:0}.sub{margin:3px 0 0;color:var(--muted)}
+main{position:relative;width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.build-badge{position:absolute;top:6px;right:10px;font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);opacity:.7;letter-spacing:.02em}.top{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:12px}.mark{width:48px;height:48px;border:2px solid var(--ink);display:grid;place-items:center;font:700 17px/1 Georgia,serif;background:#fff;box-shadow:4px 4px 0 var(--ink)}h1{margin:0;font:700 28px/1.05 Georgia,serif;letter-spacing:0}.sub{margin:3px 0 0;color:var(--muted)}
 .status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pill{border:1px solid var(--line);background:rgba(255,255,255,.82);padding:9px 10px}.pill b{display:block;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}.pill span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grid{display:grid;grid-template-columns:1fr;gap:12px}.panel{background:rgba(255,255,255,.88);border:1px solid var(--line);box-shadow:0 12px 28px rgba(40,31,20,.07);padding:15px}.panel h2{margin:0 0 12px;font:700 19px/1.15 Georgia,serif}.row{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:10px}label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.035em}input,select{width:100%;min-height:42px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 11px;font:15px/1.2 inherit;border-radius:0}input:focus,select:focus{outline:2px solid rgba(15,118,110,.28);border-color:var(--accent)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.btn{min-height:40px;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:9px 13px;font:700 14px/1 inherit;cursor:pointer}.btn.secondary{background:#fff;color:var(--ink)}.btn.warn{background:var(--bad);border-color:var(--bad)}.btn:disabled{opacity:.58;cursor:wait}.hint{margin:8px 0 0;color:var(--muted);font-size:13px}.scan{border:1px solid var(--line);background:var(--soft);padding:10px;margin:8px 0;max-height:156px;overflow:auto}.scan button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:9px 4px;color:var(--ink)}.scan button:last-child{border-bottom:0}.toast{position:sticky;bottom:10px;margin-top:12px;background:var(--ink);color:#fff;padding:10px 12px;display:none}.toast.show{display:block}.hidden{display:none}.ok{color:var(--ok)}.danger{color:var(--bad)}
@@ -63,6 +64,7 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </head>
 <body>
 <main>
+<div class="build-badge" data-bind="build_version">r----</div>
 <section class="top">
 <div class="brand"><div class="mark">B8</div><div><h1 data-i18n="appTitle">Bisc8 Setup</h1><p class="sub" data-i18n="subtitle">Local configuration for the small oracle.</p></div></div>
 <div class="status">
@@ -621,6 +623,7 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
     json += ",\"email_enabled\":" + std::string(email_enabled ? "true" : "false");
     json += ",\"email_recipient\":" + JsonString(email_recipient);
     json += ",\"email_relay\":" + JsonString(email_relay);
+    json += ",\"build_version\":" + JsonString(BISC8_BUILD_VERSION);
     json += ",\"warning\":\"secrets are stored on this device\"";
     json += "}";
     return SendJson(req, json);
