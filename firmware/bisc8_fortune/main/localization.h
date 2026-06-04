@@ -17,7 +17,6 @@ struct LocalizedStrings {
     const char *wifi_setup_title;
     const char *wifi_setup_body;
     const char *wifi_setup_footer;
-    const char *wifi_setup_pin_footer;
     const char *listening_title;
     const char *listening_body;
     const char *thinking_title;

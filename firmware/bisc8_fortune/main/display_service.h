@@ -20,7 +20,7 @@ public:
     void ShowPowerOff(Language language);
     void ShowIdle(size_t fortune_count, Language language);
     void ShowWifiConnecting(const char *ssid, int seconds_left, Language language);
-    void ShowWifiSetup(Language language, const char *setup_pin);
+    void ShowWifiSetup(Language language);
     void ShowFortune(const char *fortune, size_t index, size_t count);
     void ShowVoiceListening(Language language);
     void ShowVoiceCooking(Language language);

@@ -252,7 +252,7 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         assert html in source
 
 
-def test_setup_portal_generates_pin_and_requires_it_for_sensitive_posts():
+def test_setup_portal_does_not_require_pairing_pin_for_local_setup():
     header = read(MAIN / "web_portal.h")
     source = read(MAIN / "web_portal.cpp")
     connectivity = read(MAIN / "connectivity_service.cpp")
@@ -267,8 +267,9 @@ def test_setup_portal_generates_pin_and_requires_it_for_sensitive_posts():
         '"403 Forbidden"',
         '"Setup PIN is required"',
     ):
-        assert token in source or token in header
-    assert "portal.GeneratePairingPin();" in connectivity
+        assert token not in source
+        assert token not in header
+    assert "portal.GeneratePairingPin();" not in connectivity
 
     for handler in (
         "HandleWifiCredentials",
@@ -277,13 +278,10 @@ def test_setup_portal_generates_pin_and_requires_it_for_sensitive_posts():
         "HandleReset",
     ):
         body = source.split(f"esp_err_t WebPortal::{handler}", 1)[1].split("\nesp_err_t WebPortal::", 1)[0]
-        assert "RequirePairingPin(req, form)" in body
-
-    settings_body = source.split("esp_err_t WebPortal::HandleSettings", 1)[1].split("\nesp_err_t WebPortal::", 1)[0]
-    assert "RequirePairingPin" not in settings_body
+        assert "RequirePairingPin(req, form)" not in body
 
 
-def test_setup_pin_is_displayed_on_epaper_not_exposed_in_status_json():
+def test_setup_screen_and_status_do_not_expose_or_track_pairing_pin():
     connectivity_header = read(MAIN / "connectivity_service.h")
     connectivity = read(MAIN / "connectivity_service.cpp")
     display_header = read(MAIN / "display_service.h")
@@ -292,24 +290,22 @@ def test_setup_pin_is_displayed_on_epaper_not_exposed_in_status_json():
     localization = read(MAIN / "localization.cpp")
     web = read(MAIN / "web_portal.cpp")
 
-    assert "std::string setup_pin" in connectivity_header
-    assert "status_.setup_pin = portal.PairingPin();" in connectivity
-    assert "display.ShowWifiSetup(language, portal.PairingPin().c_str())" in connectivity
-    assert "void ShowWifiSetup(Language language, const char *setup_pin);" in display_header
-    assert "strings.wifi_setup_pin_footer" in display
-    assert "wifi_setup_pin_footer" in localization_header
-    for phrase in (
-        "PIN %s",
-        "Bisc8-XXXX | 192.168.4.1",
-    ):
-        assert phrase in localization
+    assert "std::string setup_pin" not in connectivity_header
+    assert "status_.setup_pin" not in connectivity
+    assert "portal.PairingPin()" not in connectivity
+    assert "display.ShowWifiSetup(language)" in connectivity
+    assert "void ShowWifiSetup(Language language);" in display_header
+    assert "strings.wifi_setup_pin_footer" not in display
+    assert "wifi_setup_pin_footer" not in localization_header
+    assert "PIN %s" not in localization
+    assert "Bisc8-XXXX | 192.168.4.1" in localization
 
     status_json = web.split("esp_err_t WebPortal::SendStatusJson", 1)[1].split("esp_err_t WebPortal::SendWifiScanJson", 1)[0]
     assert '"setup_pin"' not in status_json
     assert "PairingPin()" not in status_json
 
 
-def test_automatic_setup_portal_displays_pairing_pin_screen():
+def test_automatic_setup_portal_keeps_setup_screen_visible():
     app_main = read(MAIN / "app_main.cpp")
 
     automatic_setup = app_main.split(
@@ -320,7 +316,7 @@ def test_automatic_setup_portal_displays_pairing_pin_screen():
     assert "display.ShowIntro(startup_language)" not in automatic_setup
 
 
-def test_portal_ui_localizes_setup_pin_entry_for_supported_languages():
+def test_portal_ui_has_no_setup_pin_gate():
     source = read(MAIN / "web_portal.cpp")
 
     for token in (
@@ -336,7 +332,7 @@ def test_portal_ui_localizes_setup_pin_entry_for_supported_languages():
         "PIN mostrado en Bisc8",
         "PIN mostrato su Bisc8",
     ):
-        assert token in source
+        assert token not in source
 
 
 def test_portal_json_string_escapes_control_characters():
@@ -665,9 +661,9 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "First boot defaults to English",
         "Bisc8-XXXX",
         "http://192.168.4.1",
-        "Setup PIN",
         "e-paper",
-        "Wi-Fi, OpenAI, email, and reset",
+        "does not require a PIN",
+        "SoftAP is active",
         "OpenAI API key",
         "email relay",
         "Hold BOOT to ask",
@@ -694,9 +690,8 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
         "audio/speech",
         "spool://question.wav",
         "Bisc8-XXXX",
-        "Setup PIN",
-        "sensitive POST routes",
-        "GET status and Wi-Fi scan do not expose secrets or the PIN",
+        "does not require a PIN",
+        "API responses mask stored secrets",
         "PWR triple click",
         "CONFIG_BISC8_EMAIL_RELAY_URL",
         "Run this before claiming completion",

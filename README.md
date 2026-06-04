@@ -11,14 +11,14 @@ For future AI agents and contributors, start with the extended project map in [`
 - BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
 - Hold BOOT to ask by recording a voice question. Release BOOT to enter the voice-oracle flow; OpenAI transport is still pending and currently returns an unconfigured/error state.
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
-- BOOT long press starts the voice/dictation flow. PWR triple click performs a full configuration reset and reopens the setup portal with a fresh PIN. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` as a maintenance fallback.
+- BOOT long press starts the voice/dictation flow. PWR triple click performs a full configuration reset and reopens the setup portal. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` as a maintenance fallback.
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
 - Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
-- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects, while keeping the e-paper on the introductory screen unless setup was explicitly forced.
-- Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`, then generates a short Setup PIN and shows it on the e-paper.
+- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects.
+- Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
 - Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. Press PWR to show the e-paper fallback instructions because captive detection can be unreliable.
 
 ## Product Setup Roadmap
@@ -26,7 +26,7 @@ For future AI agents and contributors, start with the extended project map in [`
 Bisc8 is moving toward a no-recompile product setup flow:
 
 - The local web UI serves responsive forms for Wi-Fi, language, OpenAI API key, email, status, and reset, and reports online/setup mode with the active device address.
-- The web UI asks for the Setup PIN shown on the e-paper before sensitive POST actions: Wi-Fi, OpenAI, email, and reset. Status and Wi-Fi scan remain available without exposing secrets.
+- The setup portal intentionally does not require a PIN; Bisc8 is a playful local device, and setup should stay quick while the SoftAP is active.
 - API responses mask stored secrets; blank secret fields keep the currently stored value.
 - The next web UI milestone will add richer validation and hardware QA for captive portal behavior across phones and laptops.
 - OpenAI, Wi-Fi, and email relay secrets are stored on the device. Enable flash encryption before production use.

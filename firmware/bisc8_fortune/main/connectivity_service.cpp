@@ -324,7 +324,6 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
 
     char setup_ssid[sizeof("Bisc8-XXXX")] = {};
     BuildSetupSsid(setup_ssid, sizeof(setup_ssid));
-    portal.GeneratePairingPin();
 
     esp_netif_ip_info_t ip_info = {};
     IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);
@@ -359,7 +358,6 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
     status_.connected_ip.clear();
     status_.setup_ssid = setup_ssid;
     status_.setup_url = kSetupUrl;
-    status_.setup_pin = portal.PairingPin();
     online_ = false;
 
     DebugSerial::LogAlways("[WIFI]", "starting SoftAP %s and setup portal at %s", setup_ssid, kSetupUrl);
@@ -368,7 +366,7 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
         DebugSerial::LogAlways("[WIFI]", "captive DNS failed: %s", esp_err_to_name(err));
     }
     if (show_display) {
-        display.ShowWifiSetup(language, portal.PairingPin().c_str());
+        display.ShowWifiSetup(language);
     }
     return portal.Start();
 }

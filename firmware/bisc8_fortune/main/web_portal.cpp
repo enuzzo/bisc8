@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <esp_system.h>
-#include <esp_random.h>
 #include <esp_wifi.h>
 
 #include "app_config.h"
@@ -70,21 +69,16 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </div>
 </section>
 <section class="grid">
-<article class="panel wide">
-<h2 data-i18n="setupPinTitle">Setup PIN</h2>
-<div class="row"><label for="setup_pin" data-i18n="setupPinLabel">PIN shown on Bisc8</label><input id="setup_pin" name="setup_pin" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" placeholder="1234"></div>
-<p class="hint" data-i18n="setupPinHint">Enter the PIN shown on Bisc8 before saving Wi-Fi, OpenAI, email, or reset.</p>
-</article>
 <article class="panel">
 <h2 data-i18n="wifiTitle">Wi-Fi</h2>
 <div class="actions"><button class="btn secondary" type="button" id="scan" data-i18n="scan">Scan</button><span class="hint" id="scanState" data-i18n="scanState">Saved networks stay on the device.</span></div>
 <div class="scan" id="scanList"></div>
-<form data-api="/api/wifi/credentials" data-pin="required">
+<form data-api="/api/wifi/credentials">
 <div class="row"><label for="ssid" data-i18n="ssid">SSID</label><input id="ssid" name="ssid" autocomplete="off" required></div>
 <div class="row"><label for="password" data-i18n="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password"></div>
 <div class="actions"><button class="btn" type="submit" data-i18n="saveWifi">Save Wi-Fi</button></div>
 </form>
-<form data-api="/api/wifi/credentials" class="remove" data-pin="required">
+<form data-api="/api/wifi/credentials" class="remove">
 <input type="hidden" name="action" value="remove">
 <div class="row"><label for="remove_index" data-i18n="removeSlot">Remove saved slot</label><input id="remove_index" name="index" inputmode="numeric" placeholder="0"></div>
 <div class="actions"><button class="btn secondary" type="submit" data-i18n="remove">Remove</button></div>
@@ -100,7 +94,7 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </article>
 <article class="panel">
 <h2 data-i18n="openaiTitle">OpenAI</h2>
-<form data-api="/api/openai" data-pin="required">
+<form data-api="/api/openai">
 <div class="row"><label for="api_key" data-i18n="apiKey">API key</label><input id="api_key" name="api_key" type="password" placeholder="Leave blank to keep current key" data-i18n-placeholder="keepKey"></div>
 <div class="row two"><div><label for="transcription_model" data-i18n="stt">Speech to text</label><input id="transcription_model" name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div><div><label for="response_model" data-i18n="oracleModel">Oracle model</label><input id="response_model" name="response_model" placeholder="gpt-4o-mini"></div></div>
 <div class="row two"><div><label for="speech_model" data-i18n="tts">Text to speech</label><input id="speech_model" name="speech_model" placeholder="gpt-4o-mini-tts"></div><div><label for="voice" data-i18n="voice">Voice</label><input id="voice" name="voice" placeholder="alloy"></div></div>
@@ -110,7 +104,7 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </article>
 <article class="panel">
 <h2 data-i18n="emailTitle">Email</h2>
-<form data-api="/api/email" data-pin="required">
+<form data-api="/api/email">
 <div class="row"><label for="recipient" data-i18n="recipient">Recipient</label><input id="recipient" name="recipient" type="email" placeholder="you@example.com"></div>
 <div class="row"><label for="email_enabled" data-i18n="sendEmails">Send oracle emails</label><select id="email_enabled" name="enabled"><option value="1" data-i18n="yes">Yes</option><option value="0" data-i18n="no">No</option></select></div>
 <details>
@@ -124,7 +118,7 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </article>
 <article class="panel wide">
 <h2 data-i18n="resetTitle">Reset</h2>
-<div class="actions"><button class="btn warn" id="reset" type="button" data-pin="required" data-i18n="resetButton">Full config reset</button><span class="hint" data-i18n="resetHint">This clears Wi-Fi, OpenAI, email, and language.</span></div>
+<div class="actions"><button class="btn warn" id="reset" type="button" data-i18n="resetButton">Full config reset</button><span class="hint" data-i18n="resetHint">This clears Wi-Fi, OpenAI, email, and language.</span></div>
 <p class="hint" data-i18n="secretWarning">Secrets are stored on this device. Enable flash encryption before production use.</p>
 </article>
 </section>
@@ -132,9 +126,9 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </main>
 <script>
 const I18N={
-en:{appTitle:'Bisc8 Setup',subtitle:'Local configuration for the small oracle.',mode:'Mode',address:'Address',network:'Network',language:'Language',setupPinTitle:'Setup PIN',setupPinLabel:'PIN shown on Bisc8',setupPinHint:'Enter the PIN shown on Bisc8 before saving Wi-Fi, OpenAI, email, or reset.',setupPinRequired:'Enter the PIN shown on Bisc8.',wifiTitle:'Wi-Fi',scan:'Scan',scanState:'Saved networks stay on the device.',ssid:'SSID',password:'Password',saveWifi:'Save Wi-Fi',removeSlot:'Remove saved slot',remove:'Remove',languageTitle:'Language',displayLanguage:'Display language',saveLanguage:'Save language',firstBoot:'First boot starts in English.',openaiTitle:'OpenAI',apiKey:'API key',keepKey:'Leave blank to keep current key',stt:'Speech to text',oracleModel:'Oracle model',tts:'Text to speech',voice:'Voice',saveOpenai:'Save OpenAI',storedKey:'Stored key',emailTitle:'Email',recipient:'Recipient',sendEmails:'Send oracle emails',yes:'Yes',no:'No',advancedRelay:'Advanced relay settings',relayUrl:'Relay URL',relayToken:'Relay token',keepToken:'Leave blank to keep current token',saveEmail:'Save email',recipientStatus:'Recipient',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Full config reset',resetHint:'This clears Wi-Fi, OpenAI, email, and language.',secretWarning:'Secrets are stored on this device. Enable flash encryption before production use.',missing:'missing',setupMode:'setup mode',onlineMode:'online',offlineMode:'offline',saved:'Saved',scanning:'Scanning...',networksFound:'networks found',resetConfirm:'Clear all local configuration?',resetDone:'Configuration cleared'},
-es:{appTitle:'Configuración Bisc8',subtitle:'Configuración local del pequeño oráculo.',mode:'Modo',address:'Dirección',network:'Red',language:'Idioma',setupPinTitle:'PIN de setup',setupPinLabel:'PIN mostrado en Bisc8',setupPinHint:'Introduce el PIN mostrado en Bisc8 antes de guardar Wi-Fi, OpenAI, email o reset.',setupPinRequired:'Introduce el PIN mostrado en Bisc8.',wifiTitle:'Wi-Fi',scan:'Escanear',scanState:'Las redes guardadas permanecen en el dispositivo.',ssid:'SSID',password:'Contraseña',saveWifi:'Guardar Wi-Fi',removeSlot:'Eliminar ranura guardada',remove:'Eliminar',languageTitle:'Idioma',displayLanguage:'Idioma de pantalla',saveLanguage:'Guardar idioma',firstBoot:'El primer arranque empieza en inglés.',openaiTitle:'OpenAI',apiKey:'Clave API',keepKey:'Déjalo vacío para conservar la clave actual',stt:'Voz a texto',oracleModel:'Modelo del oráculo',tts:'Texto a voz',voice:'Voz',saveOpenai:'Guardar OpenAI',storedKey:'Clave guardada',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Enviar emails del oráculo',yes:'Sí',no:'No',advancedRelay:'Ajustes avanzados del relay',relayUrl:'URL del relay',relayToken:'Token del relay',keepToken:'Déjalo vacío para conservar el token actual',saveEmail:'Guardar email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset total',resetHint:'Borra Wi-Fi, OpenAI, email e idioma.',secretWarning:'Los secretos se guardan en este dispositivo. Activa flash encryption antes de producción.',missing:'falta',setupMode:'modo setup',onlineMode:'conectado',offlineMode:'sin red',saved:'Guardado',scanning:'Escaneando...',networksFound:'redes encontradas',resetConfirm:'¿Borrar toda la configuración local?',resetDone:'Configuración borrada'},
-it:{appTitle:'Configurazione Bisc8',subtitle:'Configurazione locale del piccolo oracolo.',mode:'Modalità',address:'Indirizzo',network:'Rete',language:'Lingua',setupPinTitle:'PIN setup',setupPinLabel:'PIN mostrato su Bisc8',setupPinHint:'Inserisci il PIN mostrato su Bisc8 prima di salvare Wi-Fi, OpenAI, email o reset.',setupPinRequired:'Inserisci il PIN mostrato su Bisc8.',wifiTitle:'Wi-Fi',scan:'Scansiona',scanState:'Le reti salvate restano sul dispositivo.',ssid:'SSID',password:'Password',saveWifi:'Salva Wi-Fi',removeSlot:'Rimuovi slot salvato',remove:'Rimuovi',languageTitle:'Lingua',displayLanguage:'Lingua display',saveLanguage:'Salva lingua',firstBoot:'Il primo avvio parte in inglese.',openaiTitle:'OpenAI',apiKey:'Chiave API',keepKey:'Lascia vuoto per tenere la chiave attuale',stt:'Voce in testo',oracleModel:'Modello oracolo',tts:'Testo in voce',voice:'Voce',saveOpenai:'Salva OpenAI',storedKey:'Chiave salvata',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Invia email oracolo',yes:'Sì',no:'No',advancedRelay:'Impostazioni relay avanzate',relayUrl:'URL relay',relayToken:'Token relay',keepToken:'Lascia vuoto per tenere il token attuale',saveEmail:'Salva email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset completo',resetHint:'Cancella Wi-Fi, OpenAI, email e lingua.',secretWarning:'I segreti sono salvati su questo dispositivo. Abilita la flash encryption prima della produzione.',missing:'manca',setupMode:'modalità setup',onlineMode:'connesso',offlineMode:'offline',saved:'Salvato',scanning:'Scansiono...',networksFound:'reti trovate',resetConfirm:'Cancellare tutta la configurazione locale?',resetDone:'Configurazione cancellata'}
+en:{appTitle:'Bisc8 Setup',subtitle:'Local configuration for the small oracle.',mode:'Mode',address:'Address',network:'Network',language:'Language',wifiTitle:'Wi-Fi',scan:'Scan',scanState:'Saved networks stay on the device.',ssid:'SSID',password:'Password',saveWifi:'Save Wi-Fi',removeSlot:'Remove saved slot',remove:'Remove',languageTitle:'Language',displayLanguage:'Display language',saveLanguage:'Save language',firstBoot:'First boot starts in English.',openaiTitle:'OpenAI',apiKey:'API key',keepKey:'Leave blank to keep current key',stt:'Speech to text',oracleModel:'Oracle model',tts:'Text to speech',voice:'Voice',saveOpenai:'Save OpenAI',storedKey:'Stored key',emailTitle:'Email',recipient:'Recipient',sendEmails:'Send oracle emails',yes:'Yes',no:'No',advancedRelay:'Advanced relay settings',relayUrl:'Relay URL',relayToken:'Relay token',keepToken:'Leave blank to keep current token',saveEmail:'Save email',recipientStatus:'Recipient',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Full config reset',resetHint:'This clears Wi-Fi, OpenAI, email, and language.',secretWarning:'Secrets are stored on this device. Enable flash encryption before production use.',missing:'missing',setupMode:'setup mode',onlineMode:'online',offlineMode:'offline',saved:'Saved',scanning:'Scanning...',networksFound:'networks found',resetConfirm:'Clear all local configuration?',resetDone:'Configuration cleared'},
+es:{appTitle:'Configuración Bisc8',subtitle:'Configuración local del pequeño oráculo.',mode:'Modo',address:'Dirección',network:'Red',language:'Idioma',wifiTitle:'Wi-Fi',scan:'Escanear',scanState:'Las redes guardadas permanecen en el dispositivo.',ssid:'SSID',password:'Contraseña',saveWifi:'Guardar Wi-Fi',removeSlot:'Eliminar ranura guardada',remove:'Eliminar',languageTitle:'Idioma',displayLanguage:'Idioma de pantalla',saveLanguage:'Guardar idioma',firstBoot:'El primer arranque empieza en inglés.',openaiTitle:'OpenAI',apiKey:'Clave API',keepKey:'Déjalo vacío para conservar la clave actual',stt:'Voz a texto',oracleModel:'Modelo del oráculo',tts:'Texto a voz',voice:'Voz',saveOpenai:'Guardar OpenAI',storedKey:'Clave guardada',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Enviar emails del oráculo',yes:'Sí',no:'No',advancedRelay:'Ajustes avanzados del relay',relayUrl:'URL del relay',relayToken:'Token del relay',keepToken:'Déjalo vacío para conservar el token actual',saveEmail:'Guardar email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset total',resetHint:'Borra Wi-Fi, OpenAI, email e idioma.',secretWarning:'Los secretos se guardan en este dispositivo. Activa flash encryption antes de producción.',missing:'falta',setupMode:'modo setup',onlineMode:'conectado',offlineMode:'sin red',saved:'Guardado',scanning:'Escaneando...',networksFound:'redes encontradas',resetConfirm:'¿Borrar toda la configuración local?',resetDone:'Configuración borrada'},
+it:{appTitle:'Configurazione Bisc8',subtitle:'Configurazione locale del piccolo oracolo.',mode:'Modalità',address:'Indirizzo',network:'Rete',language:'Lingua',wifiTitle:'Wi-Fi',scan:'Scansiona',scanState:'Le reti salvate restano sul dispositivo.',ssid:'SSID',password:'Password',saveWifi:'Salva Wi-Fi',removeSlot:'Rimuovi slot salvato',remove:'Rimuovi',languageTitle:'Lingua',displayLanguage:'Lingua display',saveLanguage:'Salva lingua',firstBoot:'Il primo avvio parte in inglese.',openaiTitle:'OpenAI',apiKey:'Chiave API',keepKey:'Lascia vuoto per tenere la chiave attuale',stt:'Voce in testo',oracleModel:'Modello oracolo',tts:'Testo in voce',voice:'Voce',saveOpenai:'Salva OpenAI',storedKey:'Chiave salvata',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Invia email oracolo',yes:'Sì',no:'No',advancedRelay:'Impostazioni relay avanzate',relayUrl:'URL relay',relayToken:'Token relay',keepToken:'Lascia vuoto per tenere il token attuale',saveEmail:'Salva email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset completo',resetHint:'Cancella Wi-Fi, OpenAI, email e lingua.',secretWarning:'I segreti sono salvati su questo dispositivo. Abilita la flash encryption prima della produzione.',missing:'manca',setupMode:'modalità setup',onlineMode:'connesso',offlineMode:'offline',saved:'Salvato',scanning:'Scansiono...',networksFound:'reti trovate',resetConfirm:'Cancellare tutta la configurazione locale?',resetDone:'Configurazione cancellata'}
 };
 let currentLanguage='en';
 const toast=document.getElementById('toast');
@@ -145,12 +139,10 @@ function applyLanguage(language){currentLanguage=I18N[language]?language:'en';do
 function valueText(key,value){if(!value||value==='missing')return tr('missing');if(value==='setup mode')return tr('setupMode');if(value==='online')return tr('onlineMode');if(value==='offline')return tr('offlineMode');return value}
 function fill(s){if(s.language)applyLanguage(s.language);for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(el=>{el.textContent=valueText(k,s[k])})}if(s.language)document.getElementById('language').value=s.language}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
-function setupPinValue(){return document.getElementById('setup_pin').value.trim()}
-function appendSetupPin(params){params.set('setup_pin',setupPinValue());return params}
-function body(form){const params=new URLSearchParams(new FormData(form));if(form.dataset.pin==='required')appendSetupPin(params);return params.toString()}
-document.querySelectorAll('form[data-api]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();if(form.dataset.pin==='required'&&!setupPinValue()){note('setupPinRequired');return}const b=form.querySelector('button');b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{b.disabled=false}}));
+function body(form){return new URLSearchParams(new FormData(form)).toString()}
+document.querySelectorAll('form[data-api]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const b=form.querySelector('button');b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{b.disabled=false}}));
 document.getElementById('scan').addEventListener('click',async()=>{const state=document.getElementById('scanState');const list=document.getElementById('scanList');state.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');state.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(n=>{const btn=document.createElement('button');btn.type='button';btn.textContent=n.ssid+' · '+n.band+' · RSSI '+n.rssi;btn.onclick=()=>{document.getElementById('ssid').value=n.ssid};list.appendChild(btn)})}catch(e){state.textContent=e.message}});
-document.getElementById('reset').addEventListener('click',async()=>{if(!setupPinValue()){note('setupPinRequired');return}if(!confirm(tr('resetConfirm')))return;try{const params=appendSetupPin(new URLSearchParams());fill(await api('/api/reset',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString()}));note('resetDone')}catch(e){note(e.message)}});
+document.getElementById('reset').addEventListener('click',async()=>{if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
 applyLanguage('en');
 refresh();
 </script>
@@ -301,17 +293,6 @@ void ApplyDefaultSettings(DeviceSettings *settings) {
     settings->openai = DefaultOpenAiSettings();
 }
 
-esp_err_t RequirePairingPin(httpd_req_t *req, const FormFields &form) {
-    WebPortal *portal = PortalFromRequest(req);
-    if (portal == nullptr) {
-        return SendError(req, "500 Internal Server Error", "Portal is not ready");
-    }
-    if (portal->PairingPin().empty() || FormValue(form, "setup_pin") != portal->PairingPin()) {
-        return SendError(req, "403 Forbidden", "Setup PIN is required");
-    }
-    return ESP_OK;
-}
-
 }  // namespace
 
 const char *const *PortalRoutes(size_t *count) {
@@ -339,17 +320,6 @@ void WebPortal::BindStatus(const WifiStatus *wifi) {
 void WebPortal::BindConfig(ConfigStore *config_store, DeviceSettings *settings) {
     config_store_ = config_store;
     settings_ = settings;
-}
-
-void WebPortal::GeneratePairingPin() {
-    char pin[5] = {};
-    snprintf(pin, sizeof(pin), "%04lu", static_cast<unsigned long>(1000 + (esp_random() % 9000)));
-    setup_pin_ = pin;
-    DebugSerial::LogAlways("[WEB]", "setup portal pairing PIN generated");
-}
-
-const std::string &WebPortal::PairingPin() const {
-    return setup_pin_;
 }
 
 esp_err_t WebPortal::RegisterRoute(const char *uri, httpd_method_t method, HttpHandler handler) {
@@ -397,10 +367,6 @@ esp_err_t WebPortal::HandleWifiCredentials(httpd_req_t *req) {
         return SendError(req, "400 Bad Request", "Invalid form body");
     }
     const FormFields form = ParseForm(body);
-    err = RequirePairingPin(req, form);
-    if (err != ESP_OK) {
-        return err;
-    }
     const std::string action = FormValue(form, "action");
 
     if (action == "remove") {
@@ -475,10 +441,6 @@ esp_err_t WebPortal::HandleOpenAi(httpd_req_t *req) {
         return SendError(req, "400 Bad Request", "Invalid form body");
     }
     const FormFields form = ParseForm(body);
-    err = RequirePairingPin(req, form);
-    if (err != ESP_OK) {
-        return err;
-    }
     const std::string api_key = FormValue(form, "api_key");
     if (!api_key.empty()) {
         portal->settings_->openai.api_key = api_key;
@@ -517,10 +479,6 @@ esp_err_t WebPortal::HandleEmail(httpd_req_t *req) {
         return SendError(req, "400 Bad Request", "Invalid form body");
     }
     const FormFields form = ParseForm(body);
-    err = RequirePairingPin(req, form);
-    if (err != ESP_OK) {
-        return err;
-    }
     portal->settings_->email.enabled = FormValue(form, "enabled", "0") == "1";
     portal->settings_->email.recipient = FormValue(form, "recipient");
     const std::string relay_url = FormValue(form, "relay_url");
@@ -543,17 +501,7 @@ esp_err_t WebPortal::HandleReset(httpd_req_t *req) {
     if (portal == nullptr || portal->config_store_ == nullptr || portal->settings_ == nullptr) {
         return SendError(req, "500 Internal Server Error", "Configuration is not ready");
     }
-    std::string body;
-    esp_err_t err = ReadRequestBody(req, &body);
-    if (err != ESP_OK) {
-        return SendError(req, "400 Bad Request", "Invalid form body");
-    }
-    const FormFields form = ParseForm(body);
-    err = RequirePairingPin(req, form);
-    if (err != ESP_OK) {
-        return err;
-    }
-    err = portal->config_store_->Reset();
+    esp_err_t err = portal->config_store_->Reset();
     if (err != ESP_OK) {
         return SendError(req, "500 Internal Server Error", esp_err_to_name(err));
     }
@@ -681,9 +629,6 @@ esp_err_t WebPortal::SaveCurrentSettings() {
 esp_err_t WebPortal::Start() {
     if (running_) {
         return ESP_OK;
-    }
-    if (setup_pin_.empty()) {
-        GeneratePairingPin();
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
