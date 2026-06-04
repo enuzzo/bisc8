@@ -50,7 +50,7 @@ def test_config_store_uses_nvs_namespace_keys_and_schema_version():
         '"wifi_count"',
         '"openai_key"',
         '"email_relay_url"',
-        '"email_relay_token"',
+        '"email_relaytok"',
         '"email_recipient"',
         '"smtp_recipient"',
     ):
@@ -61,6 +61,36 @@ def test_config_store_uses_nvs_namespace_keys_and_schema_version():
     assert "nvs_get_str" in source
     assert "nvs_erase_all" in source
     assert "kMaxWifiCredentials" in source
+
+
+def test_all_nvs_keys_fit_esp_idf_key_length_limit():
+    # ESP-IDF NVS keys (and namespaces) must be <= 15 characters:
+    # NVS_KEY_NAME_MAX_SIZE is 16 *including* the null terminator. A longer key
+    # makes nvs_set_str/nvs_get_str return ESP_ERR_NVS_KEY_TOO_LONG, which aborts
+    # the whole ConfigStore::Save() transaction (so nothing, including Wi-Fi, is
+    # committed).
+    NVS_KEY_MAX_LEN = 15
+
+    header = read(MAIN / "app_config.h")
+    source = read(MAIN / "app_config.cpp")
+
+    # Keys/namespaces declared as string-literal constants.
+    literals = re.findall(r'constexpr const char \*\w+\s*=\s*"([^"]*)"', source)
+    assert literals, "expected to find NVS key constants in app_config.cpp"
+    too_long = [k for k in literals if len(k) > NVS_KEY_MAX_LEN]
+
+    # Keys assembled at runtime with a numeric index suffix (e.g. wifi_ssid_<i>).
+    max_index = int(re.search(r"kMaxWifiCredentials\s*=\s*(\d+)", header).group(1)) - 1
+    suffix_len = len(str(max_index))
+    for prefix in sorted(set(re.findall(r'IndexedKey\("([^"]*)"', source))):
+        longest = len(prefix) + suffix_len
+        if longest > NVS_KEY_MAX_LEN:
+            too_long.append(f"{prefix}<index> ({longest} chars)")
+
+    assert not too_long, (
+        f"NVS keys exceeding the ESP-IDF {NVS_KEY_MAX_LEN}-char limit "
+        f"(would raise ESP_ERR_NVS_KEY_TOO_LONG): {too_long}"
+    )
 
 
 def test_partition_table_reserves_audio_spool_storage():

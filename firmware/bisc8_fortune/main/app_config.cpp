@@ -23,7 +23,10 @@ constexpr const char *kOpenAiVoiceKey = "openai_voice";
 constexpr const char *kEmailEnabledKey = "email_enabled";
 constexpr const char *kEmailRecipientKey = "email_recipient";
 constexpr const char *kEmailRelayUrlKey = "email_relay_url";
-constexpr const char *kEmailRelayTokenKey = "email_relay_token";
+// NVS keys must stay <= 15 chars (NVS_KEY_NAME_MAX_SIZE - 1), otherwise
+// nvs_set_str/nvs_get_str fail with ESP_ERR_NVS_KEY_TOO_LONG. "email_relay_token"
+// was 17 chars, which aborted the whole Save()/Load() transaction.
+constexpr const char *kEmailRelayTokenKey = "email_relaytok";
 constexpr const char *kLegacyEmailRecipientKey = "smtp_recipient";
 
 void ApplyDefaults(DeviceSettings *settings) {
