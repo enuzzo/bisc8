@@ -1,9 +1,11 @@
 #include "audio_service.h"
 
+#include <algorithm>
 #include <math.h>
 #include <string.h>
 
 #include <esp_heap_caps.h>
+#include <esp_partition.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -17,12 +19,49 @@ namespace bisc8 {
 namespace {
 constexpr int kSampleRate = 16000;
 constexpr int kChannels = 2;
+constexpr int kVoiceChannels = 1;
 constexpr int kBytesPerSample = 2;
 constexpr int kRecordMillis = 1000;
 constexpr int kChimeMillis = 120;
+constexpr int kVoiceMaxChunks = kVoiceRecordLimitMs / kRecordMillis;
+constexpr size_t kWavHeaderBytes = 44;
+constexpr size_t kVoiceMaxPcmBytes = (kSampleRate * kVoiceRecordLimitMs / 1000) * kVoiceChannels * kBytesPerSample;
+constexpr size_t kVoiceSpoolEraseBytes = 512 * 1024;
+constexpr uint32_t kVoiceTaskStackBytes = 4096;
+constexpr UBaseType_t kVoiceTaskPriority = 4;
 constexpr float kChimeAttackRatio = 0.16f;
 constexpr float kChimeAmplitude = 7800.0f;
 constexpr float kPi = 3.14159265f;
+constexpr const char *kSpoolPartition = "spool";
+constexpr const char *kVoiceQuestionPath = "spool://question.wav";
+
+void WriteLe16(uint8_t *dst, uint16_t value) {
+    dst[0] = static_cast<uint8_t>(value & 0xff);
+    dst[1] = static_cast<uint8_t>(value >> 8);
+}
+
+void WriteLe32(uint8_t *dst, uint32_t value) {
+    dst[0] = static_cast<uint8_t>(value & 0xff);
+    dst[1] = static_cast<uint8_t>((value >> 8) & 0xff);
+    dst[2] = static_cast<uint8_t>((value >> 16) & 0xff);
+    dst[3] = static_cast<uint8_t>((value >> 24) & 0xff);
+}
+
+void BuildWavHeader(uint8_t *header, uint32_t pcm_bytes) {
+    memcpy(header + 0, "RIFF", 4);
+    WriteLe32(header + 4, 36 + pcm_bytes);
+    memcpy(header + 8, "WAVE", 4);
+    memcpy(header + 12, "fmt ", 4);
+    WriteLe32(header + 16, 16);
+    WriteLe16(header + 20, 1);
+    WriteLe16(header + 22, kVoiceChannels);
+    WriteLe32(header + 24, kSampleRate);
+    WriteLe32(header + 28, kSampleRate * kVoiceChannels * kBytesPerSample);
+    WriteLe16(header + 32, kVoiceChannels * kBytesPerSample);
+    WriteLe16(header + 34, 16);
+    memcpy(header + 36, "data", 4);
+    WriteLe32(header + 40, pcm_bytes);
+}
 }  // namespace
 
 esp_err_t AudioService::Initialize() {
@@ -85,19 +124,65 @@ void AudioService::PlayChime() {
 }
 
 void AudioService::StartVoiceRecording() {
+    if (!available_ || record_buffer_ == nullptr) {
+        voice_err_ = ESP_ERR_INVALID_STATE;
+        DebugSerial::LogAlways("[AUDIO]", "voice recording skipped; audio unavailable");
+        return;
+    }
+    if (voice_task_ != nullptr || voice_recording_) {
+        DebugSerial::LogAlways("[AUDIO]", "voice recording already active");
+        return;
+    }
+
+    esp_err_t err = PrepareSpool();
+    if (err != ESP_OK) {
+        voice_err_ = err;
+        DebugSerial::LogAlways("[AUDIO]", "voice spool prepare failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    voice_stop_requested_ = false;
     voice_recording_ = true;
-    DebugSerial::LogAlways("[AUDIO]", "voice recording started limit_ms=%u mono_wav_spool=pending",
-                           static_cast<unsigned>(kVoiceRecordLimitMs));
+    voice_file_ready_ = false;
+    voice_pcm_bytes_ = 0;
+    voice_err_ = ESP_OK;
+    if (xTaskCreate(&AudioService::VoiceRecordTaskEntry, "bisc8_voice", kVoiceTaskStackBytes, this, kVoiceTaskPriority, &voice_task_) != pdPASS) {
+        voice_task_ = nullptr;
+        voice_recording_ = false;
+        voice_err_ = ESP_ERR_NO_MEM;
+        DebugSerial::LogAlways("[AUDIO]", "voice recording task create failed");
+        return;
+    }
+
+    DebugSerial::LogAlways("[AUDIO]", "voice recording started limit_ms=%u path=%s",
+                           static_cast<unsigned>(kVoiceRecordLimitMs),
+                           kVoiceQuestionPath);
 }
 
 const char *AudioService::FinishVoiceRecording() {
-    if (!voice_recording_) {
+    if (!voice_recording_ && voice_task_ == nullptr) {
         DebugSerial::LogAlways("[AUDIO]", "voice recording finish ignored; no active recording");
         return nullptr;
     }
-    voice_recording_ = false;
-    DebugSerial::LogAlways("[AUDIO]", "voice recording finished; wav spool path pending");
-    return "/spool/question.wav";
+
+    voice_stop_requested_ = true;
+    const TickType_t start = xTaskGetTickCount();
+    while (voice_task_ != nullptr && xTaskGetTickCount() - start < pdMS_TO_TICKS(1500)) {
+        vTaskDelay(pdMS_TO_TICKS(25));
+    }
+    if (voice_task_ != nullptr) {
+        DebugSerial::LogAlways("[AUDIO]", "voice recording stop timed out");
+        return nullptr;
+    }
+    if (voice_err_ != ESP_OK || !voice_file_ready_) {
+        DebugSerial::LogAlways("[AUDIO]", "voice recording failed: %s", esp_err_to_name(voice_err_));
+        return nullptr;
+    }
+
+    DebugSerial::LogAlways("[AUDIO]", "voice recording finished path=%s pcm_bytes=%u",
+                           kVoiceQuestionPath,
+                           static_cast<unsigned>(voice_pcm_bytes_));
+    return kVoiceQuestionPath;
 }
 
 void AudioService::RunMicTest(DisplayService &display) {
@@ -122,6 +207,81 @@ void AudioService::RunMicTest(DisplayService &display) {
     err = Codec_PlaybackData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "playback bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
     display.ShowMicDone();
+}
+
+esp_err_t AudioService::PrepareSpool() {
+    if (spool_partition_ == nullptr) {
+        spool_partition_ = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kSpoolPartition);
+    }
+    if (spool_partition_ == nullptr) {
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (spool_partition_->size < kWavHeaderBytes + kVoiceMaxPcmBytes) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const size_t erase_bytes = std::min(kVoiceSpoolEraseBytes, static_cast<size_t>(spool_partition_->size));
+    esp_err_t err = esp_partition_erase_range(spool_partition_, 0, erase_bytes);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    uint8_t header[kWavHeaderBytes] = {};
+    BuildWavHeader(header, 0);
+    err = esp_partition_write(spool_partition_, 0, header, sizeof(header));
+    if (err == ESP_OK) {
+        DebugSerial::LogAlways("[AUDIO]", "voice raw spool prepared partition=%s erase_bytes=%u",
+                               kSpoolPartition,
+                               static_cast<unsigned>(erase_bytes));
+    }
+    return err;
+}
+
+void AudioService::VoiceRecordTaskEntry(void *arg) {
+    static_cast<AudioService *>(arg)->VoiceRecordTask();
+    vTaskDelete(nullptr);
+}
+
+void AudioService::VoiceRecordTask() {
+    int chunks = 0;
+    while (!voice_stop_requested_ && chunks < kVoiceMaxChunks) {
+        memset(record_buffer_, 0, record_bytes_);
+        esp_err_t err = Codec_RecordData(record_buffer_, record_bytes_);
+        if (err != ESP_OK) {
+            voice_err_ = err;
+            break;
+        }
+
+        int16_t *samples = reinterpret_cast<int16_t *>(record_buffer_);
+        const size_t frames = record_bytes_ / (kChannels * kBytesPerSample);
+        for (size_t i = 0; i < frames; ++i) {
+            const int32_t left = samples[i * kChannels];
+            const int32_t right = samples[i * kChannels + 1];
+            samples[i] = static_cast<int16_t>((left + right) / 2);
+        }
+
+        const size_t mono_bytes = frames * kVoiceChannels * kBytesPerSample;
+        if (voice_pcm_bytes_ + mono_bytes > kVoiceMaxPcmBytes) {
+            voice_err_ = ESP_ERR_INVALID_SIZE;
+            break;
+        }
+        err = esp_partition_write(spool_partition_, kWavHeaderBytes + voice_pcm_bytes_, record_buffer_, mono_bytes);
+        if (err != ESP_OK) {
+            voice_err_ = err;
+            break;
+        }
+        voice_pcm_bytes_ += mono_bytes;
+        ++chunks;
+    }
+
+    if (voice_err_ == ESP_OK) {
+        uint8_t header[kWavHeaderBytes] = {};
+        BuildWavHeader(header, static_cast<uint32_t>(voice_pcm_bytes_));
+        voice_err_ = esp_partition_write(spool_partition_, 0, header, sizeof(header));
+        voice_file_ready_ = voice_pcm_bytes_ > 0;
+    }
+    voice_recording_ = false;
+    voice_task_ = nullptr;
 }
 
 }  // namespace bisc8

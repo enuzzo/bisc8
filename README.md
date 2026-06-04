@@ -11,7 +11,7 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 - PWR click: run the microphone record/playback test.
 - PWR long press: show the Bisc8 power-off prompt, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
-- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
+- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
 - On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
@@ -42,7 +42,7 @@ The intended online flow is:
 
 Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
 
-Audio is not stored in NVS. The firmware reserves a flash `spool` partition for temporary WAV/PCM payloads so 15 second questions do not have to fit in RAM.
+Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
 
 ## Email Relay
 
@@ -139,5 +139,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-38 passed
+39 passed
 ```

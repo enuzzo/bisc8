@@ -4,6 +4,9 @@
 #include <stdint.h>
 
 #include <esp_err.h>
+#include <esp_partition.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 namespace bisc8 {
 
@@ -19,6 +22,9 @@ public:
     void RunMicTest(DisplayService &display);
 
 private:
+    static void VoiceRecordTaskEntry(void *arg);
+    void VoiceRecordTask();
+    esp_err_t PrepareSpool();
     void PrepareChime();
 
     bool available_ = false;
@@ -26,7 +32,13 @@ private:
     size_t record_bytes_ = 0;
     uint8_t *feedback_buffer_ = nullptr;
     size_t feedback_bytes_ = 0;
-    bool voice_recording_ = false;
+    TaskHandle_t voice_task_ = nullptr;
+    const esp_partition_t *spool_partition_ = nullptr;
+    volatile bool voice_recording_ = false;
+    volatile bool voice_stop_requested_ = false;
+    bool voice_file_ready_ = false;
+    esp_err_t voice_err_ = ESP_OK;
+    size_t voice_pcm_bytes_ = 0;
 };
 
 }  // namespace bisc8

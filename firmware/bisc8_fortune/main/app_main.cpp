@@ -73,6 +73,12 @@ bool handle_serial_command(const char *line) {
     if (strcmp(line, "MIC") == 0) {
         return post_serial_event(AppEvent::MicTest, "mic");
     }
+    if (strcmp(line, "VOICE START") == 0) {
+        return post_serial_event(AppEvent::StartVoiceRecording, "voice start");
+    }
+    if (strcmp(line, "VOICE STOP") == 0) {
+        return post_serial_event(AppEvent::FinishVoiceRecording, "voice stop");
+    }
     if (strcmp(line, "WIFI SETUP") == 0) {
         return post_serial_event(AppEvent::ForceWifiSetup, "wifi setup");
     }

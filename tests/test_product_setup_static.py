@@ -61,7 +61,7 @@ def test_partition_table_reserves_audio_spool_storage():
     partitions = read(PARTITIONS)
 
     assert "spool" in partitions
-    assert "fat" in partitions
+    assert "0x40" in partitions
     assert "0x100000" in partitions
     assert "0x200000" in partitions
 
@@ -263,6 +263,32 @@ def test_voice_oracle_contract_and_audio_limits_are_explicit():
     assert "FinishVoiceRecording" in audio_header
 
 
+def test_voice_recording_spools_mono_wav_to_flash():
+    header = read(MAIN / "audio_service.h")
+    source = read(MAIN / "audio_service.cpp")
+    cmake = read(MAIN / "CMakeLists.txt")
+
+    for token in (
+        "PrepareSpool",
+        "VoiceRecordTask",
+        "esp_partition_find_first",
+        "esp_partition_erase_range",
+        "esp_partition_write",
+        '"spool"',
+        '"spool://question.wav"',
+        "BuildWavHeader",
+        '"RIFF"',
+        '"WAVE"',
+        "kVoiceChannels = 1",
+        "kVoiceMaxChunks",
+        "Codec_RecordData",
+        "xTaskCreate",
+    ):
+        assert token in header or token in source
+    assert "fatfs" not in cmake
+    assert "wear_levelling" not in cmake
+
+
 def test_audio_initializes_before_wifi_and_setup_portal():
     app_main = read(MAIN / "app_main.cpp")
 
@@ -309,6 +335,8 @@ def test_button_events_cover_voice_and_setup_recovery():
     assert "BOOT hold start" in buttons
     assert "BOOT release" in buttons
     assert "BOOT+PWR" in buttons
+    assert "VOICE START" in app_main
+    assert "VOICE STOP" in app_main
     assert "gpio_get_level(BOOT_BUTTON_PIN) == 0" in app_main
     assert "ForceWifiSetup" in app_main
     assert app_main.count("connectivity.StartSetupPortal(display, portal)") >= 4
