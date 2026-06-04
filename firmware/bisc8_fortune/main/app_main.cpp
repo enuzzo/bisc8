@@ -29,6 +29,7 @@ using namespace bisc8;
 namespace {
 
 constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);
+constexpr uint32_t kMinimumBootSplashMs = 5000;
 constexpr uint32_t kOnlineStatusSplashMs = 2800;
 QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
@@ -65,6 +66,14 @@ bool post_serial_event(AppEvent event, const char *name) {
         DebugSerial::LogAlways("[SERIAL]", "queue full for %s", name);
     }
     return true;
+}
+
+void WaitForMinimumBootSplash(TickType_t boot_started) {
+    const TickType_t minimum_ticks = pdMS_TO_TICKS(kMinimumBootSplashMs);
+    const TickType_t elapsed_ticks = xTaskGetTickCount() - boot_started;
+    if (elapsed_ticks < minimum_ticks) {
+        vTaskDelay(minimum_ticks - elapsed_ticks);
+    }
 }
 
 bool handle_serial_command(const char *line) {
@@ -147,6 +156,7 @@ extern "C" void app_main(void) {
         return;
     }
     display.ShowBoot();
+    const TickType_t boot_started = xTaskGetTickCount();
     const Language startup_language = ParseLanguage(settings.language.c_str());
 
     err = audio.Initialize();
@@ -157,6 +167,7 @@ extern "C" void app_main(void) {
     } else {
         audio.PlayCueAsync(AudioCue::Boot);
     }
+    WaitForMinimumBootSplash(boot_started);
     display.ShowIntro(startup_language);
 
     bool setup_mode_active = false;

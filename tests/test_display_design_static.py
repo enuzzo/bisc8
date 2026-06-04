@@ -98,6 +98,16 @@ def test_boot_screen_uses_background_jingle_instead_of_blocking_delay():
     assert "vTaskDelay(pdMS_TO_TICKS(3600))" not in source
 
 
+def test_boot_screen_stays_visible_for_at_least_five_seconds():
+    source = APP_MAIN_CPP.read_text(encoding="utf-8")
+
+    assert "kMinimumBootSplashMs = 5000" in source
+    assert "xTaskGetTickCount()" in source
+    assert "WaitForMinimumBootSplash(boot_started)" in source
+    assert "display.ShowIntro(startup_language)" in source
+    assert source.index("WaitForMinimumBootSplash(boot_started)") < source.index("display.ShowIntro(startup_language)")
+
+
 def test_low_power_mode_is_configurable_but_safe_by_default():
     source = KCONFIG.read_text(encoding="utf-8")
 
