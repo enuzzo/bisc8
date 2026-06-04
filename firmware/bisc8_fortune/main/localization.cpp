@@ -19,6 +19,8 @@ constexpr LocalizedStrings kEnglish = {
     "Speak now.\nRelease BOOT to send.",
     "Thinking",
     "The oracle is reading your question.",
+    "Bisc8 is cooking",
+    "Keep the question warm.",
     "Speaking",
     "The answer is arriving.",
     "Offline",
@@ -40,6 +42,8 @@ constexpr LocalizedStrings kSpanish = {
     "Habla ahora.\nSuelta BOOT para enviar.",
     "Pensando",
     "El oraculo lee tu pregunta.",
+    "Bisc8 esta cocinando",
+    "La pregunta esta al fuego.",
     "Hablando",
     "La respuesta esta llegando.",
     "Sin red",
@@ -61,6 +65,8 @@ constexpr LocalizedStrings kItalian = {
     "Parla ora.\nRilascia BOOT per inviare.",
     "Penso",
     "L'oracolo legge la domanda.",
+    "Bisc8 sta cucinando",
+    "La domanda e sul fuoco.",
     "Parlo",
     "La risposta sta arrivando.",
     "Offline",
@@ -116,6 +122,12 @@ const char *LocalizedValue(Language language, const char *key) {
     }
     if (strcmp(key, "thinking_title") == 0) {
         return strings.thinking_title;
+    }
+    if (strcmp(key, "cooking_title") == 0) {
+        return strings.cooking_title;
+    }
+    if (strcmp(key, "cooking_body") == 0) {
+        return strings.cooking_body;
     }
     if (strcmp(key, "speaking_title") == 0) {
         return strings.speaking_title;

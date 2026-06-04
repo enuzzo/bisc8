@@ -12,17 +12,32 @@ namespace bisc8 {
 
 class DisplayService;
 
+enum class AudioCue {
+    Boot,
+    OracleButton,
+    VoiceSubmit,
+    Shutdown,
+};
+
 class AudioService {
 public:
     esp_err_t Initialize();
     bool Available() const;
     void PlayChime();
+    void PlayCue(AudioCue cue);
+    void PlayCueAsync(AudioCue cue);
+    void StopPlayback();
     void StartVoiceRecording();
     const char *FinishVoiceRecording();
     void RunMicTest(DisplayService &display);
 
 private:
+    struct QueuedSound;
+
+    static void PlaybackTaskEntry(void *arg);
     static void VoiceRecordTaskEntry(void *arg);
+    const QueuedSound *SoundFor(AudioCue cue) const;
+    void PlaybackTask();
     void VoiceRecordTask();
     esp_err_t PrepareSpool();
     void PrepareChime();
@@ -32,6 +47,9 @@ private:
     size_t record_bytes_ = 0;
     uint8_t *feedback_buffer_ = nullptr;
     size_t feedback_bytes_ = 0;
+    TaskHandle_t playback_task_ = nullptr;
+    volatile bool playback_stop_requested_ = false;
+    const QueuedSound *queued_sound_ = nullptr;
     TaskHandle_t voice_task_ = nullptr;
     const esp_partition_t *spool_partition_ = nullptr;
     volatile bool voice_recording_ = false;

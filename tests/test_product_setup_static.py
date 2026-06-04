@@ -5,9 +5,13 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "firmware/bisc8_fortune/main"
 README = ROOT / "README.md"
 PARTITIONS = ROOT / "firmware/bisc8_fortune/partitions.csv"
+SDKCONFIG = ROOT / "firmware/bisc8_fortune/sdkconfig"
+SDKCONFIG_DEFAULTS = ROOT / "firmware/bisc8_fortune/sdkconfig.defaults"
 FLASH_PAGE = ROOT / "public/flash/index.html"
 FLASH_MANIFEST = ROOT / "public/flash/manifest.json"
 FLASH_PREP = ROOT / "tools/prepare_web_flash.py"
+SOUND_ASSETS = MAIN / "generated/sound_assets.h"
+SOUND_ASSETS_SOURCE = MAIN / "generated/sound_assets.cpp"
 
 
 def read(path: Path) -> str:
@@ -59,11 +63,15 @@ def test_config_store_uses_nvs_namespace_keys_and_schema_version():
 
 def test_partition_table_reserves_audio_spool_storage():
     partitions = read(PARTITIONS)
+    sdkconfig = read(SDKCONFIG)
+    sdkconfig_defaults = read(SDKCONFIG_DEFAULTS)
 
     assert "spool" in partitions
     assert "0x40" in partitions
-    assert "0x100000" in partitions
-    assert "0x200000" in partitions
+    assert "0x400000" in partitions
+    assert "0x410000" in partitions
+    assert 'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"' in sdkconfig
+    assert "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y" in sdkconfig_defaults
 
 
 def test_localization_exposes_required_languages_and_display_states():
@@ -78,6 +86,8 @@ def test_localization_exposes_required_languages_and_display_states():
         "wifi_setup_body",
         "listening_title",
         "thinking_title",
+        "cooking_title",
+        "cooking_body",
         "speaking_title",
         "offline_title",
         "sleep_footer",
@@ -301,12 +311,47 @@ def test_audio_initializes_before_wifi_and_setup_portal():
 
 def test_audio_feedback_uses_short_generated_chime():
     source = read(MAIN / "audio_service.cpp")
+    header = read(MAIN / "audio_service.h")
+    cmake = read(MAIN / "CMakeLists.txt")
+    sound_header = read(SOUND_ASSETS)
+    sound_source = read(SOUND_ASSETS_SOURCE)
 
     assert "PrepareChime" in source
     assert "kChimeMillis" in source
     assert "sinf" in source
     assert "decay" in source
     assert "Codec_PlaybackData" in source
+    for token in (
+        "enum class AudioCue",
+        "PlayCueAsync",
+        "StopPlayback",
+        "kSoundBoot",
+        "kSoundOracleButton",
+        "kSoundVoiceSubmit",
+        "kSoundShutdown",
+        "PlaybackTask",
+    ):
+        assert token in header or token in source or token in sound_header or token in sound_source
+    assert "generated/sound_assets.cpp" in cmake
+
+
+def test_sound_asset_pipeline_uses_candidate_sources_and_firmware_previews():
+    script = read(ROOT / "tools/generate_sound_assets.py")
+
+    for token in (
+        "assets/candidate/full-reboot.mp3",
+        "assets/candidate/oracle-button.ogg",
+        "assets/candidate/oracle-audio-before.ogg",
+        "assets/candidate/shutdown.ogg",
+        "assets/sounds/firmware",
+        "ffmpeg",
+        "ffprobe",
+        "-f",
+        "s16le",
+        "SAMPLE_RATE = 16000",
+        "CHANNELS = 2",
+    ):
+        assert token in script
 
 
 def test_email_service_uses_relay_contract_and_degrades_to_text_only():
@@ -337,6 +382,8 @@ def test_button_events_cover_voice_and_setup_recovery():
     assert "BOOT+PWR" in buttons
     assert "VOICE START" in app_main
     assert "VOICE STOP" in app_main
+    assert "ShowVoiceCooking" in app_main
+    assert "AudioCue::VoiceSubmit" in app_main
     assert "gpio_get_level(BOOT_BUTTON_PIN) == 0" in app_main
     assert "ForceWifiSetup" in app_main
     assert app_main.count("connectivity.StartSetupPortal(display, portal)") >= 4

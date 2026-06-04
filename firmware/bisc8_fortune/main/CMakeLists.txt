@@ -10,6 +10,7 @@ idf_component_register(
     "debug_serial.cpp"
     "display_service.cpp"
     "fortune_service.cpp"
+    "generated/sound_assets.cpp"
     "localization.cpp"
     "email_service.cpp"
     "voice_oracle_service.cpp"

@@ -145,13 +145,14 @@ extern "C" void app_main(void) {
         return;
     }
     display.ShowBoot();
-    vTaskDelay(pdMS_TO_TICKS(3600));
 
     err = audio.Initialize();
     g_audio_ready = (err == ESP_OK);
     if (!g_audio_ready) {
         DebugSerial::LogAlways("[AUDIO]", "audio init failed: %s", esp_err_to_name(err));
         display.ShowAudioUnavailable();
+    } else {
+        audio.PlayCueAsync(AudioCue::Boot);
     }
 
     bool setup_mode_active = false;
@@ -165,7 +166,7 @@ extern "C" void app_main(void) {
     }
 
     if (g_audio_ready && !setup_mode_active) {
-        display.ShowIdle(g_fortune_count);
+        display.ShowIdle(g_fortune_count, ParseLanguage(settings.language.c_str()));
     }
 
     buttons.Initialize(g_event_queue);
@@ -198,7 +199,7 @@ extern "C" void app_main(void) {
                 g_fortune_presses++;
                 FortunePick pick = fortunes.PickRandom();
                 display.ShowFortune(pick.text, pick.index, pick.count);
-                audio.PlayChime();
+                audio.PlayCue(AudioCue::OracleButton);
 #if CONFIG_BISC8_AUTO_SLEEP_AFTER_FORTUNE
                 g_state = "sleep";
                 DebugSerial::LogAlways("[POWER]", "auto sleep after fortune in %d ms", CONFIG_BISC8_AUTO_SLEEP_DELAY_MS);
@@ -219,14 +220,17 @@ extern "C" void app_main(void) {
 
             case AppEvent::StartVoiceRecording:
                 g_state = "listening";
-                display.ShowVoiceListening();
+                display.ShowVoiceListening(ParseLanguage(settings.language.c_str()));
                 audio.StartVoiceRecording();
                 break;
 
             case AppEvent::FinishVoiceRecording: {
                 g_state = "thinking";
+                const Language language = ParseLanguage(settings.language.c_str());
+                display.ShowVoiceCooking(language);
+                audio.PlayCueAsync(AudioCue::VoiceSubmit);
                 const char *wav_path = audio.FinishVoiceRecording();
-                display.ShowVoiceThinking();
+                display.ShowVoiceThinking(language);
                 OracleResponse response;
                 err = oracle.AskFromRecordedAudio(wav_path, &response);
                 if (err == ESP_OK) {
@@ -255,8 +259,9 @@ extern "C" void app_main(void) {
 
             case AppEvent::Sleep:
                 g_state = "power-off";
-                display.ShowPowerOff();
-                vTaskDelay(pdMS_TO_TICKS(1200));
+                display.ShowPowerOff(ParseLanguage(settings.language.c_str()));
+                audio.PlayCue(AudioCue::Shutdown);
+                vTaskDelay(pdMS_TO_TICKS(300));
 #if CONFIG_BISC8_MANUAL_DEEP_SLEEP_ENABLED
                 board.EnterDeepSleep("power-off", BIT64(PWR_BUTTON_PIN));
 #else

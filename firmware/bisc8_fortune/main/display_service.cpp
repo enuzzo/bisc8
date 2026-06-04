@@ -119,6 +119,7 @@ void DisplayService::CreateScreen() {
         CreateOracleFrame();
         CreateLogoIcon();
         CreateSeal();
+        CreateButtonHints();
 
         title_label_ = lv_label_create(screen_);
         style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
@@ -181,8 +182,29 @@ void DisplayService::CreateSeal() {
     create_frame(seal_group_, 86, 1, 8, 8, 1);
 }
 
+void DisplayService::CreateButtonHints() {
+    button_hint_group_ = lv_obj_create(screen_);
+    style_plain_obj(button_hint_group_);
+    lv_obj_set_pos(button_hint_group_, 166, 50);
+    lv_obj_set_size(button_hint_group_, 24, 100);
+
+    create_block(button_hint_group_, 0, 12, 18, 2);
+    create_block(button_hint_group_, 14, 8, 2, 2);
+    create_block(button_hint_group_, 16, 10, 2, 2);
+    create_block(button_hint_group_, 18, 12, 2, 2);
+    create_block(button_hint_group_, 16, 14, 2, 2);
+    create_block(button_hint_group_, 14, 16, 2, 2);
+
+    create_block(button_hint_group_, 0, 78, 18, 2);
+    create_block(button_hint_group_, 14, 74, 2, 2);
+    create_block(button_hint_group_, 16, 76, 2, 2);
+    create_block(button_hint_group_, 18, 78, 2, 2);
+    create_block(button_hint_group_, 16, 80, 2, 2);
+    create_block(button_hint_group_, 14, 82, 2, 2);
+}
+
 void DisplayService::ApplyBootLayout() {
-    SetDecorations(true, false);
+    SetDecorations(true, false, false);
     style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 84);
     lv_obj_set_size(title_label_, 200, 32);
@@ -199,7 +221,7 @@ void DisplayService::ApplyBootLayout() {
 }
 
 void DisplayService::ApplyIdleLayout() {
-    SetDecorations(false, true);
+    SetDecorations(false, true, true);
     style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 18);
     lv_obj_set_size(title_label_, 200, 34);
@@ -217,7 +239,7 @@ void DisplayService::ApplyIdleLayout() {
 }
 
 void DisplayService::ApplyOracleLayout() {
-    SetDecorations(false, true);
+    SetDecorations(false, true, false);
     style_label(title_label_, &lv_font_montserratMedium_25, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 18);
     lv_obj_set_size(title_label_, 200, 34);
@@ -234,9 +256,10 @@ void DisplayService::ApplyOracleLayout() {
     lv_obj_set_style_text_line_space(footer_label_, 1, LV_PART_MAIN);
 }
 
-void DisplayService::SetDecorations(bool show_cookie, bool show_seal) {
+void DisplayService::SetDecorations(bool show_cookie, bool show_seal, bool show_button_hints) {
     set_hidden(cookie_group_, !show_cookie);
     set_hidden(seal_group_, !show_seal);
+    set_hidden(button_hint_group_, !show_button_hints);
 }
 
 void DisplayService::SetScreenTextLocked(const char *title, const char *body, const char *footer) {
@@ -261,21 +284,23 @@ void DisplayService::ShowBoot() {
     }
 }
 
-void DisplayService::ShowPowerOff() {
+void DisplayService::ShowPowerOff(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyBootLayout();
         lv_obj_set_pos(footer_label_, 8, 154);
         lv_obj_set_size(footer_label_, 184, 34);
-        SetScreenTextLocked("Bisc8", "by Netmilk Studio", "Press PWR\nto turn me on");
+        SetScreenTextLocked("Bisc8", "by Netmilk Studio", strings.sleep_footer);
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowIdle(size_t fortune_count) {
+void DisplayService::ShowIdle(size_t fortune_count, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     char footer[64];
-    snprintf(footer, sizeof(footer), "Hold BOOT to ask\nPWR power");
+    snprintf(footer, sizeof(footer), "%s", strings.idle_footer);
     char body[80];
-    snprintf(body, sizeof(body), "%u answers\nin the grimoire", static_cast<unsigned>(fortune_count));
+    snprintf(body, sizeof(body), "%u %s", static_cast<unsigned>(fortune_count), strings.idle_body);
     if (Lvgl_lock(-1)) {
         ApplyIdleLayout();
         SetScreenTextLocked("Bisc8", body, footer);
@@ -313,18 +338,29 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
     }
 }
 
-void DisplayService::ShowVoiceListening() {
+void DisplayService::ShowVoiceListening(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Listening", "Speak now.\nRelease BOOT to send.", "15 seconds max");
+        SetScreenTextLocked(strings.listening_title, strings.listening_body, "15 seconds max");
         Lvgl_unlock();
     }
 }
 
-void DisplayService::ShowVoiceThinking() {
+void DisplayService::ShowVoiceCooking(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
-        SetScreenTextLocked("Thinking", "The oracle is reading your question.", "OpenAI");
+        SetScreenTextLocked(strings.cooking_title, strings.cooking_body, "OpenAI");
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowVoiceThinking(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    if (Lvgl_lock(-1)) {
+        ApplyOracleLayout();
+        SetScreenTextLocked(strings.thinking_title, strings.thinking_body, "OpenAI");
         Lvgl_unlock();
     }
 }

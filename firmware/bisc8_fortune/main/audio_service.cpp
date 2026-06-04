@@ -12,6 +12,7 @@
 #include "debug_serial.h"
 #include "display_service.h"
 #include "app_config.h"
+#include "generated/sound_assets.h"
 #include "port_codec.h"
 
 namespace bisc8 {
@@ -27,8 +28,11 @@ constexpr int kVoiceMaxChunks = kVoiceRecordLimitMs / kRecordMillis;
 constexpr size_t kWavHeaderBytes = 44;
 constexpr size_t kVoiceMaxPcmBytes = (kSampleRate * kVoiceRecordLimitMs / 1000) * kVoiceChannels * kBytesPerSample;
 constexpr size_t kVoiceSpoolEraseBytes = 512 * 1024;
+constexpr size_t kPlaybackChunkBytes = 4096;
 constexpr uint32_t kVoiceTaskStackBytes = 4096;
+constexpr uint32_t kPlaybackTaskStackBytes = 3072;
 constexpr UBaseType_t kVoiceTaskPriority = 4;
+constexpr UBaseType_t kPlaybackTaskPriority = 3;
 constexpr float kChimeAttackRatio = 0.16f;
 constexpr float kChimeAmplitude = 7800.0f;
 constexpr float kPi = 3.14159265f;
@@ -63,6 +67,10 @@ void BuildWavHeader(uint8_t *header, uint32_t pcm_bytes) {
     WriteLe32(header + 40, pcm_bytes);
 }
 }  // namespace
+
+struct AudioService::QueuedSound {
+    const SoundAsset *asset;
+};
 
 esp_err_t AudioService::Initialize() {
     DebugSerial::LogAlways("[AUDIO]", "initializing ES8311 codec");
@@ -115,6 +123,7 @@ bool AudioService::Available() const {
 }
 
 void AudioService::PlayChime() {
+    StopPlayback();
     if (!available_ || feedback_buffer_ == nullptr) {
         DebugSerial::Log("[AUDIO]", "chime skipped; audio unavailable");
         return;
@@ -123,7 +132,112 @@ void AudioService::PlayChime() {
     DebugSerial::Log("[AUDIO]", "chime bytes=%u result=%s", static_cast<unsigned>(feedback_bytes_), esp_err_to_name(err));
 }
 
+const AudioService::QueuedSound *AudioService::SoundFor(AudioCue cue) const {
+    static const QueuedSound boot = {&kSoundBoot};
+    static const QueuedSound oracle_button = {&kSoundOracleButton};
+    static const QueuedSound voice_submit = {&kSoundVoiceSubmit};
+    static const QueuedSound shutdown = {&kSoundShutdown};
+
+    switch (cue) {
+        case AudioCue::Boot:
+            return &boot;
+        case AudioCue::OracleButton:
+            return &oracle_button;
+        case AudioCue::VoiceSubmit:
+            return &voice_submit;
+        case AudioCue::Shutdown:
+            return &shutdown;
+        default:
+            return nullptr;
+    }
+}
+
+void AudioService::PlayCue(AudioCue cue) {
+    StopPlayback();
+    const QueuedSound *sound = SoundFor(cue);
+    if (!available_ || sound == nullptr || sound->asset == nullptr || sound->asset->data == nullptr || sound->asset->bytes == 0) {
+        DebugSerial::Log("[AUDIO]", "cue skipped; audio unavailable");
+        return;
+    }
+
+    esp_err_t err = Codec_PlaybackData(const_cast<uint8_t *>(sound->asset->data), sound->asset->bytes);
+    DebugSerial::Log("[AUDIO]", "cue=%s bytes=%u result=%s",
+                     sound->asset->name,
+                     static_cast<unsigned>(sound->asset->bytes),
+                     esp_err_to_name(err));
+}
+
+void AudioService::PlayCueAsync(AudioCue cue) {
+    StopPlayback();
+    const QueuedSound *sound = SoundFor(cue);
+    if (!available_ || sound == nullptr || sound->asset == nullptr || sound->asset->data == nullptr || sound->asset->bytes == 0) {
+        DebugSerial::Log("[AUDIO]", "async cue skipped; audio unavailable");
+        return;
+    }
+
+    queued_sound_ = sound;
+    playback_stop_requested_ = false;
+    if (xTaskCreate(&AudioService::PlaybackTaskEntry, "bisc8_sound", kPlaybackTaskStackBytes, this, kPlaybackTaskPriority, &playback_task_) != pdPASS) {
+        playback_task_ = nullptr;
+        queued_sound_ = nullptr;
+        DebugSerial::LogAlways("[AUDIO]", "async cue task create failed");
+        return;
+    }
+    DebugSerial::Log("[AUDIO]", "async cue=%s bytes=%u",
+                     sound->asset->name,
+                     static_cast<unsigned>(sound->asset->bytes));
+}
+
+void AudioService::StopPlayback() {
+    if (playback_task_ == nullptr) {
+        return;
+    }
+    playback_stop_requested_ = true;
+    const TickType_t start = xTaskGetTickCount();
+    while (playback_task_ != nullptr && xTaskGetTickCount() - start < pdMS_TO_TICKS(600)) {
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    if (playback_task_ != nullptr) {
+        DebugSerial::LogAlways("[AUDIO]", "playback stop timed out");
+    }
+}
+
+void AudioService::PlaybackTaskEntry(void *arg) {
+    static_cast<AudioService *>(arg)->PlaybackTask();
+    vTaskDelete(nullptr);
+}
+
+void AudioService::PlaybackTask() {
+    const QueuedSound *sound = queued_sound_;
+    if (sound == nullptr || sound->asset == nullptr) {
+        playback_task_ = nullptr;
+        return;
+    }
+
+    const SoundAsset *asset = sound->asset;
+    size_t offset = 0;
+    esp_err_t err = ESP_OK;
+    while (!playback_stop_requested_ && offset < asset->bytes) {
+        const size_t remaining = asset->bytes - offset;
+        const size_t chunk_bytes = std::min(kPlaybackChunkBytes, remaining);
+        err = Codec_PlaybackData(const_cast<uint8_t *>(asset->data + offset), chunk_bytes);
+        if (err != ESP_OK) {
+            break;
+        }
+        offset += chunk_bytes;
+    }
+    DebugSerial::Log("[AUDIO]", "async cue=%s played=%u/%u result=%s",
+                     asset->name,
+                     static_cast<unsigned>(offset),
+                     static_cast<unsigned>(asset->bytes),
+                     esp_err_to_name(err));
+    queued_sound_ = nullptr;
+    playback_stop_requested_ = false;
+    playback_task_ = nullptr;
+}
+
 void AudioService::StartVoiceRecording() {
+    StopPlayback();
     if (!available_ || record_buffer_ == nullptr) {
         voice_err_ = ESP_ERR_INVALID_STATE;
         DebugSerial::LogAlways("[AUDIO]", "voice recording skipped; audio unavailable");

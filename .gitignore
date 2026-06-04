@@ -14,6 +14,8 @@ public/flash/firmware/*.bin
 
 # Local reference captures and downloaded research media
 docs/references/
+assets/sounds/kenney_*/
+assets/sounds/full-reboot.mp3
 
 # Runtime/editor artifacts
 *.log

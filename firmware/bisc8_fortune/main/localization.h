@@ -21,6 +21,8 @@ struct LocalizedStrings {
     const char *listening_body;
     const char *thinking_title;
     const char *thinking_body;
+    const char *cooking_title;
+    const char *cooking_body;
     const char *speaking_title;
     const char *speaking_body;
     const char *offline_title;

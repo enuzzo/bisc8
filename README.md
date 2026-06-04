@@ -5,11 +5,13 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 ## Current Behavior
 
 - First boot defaults to English.
-- BOOT click: pick a random non-repeating fortune from the generated grimoire data and play a short digital chime.
+- Boot plays a longer background startup jingle while the e-paper moves into the first usable screen.
+- BOOT click: pick a random non-repeating fortune from the generated grimoire data and play the oracle-button cue.
 - Hold BOOT to ask a voice question. Release BOOT to send it to the voice-oracle flow when OpenAI settings are configured.
+- On voice release, Bisc8 shows a localized "Bisc8 is cooking" state and plays the voice-submit cue while the answer is prepared.
 - BOOT long press forces Wi-Fi setup. BOOT + PWR long press performs a full configuration reset.
 - PWR click: run the microphone record/playback test.
-- PWR long press: show the Bisc8 power-off prompt, then enter deep sleep wakeable by PWR.
+- PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
 - Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
@@ -43,6 +45,22 @@ The intended online flow is:
 Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
 
 Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
+
+## Sound Assets
+
+Original candidate sounds live in:
+
+```sh
+assets/candidate
+```
+
+Generate firmware-ready preview WAV files and C arrays:
+
+```sh
+python3 tools/generate_sound_assets.py
+```
+
+The generated preview files are written to `assets/sounds/firmware`, and the firmware arrays are written to `firmware/bisc8_fortune/main/generated/sound_assets.*`. Current cues are `boot`, `oracle_button`, `voice_submit`, and `shutdown`. Runtime playback uses 16 kHz, 16-bit, stereo PCM so the firmware does not need an OGG or MP3 decoder.
 
 ## Email Relay
 
@@ -79,6 +97,8 @@ source ../../.esp/esp-idf/export.sh
 idf.py build
 idf.py -p /dev/cu.usbmodem83201 flash
 ```
+
+The current firmware profile targets the 16 MB flash board. The custom partition table reserves a 4 MB app partition and a 4 MB raw `spool` partition for recorded voice audio, leaving room for future assets and OTA planning.
 
 The local ESP-IDF checkout, toolchain cache, build products, and managed components are intentionally ignored by git.
 

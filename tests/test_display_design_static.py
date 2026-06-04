@@ -28,10 +28,12 @@ def test_display_service_builds_occult_clean_frame():
     assert "SetDecorations" in source
 
 
-def test_boot_screen_stays_visible_long_enough_to_read():
+def test_boot_screen_uses_background_jingle_instead_of_blocking_delay():
     source = APP_MAIN_CPP.read_text(encoding="utf-8")
 
-    assert "vTaskDelay(pdMS_TO_TICKS(3600))" in source
+    assert "display.ShowBoot();" in source
+    assert "audio.PlayCueAsync(AudioCue::Boot)" in source
+    assert "vTaskDelay(pdMS_TO_TICKS(3600))" not in source
 
 
 def test_low_power_mode_is_configurable_but_safe_by_default():
@@ -101,7 +103,7 @@ def test_fortune_auto_sleep_keeps_the_fortune_visible():
     assert "CONFIG_BISC8_AUTO_SLEEP_DELAY_MS" in source
     fortune_case = source.split("case AppEvent::GenerateFortune:", 1)[1].split("case AppEvent::MicTest:", 1)[0]
     assert "display.ShowFortune" in fortune_case
-    assert "audio.PlayChime" in fortune_case
+    assert "audio.PlayCue(AudioCue::OracleButton)" in fortune_case
     assert "board.EnterDeepSleep(\"fortune\", kAnyButtonWakeMask)" in fortune_case
     assert "display.ShowSleep" not in fortune_case
 
@@ -123,27 +125,30 @@ def test_pwr_long_press_shows_power_off_prompt_and_wakes_only_from_pwr():
 
     sleep_case = source.split("case AppEvent::Sleep:", 1)[1]
     assert "CONFIG_BISC8_MANUAL_DEEP_SLEEP_ENABLED" in sleep_case
-    assert "display.ShowPowerOff()" in sleep_case
+    assert "display.ShowPowerOff(ParseLanguage(settings.language.c_str()))" in sleep_case
+    assert "audio.PlayCue(AudioCue::Shutdown)" in sleep_case
     assert "board.EnterDeepSleep(\"power-off\", BIT64(PWR_BUTTON_PIN))" in sleep_case
-    assert "void ShowPowerOff();" in display_header
-    assert "Press PWR\\nto turn me on" in display_source
+    assert "void ShowPowerOff(Language language);" in display_header
+    assert "strings.sleep_footer" in display_source
     assert "by Netmilk Studio" in display_source
 
 
-def test_display_service_exposes_wifi_and_voice_states_in_english():
+def test_display_service_exposes_wifi_and_localized_voice_states():
     header = DISPLAY_H.read_text(encoding="utf-8")
     source = DISPLAY_CPP.read_text(encoding="utf-8")
 
     for method in (
         "ShowWifiConnecting",
         "ShowWifiSetup",
-        "ShowVoiceListening",
-        "ShowVoiceThinking",
-        "ShowVoiceSpeaking",
+            "ShowVoiceListening",
+            "ShowVoiceCooking",
+            "ShowVoiceThinking",
+            "ShowVoiceSpeaking",
     ):
         assert method in header
         assert method in source
     assert "Setup Wi-Fi" in source
     assert "Join Bisc8-XXXX" in source
     assert "Open 192.168.4.1" in source
-    assert "Release BOOT to send" in source
+    assert "strings.listening_body" in source
+    assert "strings.cooking_title" in source
