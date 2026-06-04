@@ -135,6 +135,7 @@ If no known network connects:
 - DNS captive redirect listens on UDP 53.
 - Common captive probe paths redirect to `/`.
 - PWR status gives manual fallback instructions because phone captive detection can be unreliable.
+- Saving Wi-Fi tests the submitted credentials with STA before persisting them; on success `/api/status` returns `reboot_required`, the UI shows "Reboot now", and `/api/reboot` responds before calling `esp_restart()`.
 - The setup portal intentionally does not require a PIN; the product favors low-friction local setup while the SoftAP is active.
 - API responses mask stored secrets, so status and scan do not copy sensitive values back to the browser.
 
@@ -149,6 +150,7 @@ Web routes:
 - `/api/email`
 - `/api/smtp`
 - `/api/reset`
+- `/api/reboot`
 
 The email UI still uses some historical route naming, but the current product direction is recipient-first email plus optional relay fields, not end-user SMTP configuration.
 
