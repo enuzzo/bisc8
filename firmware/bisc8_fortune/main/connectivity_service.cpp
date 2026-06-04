@@ -374,7 +374,7 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
         DebugSerial::LogAlways("[WIFI]", "captive DNS failed: %s", esp_err_to_name(err));
     }
     if (show_display) {
-        display.ShowWifiSetup(language);
+        display.ShowWifiSetup(setup_ssid, kSetupUrl, language);
     }
     return portal.Start();
 }

@@ -1,5 +1,6 @@
 #include "display_service.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,9 +14,9 @@
 #include "port_display.h"
 #include "port_lvgl.h"
 
-LV_FONT_DECLARE(bisc8_font_title_25)
-LV_FONT_DECLARE(bisc8_font_ui_14)
-LV_FONT_DECLARE(bisc8_font_body_16)
+LV_FONT_DECLARE(bisc8_font_title)
+LV_FONT_DECLARE(bisc8_font_small)
+LV_FONT_DECLARE(bisc8_font_body)
 
 namespace bisc8 {
 
@@ -45,6 +46,7 @@ void style_label(lv_obj_t *label, const lv_font_t *font, lv_text_align_t align) 
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
     lv_obj_set_style_text_align(label, align, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(label, 0, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(label, 2, LV_PART_MAIN);
     lv_obj_set_style_pad_all(label, 0, LV_PART_MAIN);
     lv_obj_remove_flag(label, LV_OBJ_FLAG_SCROLLABLE);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
@@ -144,24 +146,23 @@ void DisplayService::CreateScreen() {
 
         BuildSplash();
         BuildChrome();
+        BuildArrow();
 
-        // Full-size mascot (boot / idle), drawn above chrome layers.
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
         lv_obj_remove_flag(mascot_big_, LV_OBJ_FLAG_SCROLLABLE);
 
         title_label_ = lv_label_create(screen_);
-        style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
+        style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
 
         body_label_ = lv_label_create(screen_);
-        style_label(body_label_, &bisc8_font_body_16, LV_TEXT_ALIGN_CENTER);
-        lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
+        style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
 
         footer_left_ = lv_label_create(screen_);
-        style_label(footer_left_, &bisc8_font_ui_14, LV_TEXT_ALIGN_LEFT);
+        style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
 
         footer_right_ = lv_label_create(screen_);
-        style_label(footer_right_, &bisc8_font_ui_14, LV_TEXT_ALIGN_RIGHT);
+        style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
 
         LayoutBoot();
         lv_label_set_text(title_label_, "Bisc8");
@@ -189,34 +190,40 @@ void DisplayService::BuildChrome() {
     lv_obj_set_pos(chrome_group_, 0, 0);
     lv_obj_set_size(chrome_group_, EPD_WIDTH, EPD_HEIGHT);
 
-    // Title-bar stripes.
     const int stripe_y[] = {4, 7, 10, 13, 16};
     for (int y : stripe_y) {
         create_block(chrome_group_, 0, y, 200, 1);
     }
-    // Title-bar bottom border + footer top border.
     create_block(chrome_group_, 0, 20, 200, 2);
     create_block(chrome_group_, 0, 178, 200, 2);
 
-    // Close box (white square with a 2px frame).
     create_white(chrome_group_, 7, 5, 12, 12);
     create_frame(chrome_group_, 7, 5, 12, 12, 2);
 
-    // White notch over the stripes for the title.
     create_white(chrome_group_, 60, 0, 80, 20);
 
-    // Mascot glyph in the notch.
     mascot_glyph_ = lv_image_create(chrome_group_);
     lv_image_set_src(mascot_glyph_, &kBisc8BootLogo);
     lv_image_set_pivot(mascot_glyph_, 0, 0);
-    lv_image_set_scale(mascot_glyph_, 64);  // 64/256 = 25% of 64px -> 16px
+    lv_image_set_scale(mascot_glyph_, 64);  // 25% of 64px -> 16px
     lv_obj_set_pos(mascot_glyph_, 68, 2);
     lv_obj_remove_flag(mascot_glyph_, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *name = lv_label_create(chrome_group_);
-    style_label(name, &bisc8_font_ui_14, LV_TEXT_ALIGN_LEFT);
+    style_label(name, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_label_set_text(name, "bisc8");
     lv_obj_set_pos(name, 88, 3);
+}
+
+void DisplayService::BuildArrow() {
+    arrow_group_ = lv_obj_create(screen_);
+    style_plain_obj(arrow_group_);
+    lv_obj_set_size(arrow_group_, 24, 16);
+    create_block(arrow_group_, 0, 6, 15, 3);    // shaft
+    create_block(arrow_group_, 13, 1, 3, 13);   // head, widest
+    create_block(arrow_group_, 16, 4, 3, 7);
+    create_block(arrow_group_, 19, 6, 3, 3);    // tip
+    set_hidden(arrow_group_, true);
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
@@ -226,14 +233,10 @@ void DisplayService::SetText(const char *title, const char *body, const char *fo
     lv_obj_update_layout(screen_);
 }
 
-void DisplayService::SetFooter(const char *left, const char *right) {
-    lv_label_set_text(footer_left_, left != nullptr ? left : "");
-    lv_label_set_text(footer_right_, right != nullptr ? right : "");
-}
-
 void DisplayService::LayoutBoot() {
     set_hidden(splash_group_, false);
     set_hidden(chrome_group_, true);
+    set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, false);
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
@@ -243,91 +246,109 @@ void DisplayService::LayoutBoot() {
     lv_image_set_scale(mascot_big_, 256);
     lv_obj_set_pos(mascot_big_, 68, 40);
 
-    style_label(title_label_, &bisc8_font_title_25, LV_TEXT_ALIGN_CENTER);
+    style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 110);
-    lv_obj_set_size(title_label_, 200, 32);
+    lv_obj_set_size(title_label_, 200, 34);
 
-    style_label(body_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_line_space(body_label_, 0, LV_PART_MAIN);
-    lv_obj_set_pos(body_label_, 0, 140);
+    style_label(body_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(body_label_, 0, 142);
     lv_obj_set_size(body_label_, 200, 18);
 
-    style_label(footer_left_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 162);
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(footer_left_, 0, 164);
     lv_obj_set_size(footer_left_, 200, 18);
 }
 
-void DisplayService::LayoutIdle() {
+void DisplayService::LayoutIntro() {
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
-    set_hidden(mascot_big_, false);
+    set_hidden(arrow_group_, false);
+    set_hidden(mascot_big_, true);
     set_hidden(title_label_, true);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
 
-    lv_image_set_scale(mascot_big_, 256);
-    lv_obj_set_pos(mascot_big_, 68, 34);
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(body_label_, 6, 70);
+    lv_obj_set_size(body_label_, 150, 70);
 
-    style_label(body_label_, &bisc8_font_body_16, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
-    lv_obj_set_pos(body_label_, 14, 106);
-    lv_obj_set_size(body_label_, 172, 64);
+    lv_obj_set_pos(arrow_group_, 162, 92);
 
-    style_label(footer_left_, &bisc8_font_ui_14, LV_TEXT_ALIGN_LEFT);
-    lv_obj_set_pos(footer_left_, 8, 183);
-    lv_obj_set_size(footer_left_, 110, 16);
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(footer_left_, 0, 182);
+    lv_obj_set_size(footer_left_, 200, 16);
 }
 
 void DisplayService::LayoutMessage() {
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, true);
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
 
-    style_label(title_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
+    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 32);
     lv_obj_set_size(title_label_, 200, 18);
 
-    style_label(body_label_, &bisc8_font_body_16, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(body_label_, 12, 60);
     lv_obj_set_size(body_label_, 176, 110);
 
-    style_label(footer_left_, &bisc8_font_ui_14, LV_TEXT_ALIGN_LEFT);
-    lv_obj_set_pos(footer_left_, 8, 183);
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
+    lv_obj_set_pos(footer_left_, 8, 182);
     lv_obj_set_size(footer_left_, 184, 16);
 }
 
 void DisplayService::LayoutResponso(const char *count) {
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, true);
-    set_hidden(title_label_, false);
+    set_hidden(title_label_, true);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, false);
 
-    style_label(title_label_, &bisc8_font_ui_14, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(title_label_, 0, 30);
-    lv_obj_set_size(title_label_, 200, 18);
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(body_label_, 10, 40);
+    lv_obj_set_size(body_label_, 180, 134);
 
-    style_label(body_label_, &bisc8_font_body_16, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_line_space(body_label_, 4, LV_PART_MAIN);
-    lv_obj_set_pos(body_label_, 10, 54);
-    lv_obj_set_size(body_label_, 180, 116);
-
-    style_label(footer_left_, &bisc8_font_ui_14, LV_TEXT_ALIGN_LEFT);
-    lv_obj_set_pos(footer_left_, 8, 183);
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
+    lv_obj_set_pos(footer_left_, 8, 182);
     lv_obj_set_size(footer_left_, 80, 16);
 
-    style_label(footer_right_, &bisc8_font_ui_14, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_set_pos(footer_right_, 112, 183);
+    style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
+    lv_obj_set_pos(footer_right_, 112, 182);
     lv_obj_set_size(footer_right_, 80, 16);
     lv_label_set_text(footer_right_, count != nullptr ? count : "");
+}
+
+void DisplayService::LayoutWifiSetup() {
+    set_hidden(splash_group_, true);
+    set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
+    set_hidden(mascot_big_, true);
+    set_hidden(title_label_, false);
+    set_hidden(body_label_, false);
+    set_hidden(footer_left_, false);
+    set_hidden(footer_right_, true);
+
+    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(title_label_, 4, 40);
+    lv_obj_set_size(title_label_, 192, 20);
+
+    style_label(body_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_long_mode(body_label_, LV_LABEL_LONG_CLIP);
+    lv_obj_set_pos(body_label_, 0, 78);
+    lv_obj_set_size(body_label_, 200, 40);
+
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(footer_left_, 0, 182);
+    lv_obj_set_size(footer_left_, 200, 16);
 }
 
 void DisplayService::ShowBoot() {
@@ -344,8 +365,10 @@ void DisplayService::ShowBoot() {
 void DisplayService::ShowIntro(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.intro_title, strings.intro_body, strings.intro_footer);
+        LayoutIntro();
+        lv_label_set_text(body_label_, strings.intro_body);
+        lv_label_set_text(footer_left_, strings.intro_footer);
+        lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
 }
@@ -392,10 +415,8 @@ void DisplayService::ShowIdle(size_t fortune_count, Language language) {
     char body[80];
     snprintf(body, sizeof(body), "%u %s", static_cast<unsigned>(fortune_count), strings.idle_body);
     if (Lvgl_lock(-1)) {
-        LayoutIdle();
-        lv_label_set_text(body_label_, body);
-        lv_label_set_text(footer_left_, strings.idle_footer);
-        lv_obj_update_layout(screen_);
+        LayoutMessage();
+        SetText("", body, strings.idle_footer);
         Lvgl_unlock();
     }
 }
@@ -413,11 +434,18 @@ void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left, Lang
     }
 }
 
-void DisplayService::ShowWifiSetup(Language language) {
+void DisplayService::ShowWifiSetup(const char *ssid, const char *url, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
+    char net[64];
+    snprintf(net, sizeof(net), strings.wifi_setup_body, (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid);
+    char address[32];
+    SetupDisplayAddress(url, address, sizeof(address));
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.wifi_setup_title, strings.wifi_setup_body, strings.wifi_setup_footer);
+        LayoutWifiSetup();
+        lv_label_set_text(title_label_, net);
+        lv_label_set_text(body_label_, address);
+        lv_label_set_text(footer_left_, strings.wifi_setup_footer);
+        lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
 }
@@ -425,13 +453,10 @@ void DisplayService::ShowWifiSetup(Language language) {
 void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count) {
     char counter[24];
     snprintf(counter, sizeof(counter), "%u/%u", static_cast<unsigned>(index + 1), static_cast<unsigned>(count));
-    char title[24];
-    snprintf(title, sizeof(title), "RESPONSO N. %u", static_cast<unsigned>(index + 1));
     if (Lvgl_lock(-1)) {
         LayoutResponso(counter);
-        lv_label_set_text(title_label_, title);
         lv_label_set_text(body_label_, fortune != nullptr ? fortune : "");
-        lv_label_set_text(footer_left_, "IT");
+        lv_label_set_text(footer_left_, "");
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
@@ -494,8 +519,10 @@ void DisplayService::ShowMicPlayback(Language language) {
 void DisplayService::ShowMicDone(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.intro_title, strings.intro_body, strings.intro_footer);
+        LayoutIntro();
+        lv_label_set_text(body_label_, strings.intro_body);
+        lv_label_set_text(footer_left_, strings.intro_footer);
+        lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
 }

@@ -15,8 +15,8 @@ typedef struct
 
 void setup_factest_ui(lv_factest_ui *ui);
 
-LV_FONT_DECLARE(bisc8_font_title_25)
-LV_FONT_DECLARE(bisc8_font_body_16)
+LV_FONT_DECLARE(bisc8_font_title)
+LV_FONT_DECLARE(bisc8_font_body)
 
 
 #ifdef __cplusplus

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate Bisc8 LVGL display fonts with Latin-1 glyph coverage."""
+"""Generate Bisc8 LVGL display fonts (Pixelify Sans, 1-bit, Latin-1).
+
+The device and the web config share the Pixelify Sans pixel typeface. These
+are rendered at 1 bit per pixel so they stay crisp on the 1-bit e-paper (no
+anti-aliasing to threshold away), matching the Macintosh System 6 look.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FONT = ROOT / "firmware/bisc8_fortune/managed_components/lvgl__lvgl/scripts/built_in_font/Montserrat-Medium.ttf"
+FONT = ROOT / "assets/fonts/PixelifySans-Regular.ttf"
 OUT_DIR = ROOT / "firmware/bisc8_fortune/components/externlib/ui_res"
 LATIN_1_RANGE = "0x20-0xFF"
 
@@ -22,10 +27,13 @@ class FontSpec:
 
 
 FONTS = (
-    FontSpec("bisc8_font_body_16", 16, "bisc8_font_body_16.c"),
-    FontSpec("bisc8_font_ui_14", 14, "bisc8_font_ui_14.c"),
-    FontSpec("bisc8_font_title_25", 25, "bisc8_font_title_25.c"),
+    FontSpec("bisc8_font_small", 16, "bisc8_font_small.c"),
+    FontSpec("bisc8_font_body", 20, "bisc8_font_body.c"),
+    FontSpec("bisc8_font_title", 30, "bisc8_font_title.c"),
 )
+
+# Older Montserrat font units to remove so the ui_res glob stops compiling them.
+STALE = ("bisc8_font_body_16.c", "bisc8_font_ui_14.c", "bisc8_font_title_25.c")
 
 
 def generate(spec: FontSpec) -> None:
@@ -37,7 +45,7 @@ def generate(spec: FontSpec) -> None:
         "--no-compress",
         "--no-prefilter",
         "--bpp",
-        "4",
+        "1",
         "--size",
         str(spec.size),
         "--font",
@@ -66,6 +74,8 @@ def main() -> int:
     if not FONT.exists():
         raise FileNotFoundError(FONT)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    for stale in STALE:
+        (OUT_DIR / stale).unlink(missing_ok=True)
     for spec in FONTS:
         generate(spec)
     return 0

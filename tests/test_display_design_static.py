@@ -27,17 +27,19 @@ def test_display_service_exposes_boot_brand_screen():
 
     assert "void ShowBoot();" in header
     assert "by Netmilk Studio" in source
-    assert "oracle loading" in source
 
 
-def test_display_service_builds_occult_clean_frame():
+def test_display_service_builds_system6_chrome():
     source = DISPLAY_CPP.read_text(encoding="utf-8")
 
-    assert "CreateOracleFrame" in source
-    assert "CreateLogoIcon" in source
+    assert "BuildChrome" in source
+    assert "BuildArrow" in source
     assert "lv_image_set_src" in source
     assert "kBisc8BootLogo" in source
-    assert "SetDecorations" in source
+    assert "LayoutResponso" in source
+    assert "LayoutIntro" in source
+    assert "LayoutWifiSetup" in source
+    assert "CreateOracleFrame" not in source
 
 
 def test_boot_logo_uses_generated_min_png_bitmap_asset():
@@ -67,25 +69,26 @@ def test_boot_logo_uses_generated_min_png_bitmap_asset():
     assert "assets/logo/logo_min.png" in readme
 
 
-def test_display_fonts_cover_latin_1_accents():
+def test_display_fonts_are_pixelify_with_latin_1_accents():
     display = DISPLAY_CPP.read_text(encoding="utf-8")
     generator = FONT_GEN.read_text(encoding="utf-8")
-    body = (UI_RES / "bisc8_font_body_16.c").read_text(encoding="utf-8")
-    ui = (UI_RES / "bisc8_font_ui_14.c").read_text(encoding="utf-8")
-    title = (UI_RES / "bisc8_font_title_25.c").read_text(encoding="utf-8")
+    body = (UI_RES / "bisc8_font_body.c").read_text(encoding="utf-8")
+    small = (UI_RES / "bisc8_font_small.c").read_text(encoding="utf-8")
+    title = (UI_RES / "bisc8_font_title.c").read_text(encoding="utf-8")
     factest_c = FACTEST_C.read_text(encoding="utf-8")
     factest_h = FACTEST_H.read_text(encoding="utf-8")
 
-    assert "LV_FONT_DECLARE(bisc8_font_title_25)" in display
-    assert "LV_FONT_DECLARE(bisc8_font_ui_14)" in display
+    assert "LV_FONT_DECLARE(bisc8_font_title)" in display
+    assert "LV_FONT_DECLARE(bisc8_font_small)" in display
+    assert "LV_FONT_DECLARE(bisc8_font_body)" in display
     assert "lv_font_montserrat" not in display
+    assert "PixelifySans-Regular.ttf" in generator
     assert 'LATIN_1_RANGE = "0x20-0xFF"' in generator
-    assert "--lv-include" in generator
-    for font in (body, ui, title):
-        assert "0x20-0xFF" in font
+    assert '"--bpp",' in generator and '"1",' in generator  # crisp 1-bit pixel font
+    for font in (body, small, title):
         assert 'U+00E8 "è"' in font
-    assert "bisc8_font_title_25" in factest_c
-    assert "bisc8_font_title_25" in factest_h
+    assert "bisc8_font_title" in factest_c
+    assert "bisc8_font_title" in factest_h
     assert "lv_font_montserratMedium" not in factest_c
     assert "lv_font_montserratMedium" not in factest_h
 
@@ -221,25 +224,22 @@ def test_display_service_exposes_wifi_and_localized_voice_states():
     ):
         assert method in header
         assert method in source
-    assert "strings.wifi_setup_title" in source
     assert "strings.wifi_setup_body" in source
     assert "strings.wifi_setup_footer" in source
     assert "strings.listening_body" in source
     assert "strings.cooking_title" in source
 
 
-def test_setup_connection_info_keeps_device_name_and_ip_on_one_line():
+def test_wifi_setup_shows_real_ssid_and_big_ip():
     display = DISPLAY_CPP.read_text(encoding="utf-8")
     localization = LOCALIZATION_CPP.read_text(encoding="utf-8")
 
-    assert "SetupConnectionInfoLineLayout" in display
+    assert "LayoutWifiSetup" in display
     assert "SetupDisplayAddress" in display
-    assert "http://" in display
-    assert "Bisc8-XXXX | 192.168.4.1" in localization
-    assert '"%s | %s"' in localization
-    assert "Bisc8-XXXX\\nOpen 192.168.4.1" not in localization
-    assert "Bisc8-XXXX\\nAbre 192.168.4.1" not in localization
-    assert "Bisc8-XXXX\\nApri 192.168.4.1" not in localization
+    assert "ShowWifiSetup(const char *ssid, const char *url, Language" in display
+    assert '"collegati a %s"' in localization
+    assert '"connect to %s"' in localization
+    assert '"%s | %s"' in localization  # online status line stays one-line
 
 
 def test_localized_display_strings_keep_required_accents_and_english_cooking():
@@ -249,7 +249,6 @@ def test_localized_display_strings_keep_required_accents_and_english_cooking():
         "oráculo cargando",
         "Mantén BOOT",
         "PWR energía",
-        "Bisc8-XXXX | 192.168.4.1",
         "El oráculo lee tu pregunta.",
         "La pregunta está al fuego.",
     ):

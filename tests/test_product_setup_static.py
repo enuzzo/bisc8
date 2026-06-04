@@ -207,12 +207,10 @@ def test_portal_localizes_visible_ui_in_supported_languages():
         "applyLanguage",
         "data-i18n",
         "data-i18n-placeholder",
-        "Configuración Bisc8",
-        "Configurazione Bisc8",
         "Guardar Wi-Fi",
         "Salva Wi-Fi",
-        "Escanear",
-        "Scansiona",
+        "Buscar redes",
+        "Cerca reti",
         "Configuración borrada",
         "Configurazione cancellata",
     ):
@@ -296,7 +294,7 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "data-bind=\"wifi_mode\"",
         "data-bind=\"device_address\"",
         "name=\"ssid\"",
-        "name=\"language\"",
+        "data-lang=\"it\"",
         "name=\"api_key\"",
         "name=\"recipient\"",
         "name=\"relay_url\"",
@@ -335,9 +333,9 @@ def test_wifi_save_tests_credentials_and_requires_reboot_to_apply():
     assert "Wi-Fi test failed" in wifi_body
 
     for token in (
-        "rebootPanel",
-        "rebootNow",
-        "wifiReady",
+        "id=\"rebar\"",
+        "reboot_title",
+        "reboot_now",
         "document.getElementById('reboot')",
     ):
         assert token in source
@@ -384,12 +382,12 @@ def test_setup_screen_and_status_do_not_expose_or_track_pairing_pin():
     assert "std::string setup_pin" not in connectivity_header
     assert "status_.setup_pin" not in connectivity
     assert "portal.PairingPin()" not in connectivity
-    assert "display.ShowWifiSetup(language)" in connectivity
-    assert "void ShowWifiSetup(Language language);" in display_header
+    assert "display.ShowWifiSetup(setup_ssid, kSetupUrl, language)" in connectivity
+    assert "void ShowWifiSetup(const char *ssid, const char *url, Language language);" in display_header
     assert "strings.wifi_setup_pin_footer" not in display
     assert "wifi_setup_pin_footer" not in localization_header
     assert "PIN %s" not in localization
-    assert "Bisc8-XXXX | 192.168.4.1" in localization
+    assert '"collegati a %s"' in localization
 
     status_json = web.split("esp_err_t WebPortal::SendStatusJson", 1)[1].split("esp_err_t WebPortal::SendWifiScanJson", 1)[0]
     assert '"setup_pin"' not in status_json

@@ -20,7 +20,7 @@ public:
     void ShowPowerOff(Language language);
     void ShowIdle(size_t fortune_count, Language language);
     void ShowWifiConnecting(const char *ssid, int seconds_left, Language language);
-    void ShowWifiSetup(Language language);
+    void ShowWifiSetup(const char *ssid, const char *url, Language language);
     void ShowFortune(const char *fortune, size_t index, size_t count);
     void ShowVoiceListening(Language language);
     void ShowVoiceCooking(Language language);
@@ -37,25 +37,27 @@ private:
     void CreateScreen();
     void BuildChrome();
     void BuildSplash();
+    void BuildArrow();
 
     // Layouts (call inside an Lvgl_lock).
     void LayoutBoot();                 // full-screen splash + mascot, no chrome
-    void LayoutIdle();                 // chrome + mascot + body
+    void LayoutIntro();                // chrome + instruction + arrow toward BOOT
     void LayoutMessage();              // chrome + small-caps title + centered body
-    void LayoutResponso(const char *count);  // chrome + title + big body + count footer
+    void LayoutResponso(const char *count);  // chrome + big body + count footer
+    void LayoutWifiSetup();            // chrome + network line + big IP + hint
 
     void SetText(const char *title, const char *body, const char *footer);
-    void SetFooter(const char *left, const char *right);
 
     lv_obj_t *screen_ = nullptr;
-    lv_obj_t *chrome_group_ = nullptr;   // title bar (stripes, close box, glyph, name) + footer border
-    lv_obj_t *splash_group_ = nullptr;   // boot double frame
-    lv_obj_t *mascot_big_ = nullptr;     // full-size cracker (boot/idle)
-    lv_obj_t *mascot_glyph_ = nullptr;   // small cracker in the title bar
-    lv_obj_t *title_label_ = nullptr;    // small-caps section label in the body
-    lv_obj_t *body_label_ = nullptr;     // main content
-    lv_obj_t *footer_left_ = nullptr;    // footer: language / info
-    lv_obj_t *footer_right_ = nullptr;   // footer: count
+    lv_obj_t *chrome_group_ = nullptr;
+    lv_obj_t *splash_group_ = nullptr;
+    lv_obj_t *arrow_group_ = nullptr;    // right-pointing arrow on the idle prompt
+    lv_obj_t *mascot_big_ = nullptr;
+    lv_obj_t *mascot_glyph_ = nullptr;
+    lv_obj_t *title_label_ = nullptr;
+    lv_obj_t *body_label_ = nullptr;
+    lv_obj_t *footer_left_ = nullptr;
+    lv_obj_t *footer_right_ = nullptr;
 };
 
 }  // namespace bisc8
