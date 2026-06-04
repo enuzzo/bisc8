@@ -10,6 +10,8 @@ namespace bisc8 {
 struct DeviceSettings;
 struct WifiStatus;
 class ConfigStore;
+class ConnectivityService;
+class DisplayService;
 
 using HttpHandler = esp_err_t (*)(httpd_req_t *req);
 
@@ -21,6 +23,7 @@ class WebPortal {
 public:
     void BindStatus(const WifiStatus *wifi);
     void BindConfig(ConfigStore *config_store, DeviceSettings *settings);
+    void BindRuntime(ConnectivityService *connectivity, DisplayService *display);
     esp_err_t Start();
     void Stop();
     bool Running() const;
@@ -34,6 +37,7 @@ private:
     static esp_err_t HandleOpenAi(httpd_req_t *req);
     static esp_err_t HandleEmail(httpd_req_t *req);
     static esp_err_t HandleReset(httpd_req_t *req);
+    static esp_err_t HandleReboot(httpd_req_t *req);
     static esp_err_t HandleCaptiveRedirect(httpd_req_t *req);
     esp_err_t RegisterRoute(const char *uri, httpd_method_t method, HttpHandler handler);
     esp_err_t SendStatusJson(httpd_req_t *req) const;
@@ -42,8 +46,11 @@ private:
 
     httpd_handle_t server_ = nullptr;
     const WifiStatus *wifi_ = nullptr;
+    ConnectivityService *connectivity_ = nullptr;
+    DisplayService *display_ = nullptr;
     DeviceSettings *settings_ = nullptr;
     ConfigStore *config_store_ = nullptr;
+    bool reboot_required_ = false;
     bool running_ = false;
 };
 

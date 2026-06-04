@@ -132,6 +132,7 @@ def test_portal_declares_required_routes_and_masks_secrets():
         '"/api/email"',
         '"/api/smtp"',
         '"/api/reset"',
+        '"/api/reboot"',
     ):
         assert route in source
     assert "secrets are stored on this device" in source
@@ -247,9 +248,41 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         "data-api=\"/api/openai\"",
         "data-api=\"/api/email\"",
         "api('/api/reset'",
+        "api('/api/reboot'",
         "n.band",
     ):
         assert html in source
+
+
+def test_wifi_save_tests_credentials_and_requires_reboot_to_apply():
+    header = read(MAIN / "web_portal.h")
+    source = read(MAIN / "web_portal.cpp")
+    connectivity_header = read(MAIN / "connectivity_service.h")
+    connectivity = read(MAIN / "connectivity_service.cpp")
+    app_main = read(MAIN / "app_main.cpp")
+
+    assert "BindRuntime" in header
+    assert "portal.BindRuntime(&connectivity, &display)" in app_main
+    assert "TestCredentials" in connectivity_header
+    assert "ConnectToNetwork(ssid, password, display, language, false)" in connectivity
+    assert "HandleReboot" in header
+    assert "esp_restart()" in source
+    assert "reboot_required" in source
+    assert "reboot_required_ = true" in source
+
+    wifi_body = source.split("esp_err_t WebPortal::HandleWifiCredentials", 1)[1].split("\nesp_err_t WebPortal::", 1)[0]
+    assert "DeviceSettings candidate = *portal->settings_" in wifi_body
+    assert "portal->connectivity_->TestCredentials" in wifi_body
+    assert "*portal->settings_ = candidate" in wifi_body
+    assert "Wi-Fi test failed" in wifi_body
+
+    for token in (
+        "rebootPanel",
+        "rebootNow",
+        "wifiReady",
+        "document.getElementById('reboot')",
+    ):
+        assert token in source
 
 
 def test_setup_portal_does_not_require_pairing_pin_for_local_setup():
@@ -664,6 +697,8 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "e-paper",
         "does not require a PIN",
         "SoftAP is active",
+        "tests the credentials immediately",
+        "reboot Bisc8",
         "OpenAI API key",
         "email relay",
         "Hold BOOT to ask",
@@ -691,6 +726,8 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
         "spool://question.wav",
         "Bisc8-XXXX",
         "does not require a PIN",
+        "reboot_required",
+        "/api/reboot",
         "API responses mask stored secrets",
         "PWR triple click",
         "CONFIG_BISC8_EMAIL_RELAY_URL",

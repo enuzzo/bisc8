@@ -19,6 +19,7 @@ For future AI agents and contributors, start with the extended project map in [`
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
 - On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
+- Saving Wi-Fi from the setup portal tests the credentials immediately; if the test passes, the UI asks you to reboot Bisc8 so the next boot can connect normally and show the connected SSID/IP.
 - Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. Press PWR to show the e-paper fallback instructions because captive detection can be unreliable.
 
 ## Product Setup Roadmap

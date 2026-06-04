@@ -26,6 +26,7 @@ struct WifiStatus {
 class ConnectivityService {
 public:
     esp_err_t TryKnownNetworks(const DeviceSettings &settings, DisplayService &display, Language language, bool show_progress = true);
+    esp_err_t TestCredentials(const char *ssid, const char *password, DisplayService &display, Language language);
     esp_err_t StartSetupPortal(DisplayService &display, WebPortal &portal, Language language, bool show_display = true);
     bool Online() const;
     const WifiStatus &Status() const;

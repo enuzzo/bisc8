@@ -122,6 +122,7 @@ extern "C" void app_main(void) {
     WebPortal portal;
     portal.BindStatus(&connectivity.Status());
     portal.BindConfig(&config_store, &settings);
+    portal.BindRuntime(&connectivity, &display);
     g_fortune_count = fortunes.Count(Language::English);
 
     esp_err_t err = config_store.Init();

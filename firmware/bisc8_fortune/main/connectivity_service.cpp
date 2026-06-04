@@ -310,6 +310,14 @@ esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, 
     return ESP_ERR_NOT_FOUND;
 }
 
+esp_err_t ConnectivityService::TestCredentials(const char *ssid, const char *password, DisplayService &display, Language language) {
+    esp_err_t err = EnsureInitialized();
+    if (err != ESP_OK) {
+        return err;
+    }
+    return ConnectToNetwork(ssid, password, display, language, false);
+}
+
 void ConnectivityService::BuildSetupSsid(char *ssid, size_t ssid_len) const {
     uint8_t mac[6] = {};
     esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP);
