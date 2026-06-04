@@ -13,6 +13,12 @@ KCONFIG = ROOT / "firmware/bisc8_fortune/main/Kconfig.projbuild"
 LOCALIZATION_CPP = ROOT / "firmware/bisc8_fortune/main/localization.cpp"
 UI_RES = ROOT / "firmware/bisc8_fortune/components/externlib/ui_res"
 FONT_GEN = ROOT / "tools/generate_display_fonts.py"
+LOGO_GEN = ROOT / "tools/generate_logo_assets.py"
+LOGO_SRC = ROOT / "assets/logo/logo_min.png"
+LOGO_H = ROOT / "firmware/bisc8_fortune/main/generated/logo_assets.h"
+LOGO_CPP = ROOT / "firmware/bisc8_fortune/main/generated/logo_assets.cpp"
+CMAKE = ROOT / "firmware/bisc8_fortune/main/CMakeLists.txt"
+README = ROOT / "README.md"
 
 
 def test_display_service_exposes_boot_brand_screen():
@@ -28,9 +34,37 @@ def test_display_service_builds_occult_clean_frame():
     source = DISPLAY_CPP.read_text(encoding="utf-8")
 
     assert "CreateOracleFrame" in source
-    assert "CreateCookieIcon" in source
     assert "CreateLogoIcon" in source
+    assert "lv_image_set_src" in source
+    assert "kBisc8BootLogo" in source
     assert "SetDecorations" in source
+
+
+def test_boot_logo_uses_generated_min_png_bitmap_asset():
+    display = DISPLAY_CPP.read_text(encoding="utf-8")
+    cmake = CMAKE.read_text(encoding="utf-8")
+    readme = README.read_text(encoding="utf-8")
+
+    assert LOGO_SRC.exists()
+    assert LOGO_GEN.exists()
+    generator = LOGO_GEN.read_text(encoding="utf-8")
+    assert "assets/logo/logo_min.png" in generator
+    assert "64" in generator
+    assert "ffmpeg" in generator
+    assert "threshold" in generator
+
+    assert LOGO_H.exists()
+    assert LOGO_CPP.exists()
+    header = LOGO_H.read_text(encoding="utf-8")
+    source = LOGO_CPP.read_text(encoding="utf-8")
+    assert "extern const lv_image_dsc_t kBisc8BootLogo;" in header
+    assert "LV_COLOR_FORMAT_RGB565" in source
+    assert "LV_IMAGE_HEADER_MAGIC" in source
+    assert "{LV_IMAGE_HEADER_MAGIC, LV_COLOR_FORMAT_RGB565, 0, 64, 64, 128, 0}" in source
+    assert "generated/logo_assets.h" in display
+    assert "generated/logo_assets.cpp" in cmake
+    assert "tools/generate_logo_assets.py" in readme
+    assert "assets/logo/logo_min.png" in readme
 
 
 def test_display_fonts_cover_latin_1_accents():

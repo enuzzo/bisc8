@@ -9,6 +9,7 @@
 #include "debug_serial.h"
 #include "connectivity_service.h"
 #include "epaper_config.h"
+#include "generated/logo_assets.h"
 #include "port_display.h"
 #include "port_lvgl.h"
 
@@ -199,7 +200,16 @@ void DisplayService::CreateCookieIcon() {
 }
 
 void DisplayService::CreateLogoIcon() {
-    CreateCookieIcon();
+    cookie_group_ = lv_obj_create(screen_);
+    style_plain_obj(cookie_group_);
+    lv_obj_set_pos(cookie_group_, 68, 18);
+    lv_obj_set_size(cookie_group_, 64, 64);
+
+    lv_obj_t *logo = lv_image_create(cookie_group_);
+    lv_image_set_src(logo, &kBisc8BootLogo);
+    lv_obj_set_pos(logo, 0, 0);
+    lv_obj_set_size(logo, 64, 64);
+    lv_obj_remove_flag(logo, LV_OBJ_FLAG_SCROLLABLE);
 }
 
 void DisplayService::CreateSeal() {

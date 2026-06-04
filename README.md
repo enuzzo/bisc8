@@ -78,7 +78,13 @@ Then set `Bisc8 -> Default Bisc8 email relay URL` and, only for private/provisio
 
 ## Logo Asset
 
-Create the source logo as a square `1024x1024` PNG. Use pure black on white or transparency, no text, no gradients, and a strong silhouette readable at `64x64`. The firmware pipeline will convert it into a clean `64x64` 1-bit bitmap for the 200x200 e-paper boot screen.
+Keep the boot logo source at `assets/logo/logo_min.png`. For new source artwork, a square `1024x1024` PNG is preferred, but the checked-in source may be any clean square image that scales well. Use pure black on white or transparency, no text, no gradients, and a strong silhouette readable at `64x64`. Regenerate the firmware image with:
+
+```sh
+python3 tools/generate_logo_assets.py
+```
+
+The tool scales the source to `64x64`, thresholds it to a clean 1-bit black/white image, and emits the LVGL firmware wrapper in `firmware/bisc8_fortune/main/generated/logo_assets.*` for the 200x200 e-paper boot screen.
 
 ## Display Fonts
 
@@ -171,5 +177,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-46 passed
+50 passed
 ```
