@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bisc8 - web config v2 (System 6, mascotte vera, banner Wi-Fi fixed)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#000; --paper:#fff; --desk:#cfc9bd; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background:repeating-conic-gradient(var(--desk) 0% 25%, #c6c0b3 0% 50%) 0 0/3px 3px;
+        font-family:'Pixelify Sans',ui-sans-serif,sans-serif; color:var(--ink);
+        padding:18px 10px 60px; -webkit-font-smoothing:none; }
+  .app{ max-width:390px; margin:0 auto; background:var(--paper); border:2px solid var(--ink);
+        box-shadow:5px 5px 0 rgba(0,0,0,.35); }
+
+  .titlebar{ position:relative; height:26px; border-bottom:2px solid var(--ink);
+             background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+             display:flex; align-items:center; justify-content:center; }
+  .close{ position:absolute; left:8px; top:6px; width:12px; height:12px; border:2px solid var(--ink); background:var(--paper); }
+  .ttl{ background:var(--paper); padding:0 12px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .ttl img{ width:18px; height:18px; image-rendering:pixelated; }
+
+  .wrap{ padding:14px 13px 90px; }   /* bottom space so the fixed bar never covers content */
+
+  .status{ display:grid; grid-template-columns:1fr 1fr; border:2px solid var(--ink); margin-bottom:16px; }
+  .status .cell{ padding:7px 9px; border-top:2px solid var(--ink); border-left:2px solid var(--ink); }
+  .status .cell:nth-child(1),.status .cell:nth-child(2){ border-top:none; }
+  .status .cell:nth-child(odd){ border-left:none; }
+  .status .k{ font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+  .status .v{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dot-on{ display:inline-block; width:8px; height:8px; background:var(--ink); margin-right:5px; vertical-align:1px; }
+
+  .group{ position:relative; border:2px solid var(--ink); padding:16px 12px 13px; margin:0 0 16px; }
+  .group > .glabel{ position:absolute; top:-9px; left:10px; background:var(--paper); padding:0 6px;
+                    font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+  .hint{ font-size:12px; line-height:1.4; margin:0 0 11px; }
+  .hint.below{ margin:10px 0 0; }
+
+  label.fld{ display:block; font-size:10px; letter-spacing:1px; text-transform:uppercase; margin:0 0 4px; }
+  input,select{ font-family:inherit; width:100%; min-height:42px; border:2px solid var(--ink);
+                background:var(--paper); color:var(--ink); padding:8px 10px; font-size:15px; border-radius:0; }
+  input:focus,select:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--ink); }
+  .field{ margin-bottom:11px; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:4px; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:700; background:var(--ink); color:var(--paper);
+        border:2px solid var(--ink); padding:9px 16px; box-shadow:3px 3px 0 var(--ink); cursor:pointer; }
+  .btn:active{ transform:translate(3px,3px); box-shadow:none; }
+  .btn.sec{ background:var(--paper); color:var(--ink); }
+
+  .seg{ display:inline-flex; border:2px solid var(--ink); }
+  .seg b{ font-weight:700; padding:9px 16px; cursor:pointer; font-size:14px; min-width:46px; text-align:center; }
+  .seg b + b{ border-left:2px solid var(--ink); }
+  .seg b.on{ background:var(--ink); color:var(--paper); }
+
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+        padding:11px 0; border-top:2px dotted var(--ink); font-size:14px; }
+  .row:first-child{ border-top:none; }
+  .muted{ font-size:12px; }
+  .pill{ border:2px solid var(--ink); padding:3px 9px; box-shadow:2px 2px 0 var(--ink); font-size:12px; font-family:ui-monospace,monospace; }
+
+  .scan{ border:2px solid var(--ink); margin:0 0 11px; max-height:120px; overflow:auto; }
+  .scan .h{ background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+            font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; border-bottom:2px solid var(--ink); }
+  .scan .h span{ background:var(--paper); padding:0 4px; }
+  .scan button{ display:block; width:100%; text-align:left; border:0; border-bottom:1px solid var(--ink);
+                background:transparent; font-family:inherit; font-size:13px; padding:8px 9px; cursor:pointer; }
+  .scan button:last-child{ border-bottom:0; }
+
+  details summary{ font-size:12px; font-weight:600; cursor:pointer; margin:6px 0 9px; letter-spacing:.5px; }
+
+  .foot{ font-size:11px; line-height:1.45; margin-top:14px; }
+  .diac{ margin-top:14px; border-top:2px dotted var(--ink); padding-top:10px; }
+  .diac .k{ font-size:9px; letter-spacing:1px; text-transform:uppercase; }
+  .diac p{ font-size:16px; margin:5px 0 0; line-height:1.5; }
+
+  /* ===== Wi-Fi validata: banner FIXED, in basso, evidentissimo ===== */
+  .rebar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:390px;
+          background:var(--ink); color:var(--paper); border-top:3px solid var(--ink);
+          box-shadow:0 -5px 0 rgba(0,0,0,.3); padding:11px 12px 12px; display:flex; align-items:center; gap:11px; z-index:60; }
+  .rebar::before{ content:""; position:absolute; top:-3px; left:0; right:0; height:3px;
+                  background:repeating-linear-gradient(90deg,var(--paper) 0 4px,transparent 4px 8px); }
+  .rebar .ic{ width:30px; height:30px; flex:none; background:var(--paper); display:grid; place-items:center;
+              border:2px solid var(--paper); }
+  .rebar .ic img{ width:24px; height:24px; image-rendering:pixelated; }
+  .rebar .txt{ flex:1; font-size:13px; line-height:1.22; }
+  .rebar .txt b{ display:block; font-size:14px; font-weight:700; letter-spacing:.3px; }
+  .rebar .go{ font-family:inherit; font-size:14px; font-weight:700; background:var(--paper); color:var(--ink);
+              border:2px solid var(--paper); padding:9px 14px; box-shadow:3px 3px 0 rgba(255,255,255,.35); cursor:pointer; flex:none; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="titlebar">
+      <div class="close"></div>
+      <div class="ttl"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div>
+    </div>
+
+    <div class="wrap">
+
+      <div class="status">
+        <div class="cell"><div class="k">Stato</div><div class="v"><span class="dot-on"></span>setup</div></div>
+        <div class="cell"><div class="k">Rete</div><div class="v">Bisc8-AB12</div></div>
+        <div class="cell"><div class="k">Indirizzo</div><div class="v">192.168.4.1</div></div>
+        <div class="cell"><div class="k">Lingua</div><div class="v">IT</div></div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Wi-Fi</span>
+        <p class="hint">Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.</p>
+        <div class="actions" style="margin-bottom:11px">
+          <button class="btn sec" type="button">Cerca reti</button>
+          <span class="muted">le reti vicine, niente di piu'.</span>
+        </div>
+        <div class="scan">
+          <div class="h"><span>Reti trovate</span></div>
+          <button type="button">Casa Mortal Kombat &middot; 2.4 GHz &middot; -52</button>
+          <button type="button">FRITZ!Box 7530 &middot; 5 GHz &middot; -61</button>
+          <button type="button">TIM-19283746 &middot; 2.4 GHz &middot; -74</button>
+        </div>
+        <div class="field"><label class="fld">SSID</label><input value="Casa Mortal Kombat"></div>
+        <div class="field"><label class="fld">Password</label><input type="password" placeholder="quella che sai tu"></div>
+        <div class="actions"><button class="btn" type="button">Salva Wi-Fi</button></div>
+        <div class="row" style="margin-top:11px">
+          <span>Dimentica slot salvato</span>
+          <button class="btn sec" type="button">Dimentica</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Lingua</span>
+        <p class="hint">In che lingua vaticina l'oracolo. I responsi cambiano con lei.</p>
+        <div class="seg"><b class="on">IT</b><b>EN</b><b>ES</b></div>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Oracolo</span>
+        <p class="hint">La chiave vive solo qui. Non la sbandieriamo a nessuno.</p>
+        <div class="field"><label class="fld">Chiave API</label><input type="password" placeholder="lascia vuoto per non toccarla"></div>
+        <div class="two">
+          <div class="field"><label class="fld">Voce a testo</label><input placeholder="gpt-4o-mini-transcribe"></div>
+          <div class="field"><label class="fld">Modello oracolo</label><input placeholder="gpt-4o-mini"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label class="fld">Testo a voce</label><input placeholder="gpt-4o-mini-tts"></div>
+          <div class="field"><label class="fld">Voce</label><input placeholder="alloy"></div>
+        </div>
+        <div class="actions"><button class="btn" type="button">Salva Oracolo</button></div>
+        <p class="hint below">Chiave salvata: manca.</p>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Email</span>
+        <div class="field"><label class="fld">Destinatario</label><input type="email" placeholder="tu@esempio.it"></div>
+        <div class="row">
+          <span>Manda i responsi</span>
+          <span class="seg"><b class="on">Si'</b><b>No</b></span>
+        </div>
+        <details>
+          <summary>Relay (avanzato) &#9656;</summary>
+          <div class="field"><label class="fld">URL relay</label><input placeholder="https://relay.esempio.it/v1/bisc8/email"></div>
+          <div class="field"><label class="fld">Token relay</label><input type="password" placeholder="lascia vuoto per non toccarlo"></div>
+        </details>
+        <div class="actions"><button class="btn" type="button">Salva Email</button></div>
+        <p class="hint below">Destinatario: manca. Relay: manca.</p>
+      </div>
+
+      <div class="group">
+        <span class="glabel">Reset</span>
+        <div class="actions" style="margin-bottom:9px"><button class="btn sec" type="button">Reset totale</button></div>
+        <p class="hint" style="margin:0">Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.</p>
+      </div>
+
+      <div class="row">
+        <span>Firmware</span>
+        <span class="pill">r0031-20260604-2006</span>
+      </div>
+
+      <p class="foot">I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.</p>
+
+      <div class="diac">
+        <div class="k">test diacritici (deve renderizzare tutto)</div>
+        <p>&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &ccedil;&ntilde; &uuml;&ouml;&auml; &szlig; &oslash;&aring;&aelig;&oelig; łőűē šžčćđ</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mostrato SOLO quando reboot_required = true (Wi-Fi testata e salvata) -->
+  <div class="rebar">
+    <div class="ic"><img src="../../assets/logo/logo_min.png" alt=""></div>
+    <div class="txt"><b>Wi-Fi pronta.</b>Testata e salvata. Riavvia per applicarla.</div>
+    <button class="go" type="button">Riavvia ora</button>
+  </div>
+</body>
+</html>

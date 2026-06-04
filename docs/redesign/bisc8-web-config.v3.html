@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bisc8 - web config v3 (i18n IT/EN/ES, voce Netmilk)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#000; --paper:#fff; --desk:#cfc9bd; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background:repeating-conic-gradient(var(--desk) 0% 25%, #c6c0b3 0% 50%) 0 0/3px 3px;
+        font-family:'Pixelify Sans',ui-sans-serif,sans-serif; color:var(--ink); padding:8px 10px 60px; -webkit-font-smoothing:none; }
+  .langbar{ max-width:390px; margin:0 auto 8px; display:flex; gap:8px; align-items:center;
+            font-family:ui-monospace,monospace; font-size:11px; color:#333; }
+  .langbar a{ text-decoration:none; color:#000; border:2px solid #000; padding:1px 8px; background:#fff; }
+  .langbar a.cur{ background:#000; color:#fff; }
+
+  .app{ max-width:390px; margin:0 auto; background:var(--paper); border:2px solid var(--ink); box-shadow:5px 5px 0 rgba(0,0,0,.35); }
+  .titlebar{ position:relative; height:26px; border-bottom:2px solid var(--ink);
+             background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px); display:flex; align-items:center; justify-content:center; }
+  .close{ position:absolute; left:8px; top:6px; width:12px; height:12px; border:2px solid var(--ink); background:var(--paper); }
+  .ttl{ background:var(--paper); padding:0 12px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .ttl img{ width:18px; height:18px; image-rendering:pixelated; }
+  .wrap{ padding:14px 13px 90px; }
+
+  .status{ display:grid; grid-template-columns:1fr 1fr; border:2px solid var(--ink); margin-bottom:16px; }
+  .status .cell{ padding:7px 9px; border-top:2px solid var(--ink); border-left:2px solid var(--ink); }
+  .status .cell:nth-child(1),.status .cell:nth-child(2){ border-top:none; }
+  .status .cell:nth-child(odd){ border-left:none; }
+  .status .k{ font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+  .status .v{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dot-on{ display:inline-block; width:8px; height:8px; background:var(--ink); margin-right:5px; vertical-align:1px; }
+
+  .group{ position:relative; border:2px solid var(--ink); padding:16px 12px 13px; margin:0 0 16px; }
+  .group > .glabel{ position:absolute; top:-9px; left:10px; background:var(--paper); padding:0 6px;
+                    font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+  .hint{ font-size:12px; line-height:1.4; margin:0 0 11px; }
+  .hint.below{ margin:10px 0 0; }
+  label.fld{ display:block; font-size:10px; letter-spacing:1px; text-transform:uppercase; margin:0 0 4px; }
+  input,select{ font-family:inherit; width:100%; min-height:42px; border:2px solid var(--ink); background:var(--paper);
+                color:var(--ink); padding:8px 10px; font-size:15px; border-radius:0; }
+  input:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--ink); }
+  .field{ margin-bottom:11px; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .actions{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:4px; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:700; background:var(--ink); color:var(--paper);
+        border:2px solid var(--ink); padding:9px 16px; box-shadow:3px 3px 0 var(--ink); cursor:pointer; }
+  .btn.sec{ background:var(--paper); color:var(--ink); }
+  .seg{ display:inline-flex; border:2px solid var(--ink); }
+  .seg b{ font-weight:700; padding:9px 16px; cursor:pointer; font-size:14px; min-width:46px; text-align:center; }
+  .seg b + b{ border-left:2px solid var(--ink); }
+  .seg b.on{ background:var(--ink); color:var(--paper); }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-top:2px dotted var(--ink); font-size:14px; }
+  .row:first-child{ border-top:none; }
+  .muted{ font-size:12px; }
+  .pill{ border:2px solid var(--ink); padding:3px 9px; box-shadow:2px 2px 0 var(--ink); font-size:12px; font-family:ui-monospace,monospace; }
+  .scan{ border:2px solid var(--ink); margin:0 0 11px; max-height:120px; overflow:auto; }
+  .scan .h{ background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px); font-size:10px; letter-spacing:1px;
+            text-transform:uppercase; padding:3px 8px; border-bottom:2px solid var(--ink); }
+  .scan .h span{ background:var(--paper); padding:0 4px; }
+  .scan button{ display:block; width:100%; text-align:left; border:0; border-bottom:1px solid var(--ink); background:transparent;
+                font-family:inherit; font-size:13px; padding:8px 9px; cursor:pointer; }
+  .scan button:last-child{ border-bottom:0; }
+  details summary{ font-size:12px; font-weight:600; cursor:pointer; margin:6px 0 9px; letter-spacing:.5px; }
+  .foot{ font-size:11px; line-height:1.45; margin-top:14px; }
+  .diac{ margin-top:14px; border-top:2px dotted var(--ink); padding-top:10px; }
+  .diac .k{ font-size:9px; letter-spacing:1px; text-transform:uppercase; }
+  .diac p{ font-size:16px; margin:5px 0 0; line-height:1.5; }
+
+  .rebar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:390px;
+          background:var(--ink); color:var(--paper); padding:11px 12px 12px; display:flex; align-items:center; gap:11px; z-index:60; }
+  .rebar::before{ content:""; position:absolute; top:-3px; left:0; right:0; height:3px;
+                  background:repeating-linear-gradient(90deg,var(--paper) 0 4px,transparent 4px 8px); }
+  .rebar .ic{ width:30px; height:30px; flex:none; background:var(--paper); display:grid; place-items:center; }
+  .rebar .ic img{ width:24px; height:24px; image-rendering:pixelated; }
+  .rebar .txt{ flex:1; font-size:13px; line-height:1.22; }
+  .rebar .txt b{ display:block; font-size:14px; font-weight:700; }
+  .rebar .go{ font-family:inherit; font-size:14px; font-weight:700; background:var(--paper); color:var(--ink);
+              border:2px solid var(--paper); padding:9px 14px; box-shadow:3px 3px 0 rgba(255,255,255,.35); cursor:pointer; flex:none; }
+</style>
+</head>
+<body>
+  <div class="langbar">anteprima lingua:
+    <a href="#it" data-lang-link="it">IT</a><a href="#en" data-lang-link="en">EN</a><a href="#es" data-lang-link="es">ES</a></div>
+
+  <div class="app">
+    <div class="titlebar"><div class="close"></div><div class="ttl"><img src="../../assets/logo/logo_min.png" alt="">Bisc8</div></div>
+    <div class="wrap">
+
+      <div class="status">
+        <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v"><span class="dot-on"></span><span data-i18n="v_setup">setup</span></div></div>
+        <div class="cell"><div class="k" data-i18n="st_net">Rete</div><div class="v">Bisc8-AB12</div></div>
+        <div class="cell"><div class="k" data-i18n="st_addr">Indirizzo</div><div class="v">192.168.4.1</div></div>
+        <div class="cell"><div class="k" data-i18n="st_lang">Lingua</div><div class="v" data-status-lang>IT</div></div>
+      </div>
+
+      <div class="group">
+        <span class="glabel" data-i18n="wifi_label">Wi-Fi</span>
+        <p class="hint" data-i18n="wifi_hint">...</p>
+        <div class="actions" style="margin-bottom:11px">
+          <button class="btn sec" type="button" data-i18n="wifi_scan">Cerca reti</button>
+          <span class="muted" data-i18n="wifi_scan_note">...</span>
+        </div>
+        <div class="scan">
+          <div class="h"><span data-i18n="scan_h">Reti trovate</span></div>
+          <button type="button">Casa Mortal Kombat &middot; 2.4 GHz &middot; -52</button>
+          <button type="button">FRITZ!Box 7530 &middot; 5 GHz &middot; -61</button>
+          <button type="button">TIM-19283746 &middot; 2.4 GHz &middot; -74</button>
+        </div>
+        <div class="field"><label class="fld" data-i18n="ssid">SSID</label><input value="Casa Mortal Kombat"></div>
+        <div class="field"><label class="fld" data-i18n="password">Password</label><input type="password" data-ph="pwd_ph"></div>
+        <div class="actions"><button class="btn" type="button" data-i18n="save_wifi">Salva Wi-Fi</button></div>
+        <div class="row" style="margin-top:11px">
+          <span data-i18n="forget_label">Dimentica slot salvato</span>
+          <button class="btn sec" type="button" data-i18n="forget">Dimentica</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="glabel" data-i18n="lang_label">Lingua</span>
+        <p class="hint" data-i18n="lang_hint">...</p>
+        <div class="seg" data-lang-seg><b data-l="it">IT</b><b data-l="en">EN</b><b data-l="es">ES</b></div>
+      </div>
+
+      <div class="group">
+        <span class="glabel" data-i18n="oracle_label">Oracolo</span>
+        <p class="hint" data-i18n="oracle_hint">...</p>
+        <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><input type="password" data-ph="keep_key"></div>
+        <div class="two">
+          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input placeholder="gpt-4o-mini-transcribe"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input placeholder="gpt-4o-mini"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input placeholder="gpt-4o-mini-tts"></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><input placeholder="alloy"></div>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-i18n="save_oracle">Salva Oracolo</button></div>
+        <p class="hint below"><span data-i18n="key_stored">Chiave salvata:</span> <span data-i18n="missing">manca</span>.</p>
+      </div>
+
+      <div class="group">
+        <span class="glabel" data-i18n="email_label">Email</span>
+        <div class="field"><label class="fld" data-i18n="recipient">Destinatario</label><input type="email" data-ph="recipient_ph"></div>
+        <div class="row">
+          <span data-i18n="send_resp">Manda i responsi</span>
+          <span class="seg"><b class="on" data-i18n="yes">Si'</b><b data-i18n="no">No</b></span>
+        </div>
+        <details>
+          <summary><span data-i18n="relay_adv">Relay (avanzato)</span> &#9656;</summary>
+          <div class="field"><label class="fld" data-i18n="relay_url">URL relay</label><input placeholder="https://relay.esempio.it/v1/bisc8/email"></div>
+          <div class="field"><label class="fld" data-i18n="relay_token">Token relay</label><input type="password" data-ph="keep_token"></div>
+        </details>
+        <div class="actions"><button class="btn" type="button" data-i18n="save_email">Salva Email</button></div>
+        <p class="hint below" data-i18n="email_status">Destinatario: manca. Relay: manca.</p>
+      </div>
+
+      <div class="group">
+        <span class="glabel" data-i18n="reset_label">Reset</span>
+        <div class="actions" style="margin-bottom:9px"><button class="btn sec" type="button" data-i18n="reset_btn">Reset totale</button></div>
+        <p class="hint" style="margin:0" data-i18n="reset_hint">...</p>
+      </div>
+
+      <div class="row"><span data-i18n="firmware">Firmware</span><span class="pill">r0031-20260604-2006</span></div>
+      <p class="foot" data-i18n="secret_warn">...</p>
+
+      <div class="diac">
+        <div class="k" data-i18n="diac_label">test diacritici</div>
+        <p>&agrave;&egrave;&eacute;&igrave;&ograve;&ugrave; &aacute;&iacute;&oacute;&uacute; &ntilde; &uuml; &ccedil; &iquest;&iexcl;</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rebar">
+    <div class="ic"><img src="../../assets/logo/logo_min.png" alt=""></div>
+    <div class="txt"><b data-i18n="reboot_title">Wi-Fi pronta.</b><span data-i18n="reboot_msg">Testata e salvata. Riavvia per applicarla.</span></div>
+    <button class="go" type="button" data-i18n="reboot_now">Riavvia ora</button>
+  </div>
+
+<script>
+const I18N = {
+  it:{
+    st_state:"Stato", st_net:"Rete", st_addr:"Indirizzo", st_lang:"Lingua", v_setup:"setup",
+    wifi_label:"Wi-Fi", wifi_hint:"Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.",
+    wifi_scan:"Cerca reti", wifi_scan_note:"le reti vicine, niente di più.", scan_h:"Reti trovate",
+    ssid:"SSID", password:"Password", pwd_ph:"quella che sai tu", save_wifi:"Salva Wi-Fi",
+    forget_label:"Dimentica slot salvato", forget:"Dimentica",
+    lang_label:"Lingua", lang_hint:"In che lingua vaticina l'oracolo. I responsi cambiano con lei.",
+    oracle_label:"Oracolo", oracle_hint:"La chiave vive solo qui. Non la sbandieriamo a nessuno.",
+    api_key:"Chiave API", keep_key:"lascia vuoto per non toccarla", stt:"Voce a testo", model:"Modello oracolo",
+    tts:"Testo a voce", voice:"Voce", save_oracle:"Salva Oracolo", key_stored:"Chiave salvata:", missing:"manca",
+    email_label:"Email", recipient:"Destinatario", recipient_ph:"tu@esempio.it", send_resp:"Manda i responsi",
+    yes:"Sì", no:"No", relay_adv:"Relay (avanzato)", relay_url:"URL relay", relay_token:"Token relay",
+    keep_token:"lascia vuoto per non toccarlo", save_email:"Salva Email", email_status:"Destinatario: manca. Relay: manca.",
+    reset_label:"Reset", reset_btn:"Reset totale", reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
+    firmware:"Firmware", secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
+    reboot_title:"Wi-Fi pronta.", reboot_msg:"Testata e salvata. Riavvia per applicarla.", reboot_now:"Riavvia ora",
+    diac_label:"test diacritici (deve renderizzare tutto)"
+  },
+  en:{
+    st_state:"Status", st_net:"Network", st_addr:"Address", st_lang:"Language", v_setup:"setup",
+    wifi_label:"Wi-Fi", wifi_hint:"Saved networks stay right here, on the device. No cloud, no nonsense.",
+    wifi_scan:"Scan", wifi_scan_note:"the networks nearby, nothing more.", scan_h:"Networks found",
+    ssid:"SSID", password:"Password", pwd_ph:"the one you know", save_wifi:"Save Wi-Fi",
+    forget_label:"Forget saved slot", forget:"Forget",
+    lang_label:"Language", lang_hint:"Which tongue the oracle prophesies in. The responsi follow suit.",
+    oracle_label:"Oracle", oracle_hint:"The key lives here and nowhere else. We don't go bragging about it.",
+    api_key:"API key", keep_key:"leave blank to keep it", stt:"Speech to text", model:"Oracle model",
+    tts:"Text to speech", voice:"Voice", save_oracle:"Save Oracle", key_stored:"Stored key:", missing:"missing",
+    email_label:"Email", recipient:"Recipient", recipient_ph:"you@example.com", send_resp:"Send the responsi",
+    yes:"Yes", no:"No", relay_adv:"Relay (advanced)", relay_url:"Relay URL", relay_token:"Relay token",
+    keep_token:"leave blank to keep it", save_email:"Save Email", email_status:"Recipient: missing. Relay: missing.",
+    reset_label:"Reset", reset_btn:"Full reset", reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
+    firmware:"Firmware", secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
+    reboot_title:"Wi-Fi ready.", reboot_msg:"Tested and saved. Reboot to apply it.", reboot_now:"Reboot now",
+    diac_label:"diacritics test (must render fully)"
+  },
+  es:{
+    st_state:"Estado", st_net:"Red", st_addr:"Dirección", st_lang:"Idioma", v_setup:"setup",
+    wifi_label:"Wi-Fi", wifi_hint:"Las redes guardadas se quedan aquí, en el dispositivo. Sin nube, sin líos.",
+    wifi_scan:"Buscar redes", wifi_scan_note:"las redes cercanas, nada más.", scan_h:"Redes encontradas",
+    ssid:"SSID", password:"Contraseña", pwd_ph:"la que ya sabes", save_wifi:"Guardar Wi-Fi",
+    forget_label:"Olvidar ranura guardada", forget:"Olvidar",
+    lang_label:"Idioma", lang_hint:"En qué lengua vaticina el oráculo. Los responsi la siguen.",
+    oracle_label:"Oráculo", oracle_hint:"La clave vive solo aquí. No la andamos pregonando.",
+    api_key:"Clave API", keep_key:"déjalo vacío para no tocarla", stt:"Voz a texto", model:"Modelo del oráculo",
+    tts:"Texto a voz", voice:"Voz", save_oracle:"Guardar Oráculo", key_stored:"Clave guardada:", missing:"falta",
+    email_label:"Email", recipient:"Destinatario", recipient_ph:"tu@ejemplo.es", send_resp:"Manda los responsi",
+    yes:"Sí", no:"No", relay_adv:"Relay (avanzado)", relay_url:"URL del relay", relay_token:"Token del relay",
+    keep_token:"déjalo vacío para no tocarlo", save_email:"Guardar Email", email_status:"Destinatario: falta. Relay: falta.",
+    reset_label:"Reset", reset_btn:"Reset total", reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
+    firmware:"Firmware", secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de producción.",
+    reboot_title:"Wi-Fi lista.", reboot_msg:"Probada y guardada. Reinicia para aplicarla.", reboot_now:"Reiniciar ahora",
+    diac_label:"test de diacríticos (debe renderizar todo)"
+  }
+};
+function applyLang(l){
+  if(!I18N[l]) l='it';
+  document.documentElement.lang=l; var d=I18N[l];
+  document.querySelectorAll('[data-i18n]').forEach(function(e){var k=e.dataset.i18n; if(d[k]!=null) e.textContent=d[k];});
+  document.querySelectorAll('[data-ph]').forEach(function(e){var k=e.dataset.ph; if(d[k]!=null) e.placeholder=d[k];});
+  document.querySelectorAll('[data-lang-seg] b').forEach(function(b){b.classList.toggle('on', b.dataset.l===l);});
+  var sv=document.querySelector('[data-status-lang]'); if(sv) sv.textContent=l.toUpperCase();
+  document.querySelectorAll('[data-lang-link]').forEach(function(a){a.classList.toggle('cur', a.dataset.langLink===l);});
+}
+function fromHash(){ applyLang((location.hash||'#it').slice(1)); }
+addEventListener('hashchange',fromHash); fromHash();
+</script>
+</body>
+</html>
