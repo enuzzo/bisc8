@@ -250,6 +250,27 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
         assert html in source
 
 
+def test_portal_json_string_escapes_control_characters():
+    source = read(MAIN / "web_portal.cpp")
+
+    json_string = source[source.index("std::string JsonString"):source.index("const char *WifiBandLabel")]
+    for token in (
+        "'\\b'",
+        '"\\\\b"',
+        "'\\f'",
+        '"\\\\f"',
+        "'\\n'",
+        '"\\\\n"',
+        "'\\r'",
+        '"\\\\r"',
+        "'\\t'",
+        '"\\\\t"',
+        "ch < 0x20",
+        '"\\\\u%04x"',
+    ):
+        assert token in json_string
+
+
 def test_connectivity_service_documents_multi_wifi_attempt_policy():
     header = read(MAIN / "connectivity_service.h")
     source = read(MAIN / "connectivity_service.cpp")
@@ -607,3 +628,18 @@ def test_public_flash_page_uses_web_serial_manifest_without_secrets():
         assert forbidden not in page
         assert forbidden not in manifest
     assert "Public Web Flasher" in readme
+
+
+def test_public_flash_prepare_rejects_symlink_escape_and_prints_hashes():
+    prep = read(FLASH_PREP)
+
+    for token in (
+        "hashlib.sha256",
+        "source.is_symlink()",
+        "Refusing to copy symlinked artifact",
+        "source.resolve()",
+        "build_dir.resolve()",
+        "Artifact escapes build directory",
+        "sha256=",
+    ):
+        assert token in prep

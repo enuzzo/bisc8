@@ -41,7 +41,10 @@ int I2cMasterBus::i2c_write_buff(i2c_master_dev_handle_t dev_handle, int reg, ui
     if (reg == -1) {
         ret = i2c_master_transmit(dev_handle, buf, len, i2c_data_pdMS_TICKS);
     } else {
-        pbuf    = (uint8_t *) malloc(len + 1);
+        pbuf = static_cast<uint8_t *>(malloc(len + 1));
+        if (pbuf == NULL) {
+            return ESP_ERR_NO_MEM;
+        }
         pbuf[0] = reg;
         for (uint8_t i = 0; i < len; i++) {
             pbuf[i + 1] = buf[i];

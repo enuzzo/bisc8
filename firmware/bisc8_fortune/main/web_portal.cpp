@@ -155,14 +155,26 @@ WebPortal *PortalFromRequest(httpd_req_t *req) {
 
 std::string JsonString(const std::string &value) {
     std::string out = "\"";
-    for (char ch : value) {
+    char escape[7] = {};
+    for (unsigned char ch : value) {
         if (ch == '"' || ch == '\\') {
             out.push_back('\\');
-        }
-        if (ch == '\n') {
+            out.push_back(static_cast<char>(ch));
+        } else if (ch == '\b') {
+            out += "\\b";
+        } else if (ch == '\f') {
+            out += "\\f";
+        } else if (ch == '\n') {
             out += "\\n";
-        } else if (ch != '\r') {
-            out.push_back(ch);
+        } else if (ch == '\r') {
+            out += "\\r";
+        } else if (ch == '\t') {
+            out += "\\t";
+        } else if (ch < 0x20) {
+            snprintf(escape, sizeof(escape), "\\u%04x", ch);
+            out += escape;
+        } else {
+            out.push_back(static_cast<char>(ch));
         }
     }
     out.push_back('"');
