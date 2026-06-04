@@ -3,6 +3,7 @@
 # Local ESP-IDF checkout and toolchain cache
 .esp/
 .espressif/
+.espressif-*/
 
 # Build outputs and generated local state
 firmware/**/build/

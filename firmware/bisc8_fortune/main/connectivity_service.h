@@ -18,6 +18,7 @@ struct WifiStatus {
     bool setup_active = false;
     std::string ssid_attempt;
     std::string connected_ssid;
+    std::string connected_ip;
     std::string setup_ssid;
     std::string setup_url;
 };
@@ -28,6 +29,8 @@ public:
     esp_err_t StartSetupPortal(DisplayService &display, WebPortal &portal, Language language, bool show_display = true);
     bool Online() const;
     const WifiStatus &Status() const;
+    void UpdateConnectedIp(const char *ip);
+    void MarkDisconnected();
 
 private:
     esp_err_t EnsureInitialized();

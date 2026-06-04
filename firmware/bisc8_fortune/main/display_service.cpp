@@ -337,7 +337,11 @@ void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     char body[96];
     if (status.online) {
-        snprintf(body, sizeof(body), strings.status_online_body, status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str());
+        snprintf(body,
+                 sizeof(body),
+                 strings.status_online_body,
+                 status.connected_ip.empty() ? "IP pending" : status.connected_ip.c_str(),
+                 status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str());
     } else if (status.setup_active) {
         char address[32];
         snprintf(body,

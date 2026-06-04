@@ -62,9 +62,9 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 <section class="top">
 <div class="brand"><div class="mark">B8</div><div><h1 data-i18n="appTitle">Bisc8 Setup</h1><p class="sub" data-i18n="subtitle">Local configuration for the small oracle.</p></div></div>
 <div class="status">
-<div class="pill"><b data-i18n="hotspot">Hotspot</b><span data-bind="setup_ssid">Bisc8-XXXX</span></div>
-<div class="pill"><b data-i18n="address">Address</b><span data-bind="setup_url">http://192.168.4.1</span></div>
-<div class="pill"><b data-i18n="network">Network</b><span data-bind="connected_ssid">setup mode</span></div>
+<div class="pill"><b data-i18n="mode">Mode</b><span data-bind="wifi_mode">setup mode</span></div>
+<div class="pill"><b data-i18n="address">Address</b><span data-bind="device_address">http://192.168.4.1</span></div>
+<div class="pill"><b data-i18n="network">Network</b><span data-bind="network_label">setup mode</span></div>
 <div class="pill"><b data-i18n="language">Language</b><span data-bind="language">en</span></div>
 </div>
 </section>
@@ -126,9 +126,9 @@ main{width:min(980px,100%);margin:0 auto;padding:22px 14px 34px}.top{display:gri
 </main>
 <script>
 const I18N={
-en:{appTitle:'Bisc8 Setup',subtitle:'Local configuration for the small oracle.',hotspot:'Hotspot',address:'Address',network:'Network',language:'Language',wifiTitle:'Wi-Fi',scan:'Scan',scanState:'Saved networks stay on the device.',ssid:'SSID',password:'Password',saveWifi:'Save Wi-Fi',removeSlot:'Remove saved slot',remove:'Remove',languageTitle:'Language',displayLanguage:'Display language',saveLanguage:'Save language',firstBoot:'First boot starts in English.',openaiTitle:'OpenAI',apiKey:'API key',keepKey:'Leave blank to keep current key',stt:'Speech to text',oracleModel:'Oracle model',tts:'Text to speech',voice:'Voice',saveOpenai:'Save OpenAI',storedKey:'Stored key',emailTitle:'Email',recipient:'Recipient',sendEmails:'Send oracle emails',yes:'Yes',no:'No',advancedRelay:'Advanced relay settings',relayUrl:'Relay URL',relayToken:'Relay token',keepToken:'Leave blank to keep current token',saveEmail:'Save email',recipientStatus:'Recipient',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Full config reset',resetHint:'This clears Wi-Fi, OpenAI, email, and language.',secretWarning:'Secrets are stored on this device. Enable flash encryption before production use.',missing:'missing',setupMode:'setup mode',saved:'Saved',scanning:'Scanning...',networksFound:'networks found',resetConfirm:'Clear all local configuration?',resetDone:'Configuration cleared'},
-es:{appTitle:'Configuración Bisc8',subtitle:'Configuración local del pequeño oráculo.',hotspot:'Hotspot',address:'Dirección',network:'Red',language:'Idioma',wifiTitle:'Wi-Fi',scan:'Escanear',scanState:'Las redes guardadas permanecen en el dispositivo.',ssid:'SSID',password:'Contraseña',saveWifi:'Guardar Wi-Fi',removeSlot:'Eliminar ranura guardada',remove:'Eliminar',languageTitle:'Idioma',displayLanguage:'Idioma de pantalla',saveLanguage:'Guardar idioma',firstBoot:'El primer arranque empieza en inglés.',openaiTitle:'OpenAI',apiKey:'Clave API',keepKey:'Déjalo vacío para conservar la clave actual',stt:'Voz a texto',oracleModel:'Modelo del oráculo',tts:'Texto a voz',voice:'Voz',saveOpenai:'Guardar OpenAI',storedKey:'Clave guardada',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Enviar emails del oráculo',yes:'Sí',no:'No',advancedRelay:'Ajustes avanzados del relay',relayUrl:'URL del relay',relayToken:'Token del relay',keepToken:'Déjalo vacío para conservar el token actual',saveEmail:'Guardar email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset total',resetHint:'Borra Wi-Fi, OpenAI, email e idioma.',secretWarning:'Los secretos se guardan en este dispositivo. Activa flash encryption antes de producción.',missing:'falta',setupMode:'modo setup',saved:'Guardado',scanning:'Escaneando...',networksFound:'redes encontradas',resetConfirm:'¿Borrar toda la configuración local?',resetDone:'Configuración borrada'},
-it:{appTitle:'Configurazione Bisc8',subtitle:'Configurazione locale del piccolo oracolo.',hotspot:'Hotspot',address:'Indirizzo',network:'Rete',language:'Lingua',wifiTitle:'Wi-Fi',scan:'Scansiona',scanState:'Le reti salvate restano sul dispositivo.',ssid:'SSID',password:'Password',saveWifi:'Salva Wi-Fi',removeSlot:'Rimuovi slot salvato',remove:'Rimuovi',languageTitle:'Lingua',displayLanguage:'Lingua display',saveLanguage:'Salva lingua',firstBoot:'Il primo avvio parte in inglese.',openaiTitle:'OpenAI',apiKey:'Chiave API',keepKey:'Lascia vuoto per tenere la chiave attuale',stt:'Voce in testo',oracleModel:'Modello oracolo',tts:'Testo in voce',voice:'Voce',saveOpenai:'Salva OpenAI',storedKey:'Chiave salvata',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Invia email oracolo',yes:'Sì',no:'No',advancedRelay:'Impostazioni relay avanzate',relayUrl:'URL relay',relayToken:'Token relay',keepToken:'Lascia vuoto per tenere il token attuale',saveEmail:'Salva email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset completo',resetHint:'Cancella Wi-Fi, OpenAI, email e lingua.',secretWarning:'I segreti sono salvati su questo dispositivo. Abilita la flash encryption prima della produzione.',missing:'manca',setupMode:'modalità setup',saved:'Salvato',scanning:'Scansiono...',networksFound:'reti trovate',resetConfirm:'Cancellare tutta la configurazione locale?',resetDone:'Configurazione cancellata'}
+en:{appTitle:'Bisc8 Setup',subtitle:'Local configuration for the small oracle.',mode:'Mode',address:'Address',network:'Network',language:'Language',wifiTitle:'Wi-Fi',scan:'Scan',scanState:'Saved networks stay on the device.',ssid:'SSID',password:'Password',saveWifi:'Save Wi-Fi',removeSlot:'Remove saved slot',remove:'Remove',languageTitle:'Language',displayLanguage:'Display language',saveLanguage:'Save language',firstBoot:'First boot starts in English.',openaiTitle:'OpenAI',apiKey:'API key',keepKey:'Leave blank to keep current key',stt:'Speech to text',oracleModel:'Oracle model',tts:'Text to speech',voice:'Voice',saveOpenai:'Save OpenAI',storedKey:'Stored key',emailTitle:'Email',recipient:'Recipient',sendEmails:'Send oracle emails',yes:'Yes',no:'No',advancedRelay:'Advanced relay settings',relayUrl:'Relay URL',relayToken:'Relay token',keepToken:'Leave blank to keep current token',saveEmail:'Save email',recipientStatus:'Recipient',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Full config reset',resetHint:'This clears Wi-Fi, OpenAI, email, and language.',secretWarning:'Secrets are stored on this device. Enable flash encryption before production use.',missing:'missing',setupMode:'setup mode',onlineMode:'online',offlineMode:'offline',saved:'Saved',scanning:'Scanning...',networksFound:'networks found',resetConfirm:'Clear all local configuration?',resetDone:'Configuration cleared'},
+es:{appTitle:'Configuración Bisc8',subtitle:'Configuración local del pequeño oráculo.',mode:'Modo',address:'Dirección',network:'Red',language:'Idioma',wifiTitle:'Wi-Fi',scan:'Escanear',scanState:'Las redes guardadas permanecen en el dispositivo.',ssid:'SSID',password:'Contraseña',saveWifi:'Guardar Wi-Fi',removeSlot:'Eliminar ranura guardada',remove:'Eliminar',languageTitle:'Idioma',displayLanguage:'Idioma de pantalla',saveLanguage:'Guardar idioma',firstBoot:'El primer arranque empieza en inglés.',openaiTitle:'OpenAI',apiKey:'Clave API',keepKey:'Déjalo vacío para conservar la clave actual',stt:'Voz a texto',oracleModel:'Modelo del oráculo',tts:'Texto a voz',voice:'Voz',saveOpenai:'Guardar OpenAI',storedKey:'Clave guardada',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Enviar emails del oráculo',yes:'Sí',no:'No',advancedRelay:'Ajustes avanzados del relay',relayUrl:'URL del relay',relayToken:'Token del relay',keepToken:'Déjalo vacío para conservar el token actual',saveEmail:'Guardar email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset total',resetHint:'Borra Wi-Fi, OpenAI, email e idioma.',secretWarning:'Los secretos se guardan en este dispositivo. Activa flash encryption antes de producción.',missing:'falta',setupMode:'modo setup',onlineMode:'conectado',offlineMode:'sin red',saved:'Guardado',scanning:'Escaneando...',networksFound:'redes encontradas',resetConfirm:'¿Borrar toda la configuración local?',resetDone:'Configuración borrada'},
+it:{appTitle:'Configurazione Bisc8',subtitle:'Configurazione locale del piccolo oracolo.',mode:'Modalità',address:'Indirizzo',network:'Rete',language:'Lingua',wifiTitle:'Wi-Fi',scan:'Scansiona',scanState:'Le reti salvate restano sul dispositivo.',ssid:'SSID',password:'Password',saveWifi:'Salva Wi-Fi',removeSlot:'Rimuovi slot salvato',remove:'Rimuovi',languageTitle:'Lingua',displayLanguage:'Lingua display',saveLanguage:'Salva lingua',firstBoot:'Il primo avvio parte in inglese.',openaiTitle:'OpenAI',apiKey:'Chiave API',keepKey:'Lascia vuoto per tenere la chiave attuale',stt:'Voce in testo',oracleModel:'Modello oracolo',tts:'Testo in voce',voice:'Voce',saveOpenai:'Salva OpenAI',storedKey:'Chiave salvata',emailTitle:'Email',recipient:'Destinatario',sendEmails:'Invia email oracolo',yes:'Sì',no:'No',advancedRelay:'Impostazioni relay avanzate',relayUrl:'URL relay',relayToken:'Token relay',keepToken:'Lascia vuoto per tenere il token attuale',saveEmail:'Salva email',recipientStatus:'Destinatario',relayStatus:'Relay',resetTitle:'Reset',resetButton:'Reset completo',resetHint:'Cancella Wi-Fi, OpenAI, email e lingua.',secretWarning:'I segreti sono salvati su questo dispositivo. Abilita la flash encryption prima della produzione.',missing:'manca',setupMode:'modalità setup',onlineMode:'connesso',offlineMode:'offline',saved:'Salvato',scanning:'Scansiono...',networksFound:'reti trovate',resetConfirm:'Cancellare tutta la configurazione locale?',resetDone:'Configurazione cancellata'}
 };
 let currentLanguage='en';
 const toast=document.getElementById('toast');
@@ -136,7 +136,7 @@ function tr(key){return (I18N[currentLanguage]&&I18N[currentLanguage][key])||I18
 function note(keyOrText){toast.textContent=tr(keyOrText)||keyOrText;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2800)}
 async function api(url,opts){const r=await fetch(url,opts);const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed');return j}
 function applyLanguage(language){currentLanguage=I18N[language]?language:'en';document.documentElement.lang=currentLanguage;document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=tr(el.dataset.i18n)});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=tr(el.dataset.i18nPlaceholder)})}
-function valueText(key,value){if(!value||value==='missing')return tr('missing');if(key==='connected_ssid'&&value==='setup mode')return tr('setupMode');return value}
+function valueText(key,value){if(!value||value==='missing')return tr('missing');if(value==='setup mode')return tr('setupMode');if(value==='online')return tr('onlineMode');if(value==='offline')return tr('offlineMode');return value}
 function fill(s){if(s.language)applyLanguage(s.language);for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(el=>{el.textContent=valueText(k,s[k])})}if(s.language)document.getElementById('language').value=s.language}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
 function body(form){return new URLSearchParams(new FormData(form)).toString()}
@@ -506,6 +506,7 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
     std::string setup_ssid;
     std::string setup_url = "http://192.168.4.1";
     std::string connected_ssid;
+    std::string connected_ip;
     std::string ssid_attempt;
     bool online = false;
     bool setup_active = running_;
@@ -514,6 +515,7 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
         setup_ssid = wifi_->setup_ssid;
         setup_url = wifi_->setup_url.empty() ? setup_url : wifi_->setup_url;
         connected_ssid = wifi_->connected_ssid;
+        connected_ip = wifi_->connected_ip;
         ssid_attempt = wifi_->ssid_attempt;
         online = wifi_->online;
         setup_active = wifi_->setup_active || running_;
@@ -534,11 +536,19 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
         wifi_count = settings_->wifi_count;
     }
 
+    const std::string wifi_mode = online ? "online" : (setup_active ? "setup mode" : "offline");
+    const std::string device_address = online && !connected_ip.empty() ? connected_ip : setup_url;
+    const std::string network_label = online ? connected_ssid : wifi_mode;
+
     std::string json = "{";
     json += "\"online\":" + std::string(online ? "true" : "false");
     json += ",\"setup_active\":" + std::string(setup_active ? "true" : "false");
     json += ",\"setup_ssid\":" + JsonString(setup_ssid);
     json += ",\"setup_url\":" + JsonString(setup_url);
+    json += ",\"connected_ip\":" + JsonString(connected_ip.empty() ? "missing" : connected_ip);
+    json += ",\"device_address\":" + JsonString(device_address);
+    json += ",\"wifi_mode\":" + JsonString(wifi_mode);
+    json += ",\"network_label\":" + JsonString(network_label.empty() ? wifi_mode : network_label);
     json += ",\"connected_ssid\":" + JsonString(connected_ssid.empty() ? "setup mode" : connected_ssid);
     json += ",\"ssid_attempt\":" + JsonString(ssid_attempt);
     json += ",\"language\":" + JsonString(language);

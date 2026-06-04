@@ -29,6 +29,7 @@ using namespace bisc8;
 namespace {
 
 constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);
+constexpr uint32_t kOnlineStatusSplashMs = 2800;
 QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
 bool g_board_ready = false;
@@ -169,7 +170,11 @@ extern "C" void app_main(void) {
         display.ShowIntro(startup_language);
     }
 
-    if (g_audio_ready && !setup_mode_active) {
+    if (!setup_mode_active && connectivity.Online()) {
+        display.ShowStatus(connectivity.Status(), startup_language);
+        vTaskDelay(pdMS_TO_TICKS(kOnlineStatusSplashMs));
+        display.ShowIntro(startup_language);
+    } else if (g_audio_ready && !setup_mode_active) {
         display.ShowIntro(startup_language);
     }
 

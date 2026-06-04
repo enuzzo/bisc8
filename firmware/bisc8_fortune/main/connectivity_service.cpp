@@ -7,6 +7,7 @@
 #include <esp_event.h>
 #include <esp_mac.h>
 #include <esp_netif.h>
+#include <esp_netif_ip_addr.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
@@ -40,13 +41,25 @@ bool CopyWifiString(char *dst, size_t dst_len, const std::string &src) {
     return true;
 }
 
-void OnWifiEvent(void *, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+void OnWifiEvent(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (g_wifi_events == nullptr) {
         return;
     }
+    auto *service = static_cast<ConnectivityService *>(arg);
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        char ip[16] = {};
+        const auto *event = static_cast<ip_event_got_ip_t *>(event_data);
+        if (event != nullptr) {
+            snprintf(ip, sizeof(ip), IPSTR, IP2STR(&event->ip_info.ip));
+        }
+        if (service != nullptr) {
+            service->UpdateConnectedIp(ip);
+        }
         xEventGroupSetBits(g_wifi_events, WIFI_CONNECTED_BIT);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (service != nullptr) {
+            service->MarkDisconnected();
+        }
         xEventGroupSetBits(g_wifi_events, WIFI_FAILED_BIT);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
         const auto *event = static_cast<wifi_event_ap_staconnected_t *>(event_data);
@@ -71,6 +84,19 @@ void OnWifiEvent(void *, esp_event_base_t event_base, int32_t event_id, void *ev
 }
 
 }  // namespace
+
+void ConnectivityService::UpdateConnectedIp(const char *ip) {
+    status_.connected_ip = ip == nullptr ? "" : ip;
+    DebugSerial::LogAlways("[WIFI]",
+                           "got sta ip=%s",
+                           status_.connected_ip.empty() ? "unknown" : status_.connected_ip.c_str());
+}
+
+void ConnectivityService::MarkDisconnected() {
+    online_ = false;
+    status_.online = false;
+    status_.connected_ip.clear();
+}
 
 esp_err_t ConnectivityService::EnsureInitialized() {
     if (initialized_) {
@@ -177,7 +203,11 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
         return ESP_ERR_INVALID_ARG;
     }
 
+    online_ = false;
+    status_.online = false;
     status_.ssid_attempt = ssid;
+    status_.connected_ssid.clear();
+    status_.connected_ip.clear();
     esp_wifi_disconnect();
     xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT);
 
@@ -217,7 +247,10 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
             status_.online = true;
             status_.connected_ssid = ssid;
             status_.ssid_attempt.clear();
-            DebugSerial::LogAlways("[WIFI]", "connected ssid=%s", ssid);
+            DebugSerial::LogAlways("[WIFI]",
+                                   "connected ssid=%s ip=%s",
+                                   ssid,
+                                   status_.connected_ip.empty() ? "pending" : status_.connected_ip.c_str());
             return ESP_OK;
         }
         if ((bits & WIFI_FAILED_BIT) != 0) {
@@ -226,6 +259,9 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
     }
 
     esp_wifi_disconnect();
+    online_ = false;
+    status_.online = false;
+    status_.connected_ip.clear();
     DebugSerial::LogAlways("[WIFI]", "connection timeout ssid=%s", ssid);
     return ESP_ERR_TIMEOUT;
 }
@@ -318,6 +354,8 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
 
     status_.online = false;
     status_.setup_active = true;
+    status_.connected_ssid.clear();
+    status_.connected_ip.clear();
     status_.setup_ssid = setup_ssid;
     status_.setup_url = kSetupUrl;
     online_ = false;

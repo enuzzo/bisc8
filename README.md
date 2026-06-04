@@ -10,12 +10,12 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 - Hold BOOT to ask a voice question. Release BOOT to send it to the voice-oracle flow when OpenAI settings are configured.
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
 - BOOT long press forces Wi-Fi setup. BOOT + PWR long press performs a full configuration reset.
-- PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
+- PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
 - Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
-- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, and starts setup mode when none connects, while keeping the e-paper on the introductory screen unless setup was explicitly forced.
+- On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects, while keeping the e-paper on the introductory screen unless setup was explicitly forced.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
 - Captive probe HTTP routes redirect to `/`, and setup mode runs a small DNS responder that points queries to `192.168.4.1`. Press PWR to show the e-paper fallback instructions because captive detection can be unreliable.
 
@@ -23,7 +23,7 @@ Bisc8 is an ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-wh
 
 Bisc8 is moving toward a no-recompile product setup flow:
 
-- The local web UI serves responsive forms for Wi-Fi, language, OpenAI API key, email, status, and reset.
+- The local web UI serves responsive forms for Wi-Fi, language, OpenAI API key, email, status, and reset, and reports online/setup mode with the active device address.
 - API responses mask stored secrets; blank secret fields keep the currently stored value.
 - The next web UI milestone will add richer validation and hardware QA for captive portal behavior across phones and laptops.
 - OpenAI, Wi-Fi, and email relay secrets are stored on the device. Enable flash encryption before production use.
@@ -107,12 +107,14 @@ firmware/bisc8_fortune
 Build and flash:
 
 ```sh
-cd firmware/bisc8_fortune
-export IDF_TOOLS_PATH="$PWD/../../.espressif"
-source ../../.esp/esp-idf/export.sh
-idf.py build
-idf.py -p /dev/cu.usbmodemXXXX flash
+source tools/idf_env.sh
+python "$IDF_PATH/tools/idf_tools.py" install --targets esp32c6
+python "$IDF_PATH/tools/idf_tools.py" install-python-env
+idf.py -C firmware/bisc8_fortune build
+idf.py -C firmware/bisc8_fortune -p /dev/cu.usbmodemXXXX flash
 ```
+
+`tools/idf_env.sh` chooses an architecture-specific ESP-IDF tools cache from `uname -m`, for example `~/.espressif-bisc8-x86_64` on Intel Macs and `~/.espressif-bisc8-arm64` on Apple Silicon. Keep toolchains out of the Dropbox-synced project folder, or use separate `.espressif-x86_64` and `.espressif-arm64` caches, because ESP-IDF extracts same-version tools to the same directory name for different host architectures.
 
 The current firmware profile targets the 16 MB flash board and maps the full chip. The custom partition table keeps the app at `0x10000`, reserves a 6 MB app partition, a 5 MB raw `assets` partition for future bundled media/data, and a raw `spool` partition from `0xb10000` to the end of flash for recorded voice audio and temporary generated payloads. The `assets` partition is reserved but not mounted yet.
 
@@ -177,5 +179,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-50 passed
+51 passed
 ```

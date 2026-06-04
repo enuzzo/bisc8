@@ -231,7 +231,8 @@ def test_portal_has_real_forms_post_handlers_and_config_save():
     ):
         assert token in source or token in header
     for html in (
-        "data-bind=\"setup_ssid\"",
+        "data-bind=\"wifi_mode\"",
+        "data-bind=\"device_address\"",
         "name=\"ssid\"",
         "name=\"language\"",
         "name=\"api_key\"",
@@ -289,6 +290,29 @@ def test_connectivity_service_uses_real_wifi_scan_sta_and_softap_fallback():
     assert "esp_wifi" in cmake
     assert "esp_netif" in cmake
     assert "esp_event" in cmake
+
+
+def test_connected_wifi_status_exposes_sta_ip_to_web_and_intro_splash():
+    header = read(MAIN / "connectivity_service.h")
+    connectivity = read(MAIN / "connectivity_service.cpp")
+    web = read(MAIN / "web_portal.cpp")
+    display = read(MAIN / "display_service.cpp")
+    localization = read(MAIN / "localization.cpp")
+    app_main = read(MAIN / "app_main.cpp")
+
+    assert "std::string connected_ip" in header
+    assert "UpdateConnectedIp" in header
+    assert "MarkDisconnected" in header
+    assert "ip_event_got_ip_t" in connectivity
+    assert "IP2STR" in connectivity
+    assert "connected_ip" in web
+    assert '"device_address"' in web
+    assert 'data-bind="device_address"' in web
+    assert "wifi_mode" in web
+    assert "status.connected_ip" in display
+    assert "Connected\\n%s\\n%s" in localization
+    assert "kOnlineStatusSplashMs" in app_main
+    assert "display.ShowStatus(connectivity.Status(), startup_language)" in app_main
 
 
 def test_setup_portal_uses_conservative_ap_and_http_resources():
