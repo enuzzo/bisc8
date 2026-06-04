@@ -67,9 +67,14 @@ def test_partition_table_reserves_audio_spool_storage():
     sdkconfig_defaults = read(SDKCONFIG_DEFAULTS)
 
     assert "spool" in partitions
+    assert "assets" in partitions
     assert "0x40" in partitions
-    assert "0x400000" in partitions
-    assert "0x410000" in partitions
+    assert "0x41" in partitions
+    assert "0x600000" in partitions
+    assert "0x610000" in partitions
+    assert "0x500000" in partitions
+    assert "0xb10000" in partitions
+    assert "0x4f0000" in partitions
     assert 'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"' in sdkconfig
     assert "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y" in sdkconfig_defaults
 

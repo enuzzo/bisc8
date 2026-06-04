@@ -98,7 +98,7 @@ idf.py build
 idf.py -p /dev/cu.usbmodem83201 flash
 ```
 
-The current firmware profile targets the 16 MB flash board. The custom partition table reserves a 4 MB app partition and a 4 MB raw `spool` partition for recorded voice audio, leaving room for future assets and OTA planning.
+The current firmware profile targets the 16 MB flash board and maps the full chip. The custom partition table keeps the app at `0x10000`, reserves a 6 MB app partition, a 5 MB raw `assets` partition for future bundled media/data, and a raw `spool` partition from `0xb10000` to the end of flash for recorded voice audio and temporary generated payloads. The `assets` partition is reserved but not mounted yet.
 
 The local ESP-IDF checkout, toolchain cache, build products, and managed components are intentionally ignored by git.
 
