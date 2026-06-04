@@ -8,6 +8,7 @@
 firmware/**/build/
 firmware/**/managed_components/
 firmware/**/.pytest_cache/
+public/flash/firmware/*.bin
 **/__pycache__/
 .pytest_cache/
 

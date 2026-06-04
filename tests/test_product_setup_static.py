@@ -5,6 +5,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "firmware/bisc8_fortune/main"
 README = ROOT / "README.md"
 PARTITIONS = ROOT / "firmware/bisc8_fortune/partitions.csv"
+FLASH_PAGE = ROOT / "public/flash/index.html"
+FLASH_MANIFEST = ROOT / "public/flash/manifest.json"
+FLASH_PREP = ROOT / "tools/prepare_web_flash.py"
 
 
 def read(path: Path) -> str:
@@ -327,3 +330,29 @@ def test_readme_documents_product_setup_and_logo_requirements():
         "secrets are stored on the device",
     ):
         assert phrase in readme
+
+
+def test_public_flash_page_uses_web_serial_manifest_without_secrets():
+    page = read(FLASH_PAGE)
+    manifest = read(FLASH_MANIFEST)
+    prep = read(FLASH_PREP)
+    readme = read(README)
+
+    assert "esp-web-tools@10.1.0" in page
+    assert '<esp-web-install-button manifest="./manifest.json">' in page
+    assert "Web Serial" in page
+    assert "Bisc8-XXXX" in page
+    assert "192.168.4.1" in page
+    assert '"chipFamily": "ESP32-C6"' in manifest
+    assert '"offset": 0' in manifest
+    assert '"offset": 32768' in manifest
+    assert '"offset": 65536' in manifest
+    assert "bootloader.bin" in manifest
+    assert "partition-table.bin" in manifest
+    assert "bisc8_fortune.bin" in manifest
+    assert "copy_artifact" in prep
+    assert "--build-dir" in prep
+    for forbidden in ("sk-", "smtp_password", "relay_token"):
+        assert forbidden not in page
+        assert forbidden not in manifest
+    assert "Public Web Flasher" in readme

@@ -82,6 +82,22 @@ idf.py -p /dev/cu.usbmodem83201 flash
 
 The local ESP-IDF checkout, toolchain cache, build products, and managed components are intentionally ignored by git.
 
+## Public Web Flasher
+
+The static browser flashing page lives in:
+
+```sh
+public/flash
+```
+
+After a successful build, copy the bootloader, partition table, and app binary into the public flasher folder:
+
+```sh
+python3 tools/prepare_web_flash.py --build-dir /private/tmp/bisc8-fortune-build12
+```
+
+The page uses ESP Web Tools with the ESP32-C6 offsets `0x0`, `0x8000`, and `0x10000`. Host it over HTTPS or localhost, then send users to the Bisc8 hotspot and `http://192.168.4.1` after flashing. Do not publish firmware images that contain private API keys, Wi-Fi credentials, or email relay tokens.
+
 ## Fortune Data
 
 Source fortunes are stored in:
@@ -123,5 +139,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-37 passed
+38 passed
 ```
