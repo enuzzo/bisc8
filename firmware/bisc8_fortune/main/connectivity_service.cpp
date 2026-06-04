@@ -7,6 +7,7 @@
 #include <esp_event.h>
 #include <esp_mac.h>
 #include <esp_netif.h>
+#include <esp_system.h>
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
@@ -39,7 +40,7 @@ bool CopyWifiString(char *dst, size_t dst_len, const std::string &src) {
     return true;
 }
 
-void OnWifiEvent(void *, esp_event_base_t event_base, int32_t event_id, void *) {
+void OnWifiEvent(void *, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (g_wifi_events == nullptr) {
         return;
     }
@@ -47,6 +48,25 @@ void OnWifiEvent(void *, esp_event_base_t event_base, int32_t event_id, void *) 
         xEventGroupSetBits(g_wifi_events, WIFI_CONNECTED_BIT);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupSetBits(g_wifi_events, WIFI_FAILED_BIT);
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
+        const auto *event = static_cast<wifi_event_ap_staconnected_t *>(event_data);
+        const uint8_t zero_mac[6] = {};
+        const uint8_t *mac = event == nullptr ? zero_mac : event->mac;
+        DebugSerial::LogAlways("[WIFI]",
+                               "setup client join aid=%u mac=" MACSTR " free_heap=%u",
+                               event == nullptr ? 0 : static_cast<unsigned>(event->aid),
+                               MAC2STR(mac),
+                               static_cast<unsigned>(esp_get_free_heap_size()));
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        const auto *event = static_cast<wifi_event_ap_stadisconnected_t *>(event_data);
+        const uint8_t zero_mac[6] = {};
+        const uint8_t *mac = event == nullptr ? zero_mac : event->mac;
+        DebugSerial::LogAlways("[WIFI]",
+                               "setup client leave aid=%u reason=%u mac=" MACSTR " free_heap=%u",
+                               event == nullptr ? 0 : static_cast<unsigned>(event->aid),
+                               event == nullptr ? 0 : static_cast<unsigned>(event->reason),
+                               MAC2STR(mac),
+                               static_cast<unsigned>(esp_get_free_heap_size()));
     }
 }
 
@@ -280,7 +300,7 @@ esp_err_t ConnectivityService::StartSetupPortal(DisplayService &display, WebPort
     wifi_config_t ap_config = {};
     CopyWifiString(reinterpret_cast<char *>(ap_config.ap.ssid), sizeof(ap_config.ap.ssid), setup_ssid);
     ap_config.ap.ssid_len = std::strlen(setup_ssid);
-    ap_config.ap.max_connection = 4;
+    ap_config.ap.max_connection = 2;
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
 
     err = esp_wifi_set_mode(WIFI_MODE_APSTA);

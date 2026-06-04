@@ -6,6 +6,7 @@
 
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -83,16 +84,12 @@ esp_err_t AudioService::Initialize() {
     }
 
     record_bytes_ = (kSampleRate * kRecordMillis / 1000) * kChannels * kBytesPerSample;
-    record_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(record_bytes_, MALLOC_CAP_DEFAULT));
-    if (record_buffer_ == nullptr) {
-        DebugSerial::LogAlways("[AUDIO]", "record buffer allocation failed: %u", static_cast<unsigned>(record_bytes_));
-        available_ = false;
-        return ESP_ERR_NO_MEM;
-    }
-
     PrepareChime();
     available_ = feedback_buffer_ != nullptr;
-    DebugSerial::LogAlways("[AUDIO]", "ready record_bytes=%u feedback_bytes=%u", static_cast<unsigned>(record_bytes_), static_cast<unsigned>(feedback_bytes_));
+    DebugSerial::LogAlways("[AUDIO]",
+                           "ready record_bytes=%u feedback_bytes=%u record_buffer=lazy",
+                           static_cast<unsigned>(record_bytes_),
+                           static_cast<unsigned>(feedback_bytes_));
     return available_ ? ESP_OK : ESP_ERR_NO_MEM;
 }
 
@@ -209,6 +206,39 @@ void AudioService::StopPlayback() {
     }
 }
 
+esp_err_t AudioService::EnsureRecordBuffer() {
+    if (record_buffer_ != nullptr) {
+        return ESP_OK;
+    }
+    if (record_bytes_ == 0) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    record_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(record_bytes_, MALLOC_CAP_DEFAULT));
+    if (record_buffer_ == nullptr) {
+        DebugSerial::LogAlways("[AUDIO]",
+                               "record buffer allocation failed: bytes=%u free_heap=%u",
+                               static_cast<unsigned>(record_bytes_),
+                               static_cast<unsigned>(esp_get_free_heap_size()));
+        return ESP_ERR_NO_MEM;
+    }
+    DebugSerial::LogAlways("[AUDIO]",
+                           "record buffer allocated bytes=%u free_heap=%u",
+                           static_cast<unsigned>(record_bytes_),
+                           static_cast<unsigned>(esp_get_free_heap_size()));
+    return ESP_OK;
+}
+
+void AudioService::ReleaseRecordBuffer() {
+    if (record_buffer_ == nullptr) {
+        return;
+    }
+    heap_caps_free(record_buffer_);
+    record_buffer_ = nullptr;
+    DebugSerial::LogAlways("[AUDIO]",
+                           "record buffer released free_heap=%u",
+                           static_cast<unsigned>(esp_get_free_heap_size()));
+}
+
 void AudioService::PlaybackTaskEntry(void *arg) {
     static_cast<AudioService *>(arg)->PlaybackTask();
     vTaskDelete(nullptr);
@@ -245,7 +275,7 @@ void AudioService::PlaybackTask() {
 
 void AudioService::StartVoiceRecording() {
     StopPlayback();
-    if (!available_ || record_buffer_ == nullptr) {
+    if (!available_) {
         voice_err_ = ESP_ERR_INVALID_STATE;
         DebugSerial::LogAlways("[AUDIO]", "voice recording skipped; audio unavailable");
         return;
@@ -255,9 +285,17 @@ void AudioService::StartVoiceRecording() {
         return;
     }
 
-    esp_err_t err = PrepareSpool();
+    esp_err_t err = EnsureRecordBuffer();
     if (err != ESP_OK) {
         voice_err_ = err;
+        DebugSerial::LogAlways("[AUDIO]", "voice recording skipped; record buffer unavailable");
+        return;
+    }
+
+    err = PrepareSpool();
+    if (err != ESP_OK) {
+        voice_err_ = err;
+        ReleaseRecordBuffer();
         DebugSerial::LogAlways("[AUDIO]", "voice spool prepare failed: %s", esp_err_to_name(err));
         return;
     }
@@ -271,6 +309,7 @@ void AudioService::StartVoiceRecording() {
         voice_task_ = nullptr;
         voice_recording_ = false;
         voice_err_ = ESP_ERR_NO_MEM;
+        ReleaseRecordBuffer();
         DebugSerial::LogAlways("[AUDIO]", "voice recording task create failed");
         return;
     }
@@ -307,19 +346,26 @@ const char *AudioService::FinishVoiceRecording() {
 }
 
 void AudioService::RunMicTest(DisplayService &display, Language language) {
-    if (!available_ || record_buffer_ == nullptr) {
+    if (!available_) {
         display.ShowAudioUnavailable(language);
         DebugSerial::LogAlways("[AUDIO]", "mic test skipped; audio unavailable");
+        return;
+    }
+    esp_err_t err = EnsureRecordBuffer();
+    if (err != ESP_OK) {
+        display.ShowAudioUnavailable(language);
+        DebugSerial::LogAlways("[AUDIO]", "mic test skipped; record buffer unavailable");
         return;
     }
 
     memset(record_buffer_, 0, record_bytes_);
     display.ShowMicRecording(language);
     vTaskDelay(pdMS_TO_TICKS(250));
-    esp_err_t err = Codec_RecordData(record_buffer_, record_bytes_);
+    err = Codec_RecordData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "record bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
     if (err != ESP_OK) {
         display.ShowError(StringsFor(language).recording_failed_body, language);
+        ReleaseRecordBuffer();
         return;
     }
 
@@ -327,6 +373,7 @@ void AudioService::RunMicTest(DisplayService &display, Language language) {
     vTaskDelay(pdMS_TO_TICKS(250));
     err = Codec_PlaybackData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "playback bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
+    ReleaseRecordBuffer();
     display.ShowMicDone(language);
 }
 
@@ -401,6 +448,7 @@ void AudioService::VoiceRecordTask() {
         voice_err_ = esp_partition_write(spool_partition_, 0, header, sizeof(header));
         voice_file_ready_ = voice_pcm_bytes_ > 0;
     }
+    ReleaseRecordBuffer();
     voice_recording_ = false;
     voice_task_ = nullptr;
 }

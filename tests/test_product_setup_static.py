@@ -291,6 +291,21 @@ def test_connectivity_service_uses_real_wifi_scan_sta_and_softap_fallback():
     assert "esp_event" in cmake
 
 
+def test_setup_portal_uses_conservative_ap_and_http_resources():
+    connectivity = read(MAIN / "connectivity_service.cpp")
+    web = read(MAIN / "web_portal.cpp")
+
+    assert "WIFI_EVENT_AP_STACONNECTED" in connectivity
+    assert "WIFI_EVENT_AP_STADISCONNECTED" in connectivity
+    assert "setup client leave" in connectivity
+    assert "ap_config.ap.max_connection = 2;" in connectivity
+    assert "config.max_open_sockets = 3;" in web
+    assert "config.backlog_conn = 2;" in web
+    assert "config.recv_wait_timeout = 8;" in web
+    assert "config.send_wait_timeout = 8;" in web
+    assert "GET /api/wifi/scan start" in web
+
+
 def test_voice_oracle_contract_and_audio_limits_are_explicit():
     header = read(MAIN / "voice_oracle_service.h")
     source = read(MAIN / "voice_oracle_service.cpp")
@@ -336,6 +351,25 @@ def test_voice_recording_spools_mono_wav_to_flash():
         assert token in header or token in source
     assert "fatfs" not in cmake
     assert "wear_levelling" not in cmake
+
+
+def test_audio_record_buffer_is_lazy_to_keep_setup_portal_heap_available():
+    header = read(MAIN / "audio_service.h")
+    source = read(MAIN / "audio_service.cpp")
+    init_body = source.split("esp_err_t AudioService::Initialize()", 1)[1].split("void AudioService::PrepareChime()", 1)[0]
+    start_voice_body = source.split("void AudioService::StartVoiceRecording()", 1)[1].split("const char *AudioService::FinishVoiceRecording()", 1)[0]
+    mic_body = source.split("void AudioService::RunMicTest", 1)[1].split("esp_err_t AudioService::PrepareSpool()", 1)[0]
+    voice_task_body = source.split("void AudioService::VoiceRecordTask()", 1)[1]
+
+    assert "esp_err_t EnsureRecordBuffer();" in header
+    assert "void ReleaseRecordBuffer();" in header
+    assert "record_buffer=lazy" in source
+    assert "heap_caps_malloc(record_bytes_" not in init_body
+    assert "EnsureRecordBuffer()" in start_voice_body
+    assert "ReleaseRecordBuffer();" in start_voice_body
+    assert "EnsureRecordBuffer()" in mic_body
+    assert "ReleaseRecordBuffer();" in mic_body
+    assert "ReleaseRecordBuffer();" in voice_task_body
 
 
 def test_audio_initializes_before_wifi_and_setup_portal():

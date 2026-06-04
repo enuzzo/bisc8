@@ -42,6 +42,8 @@ private:
     const QueuedSound *SoundFor(AudioCue cue) const;
     void PlaybackTask();
     void VoiceRecordTask();
+    esp_err_t EnsureRecordBuffer();
+    void ReleaseRecordBuffer();
     esp_err_t PrepareSpool();
     void PrepareChime();
 

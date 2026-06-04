@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include <esp_system.h>
 #include <esp_wifi.h>
 
 #include "app_config.h"
@@ -319,6 +320,7 @@ esp_err_t WebPortal::RegisterRoute(const char *uri, httpd_method_t method, HttpH
 }
 
 esp_err_t WebPortal::HandleIndex(httpd_req_t *req) {
+    DebugSerial::Log("[WEB]", "GET / free_heap=%u", static_cast<unsigned>(esp_get_free_heap_size()));
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     return httpd_resp_send(req, kIndexHtml, HTTPD_RESP_USE_STRLEN);
 }
@@ -500,6 +502,7 @@ esp_err_t WebPortal::HandleCaptiveRedirect(httpd_req_t *req) {
 }
 
 esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
+    DebugSerial::Log("[WEB]", "GET /api/status free_heap=%u", static_cast<unsigned>(esp_get_free_heap_size()));
     std::string setup_ssid;
     std::string setup_url = "http://192.168.4.1";
     std::string connected_ssid;
@@ -550,6 +553,7 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
 }
 
 esp_err_t WebPortal::SendWifiScanJson(httpd_req_t *req) const {
+    DebugSerial::LogAlways("[WEB]", "GET /api/wifi/scan start free_heap=%u", static_cast<unsigned>(esp_get_free_heap_size()));
     wifi_scan_config_t scan_config = {};
     scan_config.show_hidden = false;
     esp_err_t err = esp_wifi_scan_start(&scan_config, true);
@@ -584,6 +588,10 @@ esp_err_t WebPortal::SendWifiScanJson(httpd_req_t *req) const {
         json += "}";
     }
     json += "]}";
+    DebugSerial::LogAlways("[WEB]",
+                           "GET /api/wifi/scan done count=%u free_heap=%u",
+                           static_cast<unsigned>(ap_count),
+                           static_cast<unsigned>(esp_get_free_heap_size()));
     return SendJson(req, json);
 }
 
@@ -602,6 +610,10 @@ esp_err_t WebPortal::Start() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
     config.lru_purge_enable = true;
+    config.max_open_sockets = 3;
+    config.backlog_conn = 2;
+    config.recv_wait_timeout = 8;
+    config.send_wait_timeout = 8;
     config.max_uri_handlers = sizeof(kPortalRoutes) / sizeof(kPortalRoutes[0]) +
                               sizeof(kCaptiveProbePaths) / sizeof(kCaptiveProbePaths[0]);
 
