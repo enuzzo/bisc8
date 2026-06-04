@@ -230,8 +230,7 @@ extern "C" void app_main(void) {
 
             case AppEvent::ForceWifiSetup:
                 g_state = "wifi-setup";
-                display.ShowWifiSetup();
-                portal.Start();
+                connectivity.StartSetupPortal(display, portal);
                 print_status();
                 break;
 
@@ -240,8 +239,7 @@ extern "C" void app_main(void) {
                 err = config_store.Reset();
                 g_config_ready = (err == ESP_OK);
                 DebugSerial::LogAlways("[CONFIG]", "full config reset requested: %s", esp_err_to_name(err));
-                display.ShowWifiSetup();
-                portal.Start();
+                connectivity.StartSetupPortal(display, portal);
                 print_status();
                 break;
 

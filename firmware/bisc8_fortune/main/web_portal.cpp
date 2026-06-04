@@ -586,6 +586,8 @@ esp_err_t WebPortal::Start() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
     config.lru_purge_enable = true;
+    config.max_uri_handlers = sizeof(kPortalRoutes) / sizeof(kPortalRoutes[0]) +
+                              sizeof(kCaptiveProbePaths) / sizeof(kCaptiveProbePaths[0]);
 
     esp_err_t err = httpd_start(&server_, &config);
     if (err != ESP_OK) {

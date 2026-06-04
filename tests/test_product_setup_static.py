@@ -111,6 +111,7 @@ def test_portal_runs_http_server_and_redirects_captive_probes():
     for token in (
         "httpd_start",
         "httpd_register_uri_handler",
+        "max_uri_handlers",
         "httpd_resp_send",
         "httpd_resp_set_status(req, \"302 Found\")",
         "httpd_resp_set_hdr(req, \"Location\", \"/\")",
@@ -251,6 +252,7 @@ def test_button_events_cover_voice_and_setup_recovery():
     assert "BOOT+PWR" in buttons
     assert "gpio_get_level(BOOT_BUTTON_PIN) == 0" in app_main
     assert "ForceWifiSetup" in app_main
+    assert app_main.count("connectivity.StartSetupPortal(display, portal)") >= 4
 
 
 def test_readme_documents_product_setup_and_logo_requirements():
