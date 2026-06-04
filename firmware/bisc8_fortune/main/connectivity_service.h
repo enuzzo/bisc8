@@ -21,6 +21,7 @@ struct WifiStatus {
     std::string connected_ip;
     std::string setup_ssid;
     std::string setup_url;
+    std::string setup_pin;
 };
 
 class ConnectivityService {

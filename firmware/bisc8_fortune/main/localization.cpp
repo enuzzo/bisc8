@@ -15,6 +15,7 @@ constexpr LocalizedStrings kEnglish = {
     "Setup Wi-Fi",
     "Bisc8-XXXX | 192.168.4.1",
     "Captive portal ready",
+    "PIN %s",
     "Listening",
     "Speak now.\nRelease BOOT to send.",
     "Thinking",
@@ -54,6 +55,7 @@ constexpr LocalizedStrings kSpanish = {
     "Configura Wi-Fi",
     "Bisc8-XXXX | 192.168.4.1",
     "Portal cautivo listo",
+    "PIN %s",
     "Escuchando",
     "Habla ahora.\nSuelta BOOT para enviar.",
     "Pensando",
@@ -93,6 +95,7 @@ constexpr LocalizedStrings kItalian = {
     "Configura Wi-Fi",
     "Bisc8-XXXX | 192.168.4.1",
     "Portale captive pronto",
+    "PIN %s",
     "Ascolto",
     "Parla ora.\nRilascia BOOT per inviare.",
     "Penso",
@@ -164,6 +167,9 @@ const char *LocalizedValue(Language language, const char *key) {
     }
     if (strcmp(key, "wifi_setup_body") == 0) {
         return strings.wifi_setup_body;
+    }
+    if (strcmp(key, "wifi_setup_pin_footer") == 0) {
+        return strings.wifi_setup_pin_footer;
     }
     if (strcmp(key, "listening_title") == 0) {
         return strings.listening_title;

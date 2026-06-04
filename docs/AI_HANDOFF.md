@@ -131,9 +131,12 @@ If no known network connects:
 
 - SoftAP starts as `Bisc8-XXXX`.
 - Portal URL is `http://192.168.4.1`.
+- A short Setup PIN is generated for that setup session and shown on the e-paper.
 - DNS captive redirect listens on UDP 53.
 - Common captive probe paths redirect to `/`.
 - PWR status gives manual fallback instructions because phone captive detection can be unreliable.
+- The sensitive POST routes require the Setup PIN: `/api/wifi/credentials`, `/api/openai`, `/api/email`, `/api/smtp`, and `/api/reset`.
+- GET status and Wi-Fi scan do not expose secrets or the PIN, so phones and laptops can still load status/scan without copying sensitive values.
 
 Web routes:
 
@@ -143,6 +146,7 @@ Web routes:
 - `/api/wifi/credentials`
 - `/api/settings`
 - `/api/openai`
+- `/api/email`
 - `/api/smtp`
 - `/api/reset`
 

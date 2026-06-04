@@ -336,6 +336,8 @@ void DisplayService::ShowIntro(Language language) {
 void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     char body[96];
+    char footer[48];
+    snprintf(footer, sizeof(footer), "%s", strings.status_footer);
     if (status.online) {
         snprintf(body,
                  sizeof(body),
@@ -349,6 +351,9 @@ void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
                  strings.status_setup_body,
                  status.setup_ssid.empty() ? "Bisc8-XXXX" : status.setup_ssid.c_str(),
                  SetupDisplayAddress(status.setup_url.c_str(), address, sizeof(address)));
+        if (!status.setup_pin.empty()) {
+            snprintf(footer, sizeof(footer), strings.wifi_setup_pin_footer, status.setup_pin.c_str());
+        }
     } else {
         snprintf(body, sizeof(body), "%s", strings.status_offline_body);
     }
@@ -357,7 +362,7 @@ void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
         if (status.setup_active) {
             SetupConnectionInfoLineLayout(body_label_);
         }
-        SetScreenTextLocked(strings.status_title, body, strings.status_footer);
+        SetScreenTextLocked(strings.status_title, body, footer);
         Lvgl_unlock();
     }
 }
@@ -399,12 +404,18 @@ void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left, Lang
     }
 }
 
-void DisplayService::ShowWifiSetup(Language language) {
+void DisplayService::ShowWifiSetup(Language language, const char *setup_pin) {
     const LocalizedStrings &strings = StringsFor(language);
+    char footer[48];
+    if (setup_pin != nullptr && setup_pin[0] != '\0') {
+        snprintf(footer, sizeof(footer), strings.wifi_setup_pin_footer, setup_pin);
+    } else {
+        snprintf(footer, sizeof(footer), "%s", strings.wifi_setup_footer);
+    }
     if (Lvgl_lock(-1)) {
         ApplyOracleLayout();
         SetupConnectionInfoLineLayout(body_label_);
-        SetScreenTextLocked(strings.wifi_setup_title, strings.wifi_setup_body, strings.wifi_setup_footer);
+        SetScreenTextLocked(strings.wifi_setup_title, strings.wifi_setup_body, footer);
         Lvgl_unlock();
     }
 }

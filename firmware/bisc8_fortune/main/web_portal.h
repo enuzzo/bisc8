@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 
+#include <string>
+
 #include <esp_err.h>
 #include <esp_http_server.h>
 
@@ -21,6 +23,8 @@ class WebPortal {
 public:
     void BindStatus(const WifiStatus *wifi);
     void BindConfig(ConfigStore *config_store, DeviceSettings *settings);
+    void GeneratePairingPin();
+    const std::string &PairingPin() const;
     esp_err_t Start();
     void Stop();
     bool Running() const;
@@ -44,6 +48,7 @@ private:
     const WifiStatus *wifi_ = nullptr;
     DeviceSettings *settings_ = nullptr;
     ConfigStore *config_store_ = nullptr;
+    std::string setup_pin_;
     bool running_ = false;
 };
 
