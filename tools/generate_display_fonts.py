@@ -28,7 +28,7 @@ class FontSpec:
 
 FONTS = (
     FontSpec("bisc8_font_small", 16, "bisc8_font_small.c"),
-    FontSpec("bisc8_font_body", 20, "bisc8_font_body.c"),
+    FontSpec("bisc8_font_body", 22, "bisc8_font_body.c"),
     FontSpec("bisc8_font_title", 30, "bisc8_font_title.c"),
 )
 

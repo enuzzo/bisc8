@@ -251,6 +251,7 @@ void DisplayService::LayoutBoot() {
     lv_obj_set_size(title_label_, 200, 34);
 
     style_label(body_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(body_label_, 0, 142);
     lv_obj_set_size(body_label_, 200, 18);
 
@@ -270,10 +271,11 @@ void DisplayService::LayoutIntro() {
     set_hidden(footer_right_, true);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(body_label_, 6, 70);
     lv_obj_set_size(body_label_, 150, 70);
 
-    lv_obj_set_pos(arrow_group_, 162, 92);
+    lv_obj_set_pos(arrow_group_, 162, 122);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_left_, 0, 182);
@@ -295,8 +297,9 @@ void DisplayService::LayoutMessage() {
     lv_obj_set_size(title_label_, 200, 18);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(body_label_, 12, 60);
-    lv_obj_set_size(body_label_, 176, 110);
+    lv_obj_set_width(body_label_, 176);
+    lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
+    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
@@ -314,8 +317,9 @@ void DisplayService::LayoutResponso(const char *count) {
     set_hidden(footer_right_, false);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(body_label_, 10, 40);
-    lv_obj_set_size(body_label_, 180, 134);
+    lv_obj_set_width(body_label_, 184);
+    lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
+    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
@@ -343,6 +347,7 @@ void DisplayService::LayoutWifiSetup() {
 
     style_label(body_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(body_label_, LV_LABEL_LONG_CLIP);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(body_label_, 0, 78);
     lv_obj_set_size(body_label_, 200, 40);
 
