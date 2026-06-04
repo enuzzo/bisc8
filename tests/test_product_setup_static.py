@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -338,6 +339,31 @@ def test_audio_feedback_uses_short_generated_chime():
     ):
         assert token in header or token in source or token in sound_header or token in sound_source
     assert "generated/sound_assets.cpp" in cmake
+
+
+def test_long_audio_cues_survive_epaper_screen_refreshes():
+    audio_source = read(MAIN / "audio_service.cpp")
+    audio_header = read(MAIN / "audio_service.h")
+    app_main = read(MAIN / "app_main.cpp")
+    lvgl_source = read(ROOT / "firmware/bisc8_fortune/components/port_bsp/port_lvgl.cpp")
+
+    playback_priority = re.search(r"kPlaybackTaskPriority\s*=\s*(\d+)", audio_source)
+    lvgl_priority = re.search(r'xTaskCreatePinnedToCore\(Lvgl_port_task,\s*"LVGL",\s*8 \* 1024,\s*NULL,\s*(\d+)', lvgl_source)
+    assert playback_priority is not None
+    assert lvgl_priority is not None
+    assert int(playback_priority.group(1)) > int(lvgl_priority.group(1))
+    assert "WaitForPlayback" in audio_header
+    assert "WaitForPlayback" in audio_source
+    play_cue = audio_source[audio_source.index("void AudioService::PlayCue(AudioCue cue)"):audio_source.index("void AudioService::PlayCueAsync(AudioCue cue)")]
+    assert "PlayCueAsync(cue);" in play_cue
+    assert "WaitForPlayback(" in play_cue
+    assert "Codec_PlaybackData" not in play_cue
+
+    sleep_case = app_main[app_main.index("case AppEvent::Sleep:"):app_main.index("#if CONFIG_BISC8_MANUAL_DEEP_SLEEP_ENABLED")]
+    assert "display.ShowPowerOff(ParseLanguage(settings.language.c_str()))" in sleep_case
+    assert "audio.PlayCueAsync(AudioCue::Shutdown);" in sleep_case
+    assert "audio.WaitForPlayback(" in sleep_case
+    assert sleep_case.index("audio.PlayCueAsync(AudioCue::Shutdown);") < sleep_case.index("audio.WaitForPlayback(")
 
 
 def test_sound_asset_pipeline_uses_candidate_sources_and_firmware_previews():

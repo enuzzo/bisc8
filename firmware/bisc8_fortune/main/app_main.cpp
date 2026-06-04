@@ -260,7 +260,8 @@ extern "C" void app_main(void) {
             case AppEvent::Sleep:
                 g_state = "power-off";
                 display.ShowPowerOff(ParseLanguage(settings.language.c_str()));
-                audio.PlayCue(AudioCue::Shutdown);
+                audio.PlayCueAsync(AudioCue::Shutdown);
+                audio.WaitForPlayback(20000);
                 vTaskDelay(pdMS_TO_TICKS(300));
 #if CONFIG_BISC8_MANUAL_DEEP_SLEEP_ENABLED
                 board.EnterDeepSleep("power-off", BIT64(PWR_BUTTON_PIN));

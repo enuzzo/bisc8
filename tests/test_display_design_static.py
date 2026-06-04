@@ -154,7 +154,9 @@ def test_pwr_long_press_shows_power_off_prompt_and_wakes_only_from_pwr():
     sleep_case = source.split("case AppEvent::Sleep:", 1)[1]
     assert "CONFIG_BISC8_MANUAL_DEEP_SLEEP_ENABLED" in sleep_case
     assert "display.ShowPowerOff(ParseLanguage(settings.language.c_str()))" in sleep_case
-    assert "audio.PlayCue(AudioCue::Shutdown)" in sleep_case
+    assert "audio.PlayCueAsync(AudioCue::Shutdown)" in sleep_case
+    assert "audio.WaitForPlayback(" in sleep_case
+    assert sleep_case.index("audio.PlayCueAsync(AudioCue::Shutdown)") < sleep_case.index("audio.WaitForPlayback(")
     assert "board.EnterDeepSleep(\"power-off\", BIT64(PWR_BUTTON_PIN))" in sleep_case
     assert "void ShowPowerOff(Language language);" in display_header
     assert "strings.sleep_footer" in display_source

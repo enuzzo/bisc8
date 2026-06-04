@@ -31,8 +31,9 @@ constexpr size_t kVoiceSpoolEraseBytes = 512 * 1024;
 constexpr size_t kPlaybackChunkBytes = 4096;
 constexpr uint32_t kVoiceTaskStackBytes = 4096;
 constexpr uint32_t kPlaybackTaskStackBytes = 3072;
+constexpr uint32_t kCuePlaybackWaitMs = 20000;
 constexpr UBaseType_t kVoiceTaskPriority = 4;
-constexpr UBaseType_t kPlaybackTaskPriority = 3;
+constexpr UBaseType_t kPlaybackTaskPriority = 6;
 constexpr float kChimeAttackRatio = 0.16f;
 constexpr float kChimeAmplitude = 7800.0f;
 constexpr float kPi = 3.14159265f;
@@ -153,18 +154,8 @@ const AudioService::QueuedSound *AudioService::SoundFor(AudioCue cue) const {
 }
 
 void AudioService::PlayCue(AudioCue cue) {
-    StopPlayback();
-    const QueuedSound *sound = SoundFor(cue);
-    if (!available_ || sound == nullptr || sound->asset == nullptr || sound->asset->data == nullptr || sound->asset->bytes == 0) {
-        DebugSerial::Log("[AUDIO]", "cue skipped; audio unavailable");
-        return;
-    }
-
-    esp_err_t err = Codec_PlaybackData(const_cast<uint8_t *>(sound->asset->data), sound->asset->bytes);
-    DebugSerial::Log("[AUDIO]", "cue=%s bytes=%u result=%s",
-                     sound->asset->name,
-                     static_cast<unsigned>(sound->asset->bytes),
-                     esp_err_to_name(err));
+    PlayCueAsync(cue);
+    WaitForPlayback(kCuePlaybackWaitMs);
 }
 
 void AudioService::PlayCueAsync(AudioCue cue) {
@@ -186,6 +177,22 @@ void AudioService::PlayCueAsync(AudioCue cue) {
     DebugSerial::Log("[AUDIO]", "async cue=%s bytes=%u",
                      sound->asset->name,
                      static_cast<unsigned>(sound->asset->bytes));
+}
+
+bool AudioService::WaitForPlayback(uint32_t timeout_ms) {
+    if (playback_task_ == nullptr) {
+        return true;
+    }
+    const TickType_t start = xTaskGetTickCount();
+    const TickType_t timeout = pdMS_TO_TICKS(timeout_ms);
+    while (playback_task_ != nullptr && xTaskGetTickCount() - start < timeout) {
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    if (playback_task_ != nullptr) {
+        DebugSerial::LogAlways("[AUDIO]", "playback wait timed out");
+        return false;
+    }
+    return true;
 }
 
 void AudioService::StopPlayback() {

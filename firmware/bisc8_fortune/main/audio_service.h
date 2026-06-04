@@ -26,6 +26,7 @@ public:
     void PlayChime();
     void PlayCue(AudioCue cue);
     void PlayCueAsync(AudioCue cue);
+    bool WaitForPlayback(uint32_t timeout_ms);
     void StopPlayback();
     void StartVoiceRecording();
     const char *FinishVoiceRecording();
