@@ -50,8 +50,7 @@ Product/voice tuning (all shipped):
   "Sbriciolato per te da Bisc8".
 - **Full localized date/time** ("Giovedì 5 giugno 2026, 18:42", tz default
   `Europe/Rome`, override via config `timezone`), 🍪 in the subject, and a hidden
-  **preheader** for the inbox snippet. Browser preview:
-  `docs/redesign/bisc8-email-preview.html`.
+  **preheader** for the inbox snippet.
 
 Build note (IMPORTANT): **this flash Mac is Intel x86_64**, not Apple Silicon.
 `arch -arm64` fails here. Let `tools/idf_env.sh` auto-pick the **x86_64 / py3.9**
