@@ -36,6 +36,7 @@ public:
     void ShowNoWifi(Language language);
     void ShowLowBattery(Language language);
     void ShowFirstRun(Language language);
+    void ShowLowPower(Language language);
 
     // Latest battery charge (0-100, or 255 = unknown -> indicator hidden).
     void SetBattery(uint8_t pct);
@@ -63,6 +64,7 @@ private:
     void LayoutWifiSetup();            // chrome + network line + big IP + hint
     void LayoutSpeaking();             // chrome + animated speaker glyph + answer
     void LayoutGlyphMessage();         // chrome + centered glyph + message body
+    void LayoutLowPower();             // big logo + "Zzz..." + tap-to-wake line
 
     void SetText(const char *title, const char *body, const char *footer);
     void RenderBattery();              // footer-right battery % + icon (or blank)
@@ -75,6 +77,13 @@ private:
     void TickSpeaking();
     static void SpeakTimerThunk(lv_timer_t *timer);
 
+    // Low-battery "flash" animation: a small bar after the battery glyph that
+    // blinks a bounded number of times then settles, echoing the speaker pulse.
+    void StartBatteryFlash();
+    void StopBatteryFlash();
+    void TickBatteryFlash();
+    static void BatteryFlashThunk(lv_timer_t *timer);
+
     lv_obj_t *screen_ = nullptr;
     lv_obj_t *chrome_group_ = nullptr;
     lv_obj_t *splash_group_ = nullptr;
@@ -85,6 +94,7 @@ private:
     lv_obj_t *speaker_wave3_ = nullptr;
     lv_obj_t *wifi_group_ = nullptr;     // crossed-out Wi-Fi glyph (no-wifi screen)
     lv_obj_t *batt_big_group_ = nullptr; // large battery glyph (low-battery screen)
+    lv_obj_t *batt_big_flash_ = nullptr; // blinking bar after the big battery glyph
     lv_obj_t *batt_icon_group_ = nullptr;// footer battery icon
     lv_obj_t *batt_icon_fill_ = nullptr; // footer battery fill bar (width = charge)
     lv_obj_t *mascot_big_ = nullptr;
@@ -97,6 +107,9 @@ private:
     int speak_phase_ = 0;
     int speak_ticks_left_ = 0;
     bool speaking_active_ = false;
+    lv_timer_t *batt_flash_timer_ = nullptr;
+    int batt_flash_ticks_left_ = 0;
+    bool batt_flash_on_ = false;
     uint8_t battery_pct_ = 255;          // 255 = unknown
 };
 

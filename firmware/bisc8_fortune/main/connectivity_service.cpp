@@ -287,21 +287,29 @@ esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, 
     bool found = false;
     err = ScanKnownNetworks(settings, visible, &found);
     if (err != ESP_OK) {
-        DebugSerial::LogAlways("[WIFI]", "scan failed: %s", esp_err_to_name(err));
-        return err;
-    }
-    if (!found) {
-        DebugSerial::LogAlways("[WIFI]", "no saved SSID found in scan results");
-        return ESP_ERR_NOT_FOUND;
+        // A scan failure must not block a direct connect: the radio can still
+        // associate even when the scan errored or came back empty.
+        DebugSerial::LogAlways("[WIFI]", "scan failed: %s (trying saved networks anyway)", esp_err_to_name(err));
+        for (size_t i = 0; i < kMaxWifiCredentials; ++i) {
+            visible[i] = false;
+        }
+    } else if (!found) {
+        DebugSerial::LogAlways("[WIFI]", "no saved SSID in scan results; trying saved networks anyway");
     }
 
-    for (size_t i = 0; i < settings.wifi_count && i < kMaxWifiCredentials; ++i) {
-        if (!visible[i]) {
-            continue;
-        }
-        err = ConnectToNetwork(settings.wifi[i].ssid.c_str(), settings.wifi[i].password.c_str(), display, language, show_progress);
-        if (err == ESP_OK) {
-            return ESP_OK;
+    // Two passes: prefer SSIDs the scan actually saw, but never let a scan miss
+    // alone drop us to the setup portal. A present AP can be absent from a single
+    // scan (congested 2.4GHz, hidden, momentary), so still try the rest after.
+    for (int pass = 0; pass < 2; ++pass) {
+        const bool want_visible = (pass == 0);
+        for (size_t i = 0; i < settings.wifi_count && i < kMaxWifiCredentials; ++i) {
+            if (visible[i] != want_visible) {
+                continue;
+            }
+            err = ConnectToNetwork(settings.wifi[i].ssid.c_str(), settings.wifi[i].password.c_str(), display, language, show_progress);
+            if (err == ESP_OK) {
+                return ESP_OK;
+            }
         }
     }
 

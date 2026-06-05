@@ -24,6 +24,15 @@ namespace {
 
 constexpr uint16_t kEpaperBlackThresholdRgb565 = 0xc618;
 
+// Uniform typographic rhythm across every device screen. kBodyLineSpace is THE
+// single knob for body interlinea everywhere (oracle messages, accessory
+// bodies): keep it low/tight per the house style, tune it here once. Accessory
+// titles read as spaced "eyebrow" labels, secondary to the big title font.
+constexpr int kBodyLineSpace = 2;
+constexpr int kSmallLineSpace = 2;
+constexpr int kTitleLineSpace = 2;
+constexpr int kEyebrowLetterSpace = 2;
+
 // E-ink refresh policy, applied at the display_service / port_display boundary.
 // Partial refresh is the default (fast, low flicker) but it ghosts, so we force
 // a full refresh on dramatic reveals and after a small run of partials.
@@ -71,7 +80,13 @@ void style_label(lv_obj_t *label, const lv_font_t *font, lv_text_align_t align) 
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
     lv_obj_set_style_text_align(label, align, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(label, 0, LV_PART_MAIN);
-    lv_obj_set_style_text_line_space(label, 2, LV_PART_MAIN);
+    int line_space = kSmallLineSpace;
+    if (font == &bisc8_font_body) {
+        line_space = kBodyLineSpace;
+    } else if (font == &bisc8_font_title) {
+        line_space = kTitleLineSpace;
+    }
+    lv_obj_set_style_text_line_space(label, line_space, LV_PART_MAIN);
     lv_obj_set_style_pad_all(label, 0, LV_PART_MAIN);
     lv_obj_remove_flag(label, LV_OBJ_FLAG_SCROLLABLE);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
@@ -268,16 +283,16 @@ void DisplayService::BuildSpeaker() {
     // toggles on and off. Pixel-art from solid blocks, matching the chrome.
     speaker_group_ = lv_obj_create(screen_);
     style_plain_obj(speaker_group_);
-    lv_obj_set_size(speaker_group_, 24, 22);
+    lv_obj_set_size(speaker_group_, 31, 29);
 
-    create_block(speaker_group_, 1, 8, 5, 7);    // back box
-    create_block(speaker_group_, 6, 7, 2, 9);    // cone, stacked + flaring right
-    create_block(speaker_group_, 8, 5, 2, 13);
-    create_block(speaker_group_, 10, 3, 2, 17);  // cone face
+    create_block(speaker_group_, 1, 10, 7, 9);    // back box
+    create_block(speaker_group_, 8, 9, 3, 11);    // cone, stacked + flaring right
+    create_block(speaker_group_, 11, 6, 3, 17);
+    create_block(speaker_group_, 14, 3, 3, 23);   // cone face
 
-    speaker_wave1_ = create_block(speaker_group_, 14, 8, 2, 7);
-    speaker_wave2_ = create_block(speaker_group_, 17, 5, 2, 13);
-    speaker_wave3_ = create_block(speaker_group_, 20, 3, 2, 17);
+    speaker_wave1_ = create_block(speaker_group_, 19, 10, 3, 9);
+    speaker_wave2_ = create_block(speaker_group_, 23, 6, 3, 17);
+    speaker_wave3_ = create_block(speaker_group_, 27, 3, 3, 23);
     set_hidden(speaker_group_, true);
 }
 
@@ -286,22 +301,22 @@ void DisplayService::BuildWifiGlyph() {
     // "no Wi-Fi". Arcs are drawn as downward-opening brackets.
     wifi_group_ = lv_obj_create(screen_);
     style_plain_obj(wifi_group_);
-    lv_obj_set_size(wifi_group_, 40, 28);
+    lv_obj_set_size(wifi_group_, 50, 35);
 
-    create_block(wifi_group_, 4, 2, 32, 3);      // outer arc top
-    create_block(wifi_group_, 4, 5, 3, 6);       // outer arc leg L
-    create_block(wifi_group_, 33, 5, 3, 6);      // outer arc leg R
-    create_block(wifi_group_, 10, 9, 20, 3);     // mid arc top
-    create_block(wifi_group_, 10, 12, 3, 5);     // mid arc leg L
-    create_block(wifi_group_, 27, 12, 3, 5);     // mid arc leg R
-    create_block(wifi_group_, 15, 16, 10, 3);    // inner arc top
-    create_block(wifi_group_, 15, 19, 3, 4);     // inner arc leg L
-    create_block(wifi_group_, 22, 19, 3, 4);     // inner arc leg R
-    create_block(wifi_group_, 18, 23, 4, 4);     // base dot
+    create_block(wifi_group_, 5, 2, 40, 3);      // outer arc top
+    create_block(wifi_group_, 5, 5, 4, 8);       // outer arc leg L
+    create_block(wifi_group_, 41, 5, 4, 8);      // outer arc leg R
+    create_block(wifi_group_, 13, 11, 24, 4);    // mid arc top
+    create_block(wifi_group_, 13, 15, 4, 6);     // mid arc leg L
+    create_block(wifi_group_, 33, 15, 4, 6);     // mid arc leg R
+    create_block(wifi_group_, 19, 20, 12, 3);    // inner arc top
+    create_block(wifi_group_, 19, 23, 4, 5);     // inner arc leg L
+    create_block(wifi_group_, 27, 23, 4, 5);     // inner arc leg R
+    create_block(wifi_group_, 22, 29, 5, 5);     // base dot
 
     // diagonal slash, stair-stepped from top-left to bottom-right
-    for (int i = 0; i < 12; ++i) {
-        create_block(wifi_group_, 2 + i * 3, 1 + i * 2, 3, 3);
+    for (int i = 0; i < 16; ++i) {
+        create_block(wifi_group_, 2 + i * 3, 1 + i * 2, 4, 4);
     }
     set_hidden(wifi_group_, true);
 }
@@ -310,11 +325,15 @@ void DisplayService::BuildLowBatteryGlyph() {
     // Large battery outline with a thin, nearly empty fill: "battery to the bone".
     batt_big_group_ = lv_obj_create(screen_);
     style_plain_obj(batt_big_group_);
-    lv_obj_set_size(batt_big_group_, 56, 28);
+    lv_obj_set_size(batt_big_group_, 78, 34);
 
-    create_frame(batt_big_group_, 0, 1, 50, 26, 3);  // shell
-    create_block(batt_big_group_, 50, 9, 4, 10);     // terminal nub
-    create_block(batt_big_group_, 5, 6, 7, 16);      // low charge sliver
+    create_frame(batt_big_group_, 0, 1, 62, 32, 3);  // shell
+    create_block(batt_big_group_, 62, 11, 5, 12);    // terminal nub
+    create_block(batt_big_group_, 7, 8, 10, 18);     // low charge sliver
+    // Blinking "flash" bar after the battery, toggled by the low-battery
+    // animation; same bounded pulse feel as the speaker waves.
+    batt_big_flash_ = create_block(batt_big_group_, 71, 8, 7, 18);
+    set_hidden(batt_big_flash_, true);
     set_hidden(batt_big_group_, true);
 }
 
@@ -377,12 +396,54 @@ void DisplayService::StopSpeakingAnimation() {
     speak_phase_ = 0;
 }
 
+void DisplayService::BatteryFlashThunk(lv_timer_t *timer) {
+    auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
+    if (self != nullptr) {
+        self->TickBatteryFlash();
+    }
+}
+
+void DisplayService::TickBatteryFlash() {
+    // Runs inside lv_timer_handler (LVGL thread, lock already held).
+    if (batt_flash_ticks_left_ <= 0) {
+        set_hidden(batt_big_flash_, false);  // settle visible, the extra bar persists
+        if (batt_flash_timer_ != nullptr) {
+            lv_timer_delete(batt_flash_timer_);
+            batt_flash_timer_ = nullptr;
+        }
+        return;
+    }
+    --batt_flash_ticks_left_;
+    batt_flash_on_ = !batt_flash_on_;
+    set_hidden(batt_big_flash_, !batt_flash_on_);
+}
+
+void DisplayService::StartBatteryFlash() {
+    batt_flash_ticks_left_ = 8;  // ~5s of blinking, then settle (bounded for e-ink)
+    batt_flash_on_ = false;
+    set_hidden(batt_big_flash_, true);
+    if (batt_flash_timer_ == nullptr) {
+        batt_flash_timer_ = lv_timer_create(&DisplayService::BatteryFlashThunk, 600, this);
+    }
+}
+
+void DisplayService::StopBatteryFlash() {
+    if (batt_flash_timer_ != nullptr) {
+        lv_timer_delete(batt_flash_timer_);
+        batt_flash_timer_ = nullptr;
+    }
+    batt_flash_ticks_left_ = 0;
+    batt_flash_on_ = false;
+    set_hidden(batt_big_flash_, true);
+}
+
 void DisplayService::ResetAuxLayers(bool speaking) {
     // Shared layer reset for every layout: park the auxiliary glyphs and stop the
     // speaker animation unless we are entering the speaking screen.
     if (!speaking) {
         StopSpeakingAnimation();
     }
+    StopBatteryFlash();
     speaking_active_ = speaking;
     set_hidden(speaker_group_, !speaking);
     set_hidden(wifi_group_, true);
@@ -464,22 +525,27 @@ void DisplayService::LayoutIntro() {
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, false);
     set_hidden(mascot_big_, true);
-    set_hidden(title_label_, true);
+    set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
 
+    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
+    lv_obj_set_pos(title_label_, 0, 30);
+    lv_obj_set_size(title_label_, 200, 22);
+
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 6, 70);
-    lv_obj_set_size(body_label_, 150, 70);
+    lv_obj_set_pos(body_label_, 4, 58);
+    lv_obj_set_size(body_label_, 150, 104);
 
-    lv_obj_set_pos(arrow_group_, 162, 122);
+    lv_obj_set_pos(arrow_group_, 166, 134);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 182);
-    lv_obj_set_size(footer_left_, 200, 16);
+    lv_obj_set_pos(footer_left_, 0, 178);
+    lv_obj_set_size(footer_left_, 200, 20);
 }
 
 void DisplayService::LayoutMessage() {
@@ -494,8 +560,9 @@ void DisplayService::LayoutMessage() {
     set_hidden(footer_right_, false);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(title_label_, 0, 32);
-    lv_obj_set_size(title_label_, 200, 18);
+    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
+    lv_obj_set_pos(title_label_, 0, 30);
+    lv_obj_set_size(title_label_, 200, 22);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(body_label_, 176);
@@ -553,18 +620,18 @@ void DisplayService::LayoutWifiSetup() {
     set_hidden(batt_icon_group_, true);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(title_label_, 4, 40);
-    lv_obj_set_size(title_label_, 192, 20);
+    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
+    lv_obj_set_pos(title_label_, 0, 30);
+    lv_obj_set_size(title_label_, 200, 22);
 
-    style_label(body_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
-    lv_label_set_long_mode(body_label_, LV_LABEL_LONG_CLIP);
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 78);
-    lv_obj_set_size(body_label_, 200, 40);
+    lv_obj_set_pos(body_label_, 4, 60);
+    lv_obj_set_size(body_label_, 192, 90);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 182);
-    lv_obj_set_size(footer_left_, 200, 16);
+    lv_obj_set_pos(footer_left_, 0, 176);
+    lv_obj_set_size(footer_left_, 200, 22);
 }
 
 void DisplayService::LayoutSpeaking() {
@@ -578,7 +645,7 @@ void DisplayService::LayoutSpeaking() {
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, false);
 
-    lv_obj_set_pos(speaker_group_, 88, 30);
+    lv_obj_set_pos(speaker_group_, 84, 28);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
@@ -623,6 +690,32 @@ void DisplayService::LayoutGlyphMessage() {
     RenderBattery();
 }
 
+void DisplayService::LayoutLowPower() {
+    // Sleep card: a big mascot, a drowsy "Zzz" line, and a tap-to-wake hint.
+    ResetAuxLayers(false);
+    set_hidden(splash_group_, true);
+    set_hidden(chrome_group_, true);
+    set_hidden(arrow_group_, true);
+    set_hidden(mascot_big_, false);
+    set_hidden(title_label_, true);
+    set_hidden(body_label_, false);
+    set_hidden(footer_left_, false);
+    set_hidden(footer_right_, true);
+    set_hidden(batt_icon_group_, true);
+
+    lv_image_set_scale(mascot_big_, 384);  // ~96px, the logo "in grande"
+    lv_obj_set_pos(mascot_big_, 52, 24);
+
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(body_label_, 0, 128);
+    lv_obj_set_size(body_label_, 200, 30);
+
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(footer_left_, 0, 166);
+    lv_obj_set_size(footer_left_, 200, 22);
+}
+
 void DisplayService::ShowBoot() {
     if (Lvgl_lock(-1)) {
         RequestFullRefresh();
@@ -639,6 +732,7 @@ void DisplayService::ShowIntro(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
+        lv_label_set_text(title_label_, strings.intro_title);
         lv_label_set_text(body_label_, strings.intro_body);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
@@ -713,11 +807,13 @@ void DisplayService::ShowWifiSetup(const char *ssid, const char *url, Language l
     snprintf(net, sizeof(net), strings.wifi_setup_body, (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid);
     char address[32];
     SetupDisplayAddress(url, address, sizeof(address));
+    char hint[48];
+    snprintf(hint, sizeof(hint), strings.wifi_setup_footer, address);
     if (Lvgl_lock(-1)) {
         LayoutWifiSetup();
-        lv_label_set_text(title_label_, net);
-        lv_label_set_text(body_label_, address);
-        lv_label_set_text(footer_left_, strings.wifi_setup_footer);
+        lv_label_set_text(title_label_, strings.wifi_setup_title);
+        lv_label_set_text(body_label_, net);
+        lv_label_set_text(footer_left_, hint);
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
@@ -800,6 +896,7 @@ void DisplayService::ShowMicDone(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
+        lv_label_set_text(title_label_, strings.intro_title);
         lv_label_set_text(body_label_, strings.intro_body);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
@@ -842,7 +939,7 @@ void DisplayService::ShowNoWifi(Language language) {
         RequestFullRefresh();
         LayoutGlyphMessage();
         set_hidden(wifi_group_, false);
-        lv_obj_set_pos(wifi_group_, 80, 34);
+        lv_obj_set_pos(wifi_group_, 75, 30);
         lv_label_set_text(body_label_, strings.no_wifi_body);
         lv_label_set_text(footer_left_, code);
         lv_obj_update_layout(screen_);
@@ -858,7 +955,8 @@ void DisplayService::ShowLowBattery(Language language) {
         RequestFullRefresh();
         LayoutGlyphMessage();
         set_hidden(batt_big_group_, false);
-        lv_obj_set_pos(batt_big_group_, 72, 34);
+        lv_obj_set_pos(batt_big_group_, 61, 32);
+        StartBatteryFlash();
         lv_label_set_text(body_label_, strings.low_battery_body);
         lv_label_set_text(footer_left_, code);
         lv_obj_update_layout(screen_);
@@ -874,6 +972,18 @@ void DisplayService::ShowFirstRun(Language language) {
         RequestFullRefresh();
         LayoutMessage();
         SetText(strings.first_run_title, strings.first_run_body, code);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowLowPower(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutLowPower();
+        lv_label_set_text(body_label_, "Zzz ...zzzz....");
+        lv_label_set_text(footer_left_, strings.low_power_body);
+        lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
 }

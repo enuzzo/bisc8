@@ -26,7 +26,7 @@ def test_config_schema_declares_product_limits_and_secret_masking():
 
     assert "constexpr size_t kMaxWifiCredentials = 8" in header
     assert "constexpr size_t kMaxScreenAnswerChars = 100" in header
-    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 5000" in header
+    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 8000" in header
     assert "constexpr uint32_t kVoiceRecordLimitMs = 15000" in header
     assert "MaskSecret" in header
     assert 'return "***";' in source

@@ -11,7 +11,7 @@ namespace bisc8 {
 
 constexpr size_t kMaxWifiCredentials = 8;
 constexpr size_t kMaxScreenAnswerChars = 100;
-constexpr uint32_t kWifiAttemptTimeoutMs = 5000;
+constexpr uint32_t kWifiAttemptTimeoutMs = 8000;
 constexpr uint32_t kVoiceRecordLimitMs = 15000;
 constexpr uint32_t kConfigSchemaVersion = 2;
 

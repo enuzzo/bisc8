@@ -14,7 +14,7 @@ constexpr LocalizedStrings kEnglish = {
     "Wi-Fi",
     "Setup Wi-Fi",
     "connect to %s",
-    "open in browser",
+    "then open %s",
     "Listening",
     "Speak now.\nRelease BOOT to send.",
     "Thinking",
@@ -27,9 +27,9 @@ constexpr LocalizedStrings kEnglish = {
     "No known Wi-Fi.\nSetup portal is open.",
     "Press PWR\nto turn me on",
     "Error",
-    "Bisc8",
+    "Ask",
     "Think your question,\npress here",
-    "or hold and speak...",
+    "hold to speak",
     "Status",
     "Connected\n%s\n%s",
     "%s | %s",
@@ -48,6 +48,8 @@ constexpr LocalizedStrings kEnglish = {
     "Battery to the bone.\nEven foresight\ngets tired.",
     "Empty",
     "Zero answers loaded.\nAn oracle on\nan empty stomach.",
+    "Resting",
+    "Click to wake me up",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -58,7 +60,7 @@ constexpr LocalizedStrings kSpanish = {
     "Wi-Fi",
     "Configura Wi-Fi",
     "conéctate a %s",
-    "abre en el navegador",
+    "luego abre %s",
     "Escuchando",
     "Habla ahora.\nSuelta BOOT para enviar.",
     "Pensando",
@@ -71,9 +73,9 @@ constexpr LocalizedStrings kSpanish = {
     "No hay Wi-Fi conocida.\nPortal abierto.",
     "Pulsa PWR\npara encenderme",
     "Error",
-    "Bisc8",
+    "Pregunta",
     "Piensa tu pregunta,\npulsa aquí",
-    "o mantén pulsado y habla...",
+    "manten pulsado: habla",
     "Estado",
     "Conectado\n%s\n%s",
     "%s | %s",
@@ -92,6 +94,8 @@ constexpr LocalizedStrings kSpanish = {
     "Batería al hueso.\nHasta la videncia\nse cansa.",
     "Vacío",
     "Cero respuestas.\nVaya oráculo\nen ayunas.",
+    "Reposo",
+    "Pulsa para despertarme",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -102,7 +106,7 @@ constexpr LocalizedStrings kItalian = {
     "Wi-Fi",
     "Configura Wi-Fi",
     "collegati a %s",
-    "apri nel browser",
+    "poi apri %s",
     "Ascolto",
     "Parla ora.\nRilascia BOOT per inviare.",
     "Penso",
@@ -115,9 +119,9 @@ constexpr LocalizedStrings kItalian = {
     "Nessuna Wi-Fi nota.\nPortale aperto.",
     "Premi PWR\nper accendermi",
     "Errore",
-    "Bisc8",
+    "Chiedi",
     "Pensa al tuo quesito,\npremi qua",
-    "o tieni premuto e parla...",
+    "tieni premuto: parla",
     "Stato",
     "Connesso\n%s\n%s",
     "%s | %s",
@@ -136,6 +140,8 @@ constexpr LocalizedStrings kItalian = {
     "Batteria all'osso.\nAnche la preveggenza\nsi stanca.",
     "Vuoto",
     "Zero responsi caricati.\nChe oracolo\na digiuno.",
+    "Riposo",
+    "Premi per svegliarmi",
 };
 
 }  // namespace

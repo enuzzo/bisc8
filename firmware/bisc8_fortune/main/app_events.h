@@ -19,6 +19,7 @@ enum class AppEvent : uint8_t {
     PreviewLowBattery,
     PreviewFirstRun,
     PreviewSpeaking,
+    PreviewLowPower,
 };
 
 }  // namespace bisc8

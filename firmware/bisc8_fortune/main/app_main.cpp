@@ -33,6 +33,7 @@ namespace {
 constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);
 constexpr uint32_t kMinimumBootSplashMs = 5000;
 constexpr uint32_t kOnlineStatusSplashMs = 2800;
+constexpr uint32_t kLowPowerSplashMs = 1600;
 constexpr uint8_t kLowBatteryWarnPct = 12;
 
 // Audio -> display state trampolines: AudioService fires these from its
@@ -125,6 +126,9 @@ bool handle_serial_command(const char *line) {
         }
         if (strcmp(which, "SPEAK") == 0) {
             return post_serial_event(AppEvent::PreviewSpeaking, "screen speaking");
+        }
+        if (strcmp(which, "LOWPOWER") == 0) {
+            return post_serial_event(AppEvent::PreviewLowPower, "screen low-power");
         }
     }
     return false;
@@ -253,6 +257,8 @@ extern "C" void app_main(void) {
             DebugSerial::LogAlways("[POWER]",
                                    "idle timeout after %d ms; wake=BOOT|PWR",
                                    CONFIG_BISC8_IDLE_SLEEP_DELAY_MS);
+            display.ShowLowPower(ParseLanguage(settings.language.c_str()));
+            vTaskDelay(pdMS_TO_TICKS(kLowPowerSplashMs));
             print_status();
             board.EnterDeepSleep("idle-timeout", kAnyButtonWakeMask);
             g_state = "idle";
@@ -364,6 +370,12 @@ extern "C" void app_main(void) {
             case AppEvent::PreviewSpeaking:
                 g_state = "speaking";
                 display.ShowVoiceSpeaking("Si.\nMa non dirlo\na nessuno.", ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewLowPower:
+                g_state = "low-power";
+                display.ShowLowPower(ParseLanguage(settings.language.c_str()));
                 g_state = "idle";
                 break;
 

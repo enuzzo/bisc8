@@ -50,6 +50,8 @@ struct LocalizedStrings {
     const char *low_battery_body;
     const char *first_run_title;
     const char *first_run_body;
+    const char *low_power_title;
+    const char *low_power_body;
 };
 
 const char *DefaultLanguage();
