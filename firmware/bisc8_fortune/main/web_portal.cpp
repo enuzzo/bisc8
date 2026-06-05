@@ -217,8 +217,8 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
 
 <div class="rebar" id="rebar">
   <div class="ic"><span class="mascot"></span></div>
-  <div class="txt"><b data-i18n="reboot_title">Wi-Fi salvata.</b><span data-i18n="reboot_msg">Riavvia per connettere. L'esito appare sullo schermo del dispositivo.</span></div>
-  <button class="go" type="button" id="reboot" data-i18n="reboot_now">Riavvia ora</button>
+  <div class="txt"><b data-i18n="reboot_title">Modifiche salvate</b><span data-i18n="reboot_msg">Riavvia per applicarle.</span></div>
+  <button class="go" type="button" id="reboot" data-i18n="reboot_now">Applica e riavvia</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -237,7 +237,7 @@ const I18N={
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
  firmware:"Firmware",secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
- reboot_title:"Wi-Fi salvata.",reboot_msg:"Riavvia per connettere. L'esito appare sullo schermo del dispositivo.",reboot_now:"Riavvia ora",
+ reboot_title:"Modifiche salvate",reboot_msg:"Riavvia per applicarle.",reboot_now:"Applica e riavvia",
  diac_label:"test diacritici",
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
@@ -255,7 +255,7 @@ const I18N={
  rec_lbl:"Recipient",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
  firmware:"Firmware",secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
- reboot_title:"Wi-Fi saved.",reboot_msg:"Restart to connect. The result shows on the device screen.",reboot_now:"Restart now",
+ reboot_title:"Changes saved",reboot_msg:"Restart to apply them.",reboot_now:"Apply & restart",
  diac_label:"diacritics test",
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
@@ -273,7 +273,7 @@ const I18N={
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
  firmware:"Firmware",secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de producción.",
- reboot_title:"Wi-Fi guardada.",reboot_msg:"Reinicia para conectar. El resultado sale en la pantalla.",reboot_now:"Reiniciar ahora",
+ reboot_title:"Cambios guardados",reboot_msg:"Reinicia para aplicarlas.",reboot_now:"Aplicar y reiniciar",
  diac_label:"test de diacríticos",
  missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
  saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",
@@ -620,6 +620,9 @@ esp_err_t WebPortal::HandleSettings(httpd_req_t *req) {
     if (err != ESP_OK) {
         return SendError(req, "500 Internal Server Error", esp_err_to_name(err));
     }
+    // Language is applied cleanly by re-rendering on a fresh boot, so it follows
+    // the same "apply = restart" rule as Wi-Fi: raise the sticky restart bar.
+    portal->reboot_required_ = true;
     return portal->SendStatusJson(req);
 }
 

@@ -27,8 +27,8 @@ constexpr LocalizedStrings kEnglish = {
     "No known Wi-Fi.\nSetup portal is open.",
     "Press PWR\nto turn me on",
     "Error",
-    "Ask",
-    "Think your question,\npress here",
+    "Consult",
+    "Think your\nquestion",
     "hold to speak",
     "Status",
     "Connected to\n%s\n%s",
@@ -52,6 +52,7 @@ constexpr LocalizedStrings kEnglish = {
     "Click to wake me up",
     "on your phone or pc",
     "couldn't reach\n%s",
+    "press",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -75,8 +76,8 @@ constexpr LocalizedStrings kSpanish = {
     "No hay Wi-Fi conocida.\nPortal abierto.",
     "Pulsa PWR\npara encenderme",
     "Error",
-    "Pregunta",
-    "Piensa tu pregunta,\npulsa aquí",
+    "Consulta",
+    "Piensa tu\npregunta",
     "manten pulsado: habla",
     "Estado",
     "Conectado a\n%s\n%s",
@@ -100,6 +101,7 @@ constexpr LocalizedStrings kSpanish = {
     "Pulsa para despertarme",
     "con el móvil o pc",
     "no alcanzo\n%s",
+    "pulsa",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -123,8 +125,8 @@ constexpr LocalizedStrings kItalian = {
     "Nessuna Wi-Fi nota.\nPortale aperto.",
     "Premi PWR\nper accendermi",
     "Errore",
-    "Chiedi",
-    "Pensa al tuo quesito,\npremi qua",
+    "Interroga",
+    "Pensa al tuo\nquesito",
     "tieni premuto: parla",
     "Stato",
     "Connesso a\n%s\n%s",
@@ -148,6 +150,7 @@ constexpr LocalizedStrings kItalian = {
     "Premi per svegliarmi",
     "col telefono o pc",
     "non raggiungo\n%s",
+    "premi",
 };
 
 }  // namespace

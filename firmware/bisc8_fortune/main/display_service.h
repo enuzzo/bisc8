@@ -86,6 +86,13 @@ private:
     void TickBatteryFlash();
     static void BatteryFlashThunk(lv_timer_t *timer);
 
+    // Bounded blink for the intro arrow that points at the BOOT button: draws
+    // the eye on entry, then settles visible (no perpetual e-ink refresh).
+    void StartArrowBlink();
+    void StopArrowBlink();
+    void TickArrowBlink();
+    static void ArrowBlinkThunk(lv_timer_t *timer);
+
     lv_obj_t *screen_ = nullptr;
     lv_obj_t *chrome_group_ = nullptr;
     lv_obj_t *splash_group_ = nullptr;
@@ -113,6 +120,9 @@ private:
     lv_timer_t *batt_flash_timer_ = nullptr;
     int batt_flash_ticks_left_ = 0;
     bool batt_flash_on_ = false;
+    lv_timer_t *arrow_timer_ = nullptr;
+    int arrow_blink_ticks_left_ = 0;
+    bool arrow_on_ = false;
     uint8_t battery_pct_ = 255;          // 255 = unknown
 };
 

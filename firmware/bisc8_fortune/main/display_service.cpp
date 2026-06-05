@@ -494,6 +494,45 @@ void DisplayService::StopBatteryFlash() {
     set_hidden(batt_big_flash_, true);
 }
 
+void DisplayService::ArrowBlinkThunk(lv_timer_t *timer) {
+    auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
+    if (self != nullptr) {
+        self->TickArrowBlink();
+    }
+}
+
+void DisplayService::TickArrowBlink() {
+    if (arrow_blink_ticks_left_ <= 0) {
+        set_hidden(arrow_group_, false);  // settle visible, pointing at the button
+        if (arrow_timer_ != nullptr) {
+            lv_timer_delete(arrow_timer_);
+            arrow_timer_ = nullptr;
+        }
+        return;
+    }
+    --arrow_blink_ticks_left_;
+    arrow_on_ = !arrow_on_;
+    set_hidden(arrow_group_, !arrow_on_);
+}
+
+void DisplayService::StartArrowBlink() {
+    arrow_blink_ticks_left_ = 8;  // ~4s of blinking, then settle (bounded for e-ink)
+    arrow_on_ = false;
+    set_hidden(arrow_group_, true);
+    if (arrow_timer_ == nullptr) {
+        arrow_timer_ = lv_timer_create(&DisplayService::ArrowBlinkThunk, 520, this);
+    }
+}
+
+void DisplayService::StopArrowBlink() {
+    if (arrow_timer_ != nullptr) {
+        lv_timer_delete(arrow_timer_);
+        arrow_timer_ = nullptr;
+    }
+    arrow_blink_ticks_left_ = 0;
+    arrow_on_ = false;
+}
+
 void DisplayService::ResetAuxLayers(bool speaking) {
     // Shared layer reset for every layout: park the auxiliary glyphs and stop the
     // speaker animation unless we are entering the speaking screen.
@@ -501,6 +540,7 @@ void DisplayService::ResetAuxLayers(bool speaking) {
         StopSpeakingAnimation();
     }
     StopBatteryFlash();
+    StopArrowBlink();
     speaking_active_ = speaking;
     set_hidden(speaker_group_, !speaking);
     set_hidden(wifi_group_, true);
@@ -587,7 +627,7 @@ void DisplayService::LayoutIntro() {
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
-    set_hidden(footer_right_, true);
+    set_hidden(footer_right_, false);
     set_hidden(batt_icon_group_, true);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
@@ -595,12 +635,18 @@ void DisplayService::LayoutIntro() {
     lv_obj_set_pos(title_label_, 0, 30);
     lv_obj_set_size(title_label_, 200, 22);
 
+    // The question prompt, centered.
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 4, 58);
-    lv_obj_set_size(body_label_, 150, 104);
+    lv_obj_set_pos(body_label_, 0, 58);
+    lv_obj_set_size(body_label_, 200, 58);
 
-    lv_obj_set_pos(arrow_group_, 166, 134);
+    // "premi" sits on the same line as the blinking arrow pointing at the
+    // physical BOOT button (right edge).
+    style_label(footer_right_, &bisc8_font_body, LV_TEXT_ALIGN_RIGHT);
+    lv_obj_set_pos(footer_right_, 36, 120);
+    lv_obj_set_size(footer_right_, 118, 28);
+    lv_obj_set_pos(arrow_group_, 160, 122);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_left_, 0, 178);
@@ -805,8 +851,10 @@ void DisplayService::ShowIntro(Language language) {
         char title_upper[32];
         lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
         lv_label_set_text(body_label_, strings.intro_body);
+        lv_label_set_text(footer_right_, strings.intro_press);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
+        StartArrowBlink();
         Lvgl_unlock();
     }
 }
@@ -988,8 +1036,10 @@ void DisplayService::ShowMicDone(Language language) {
         char title_upper[32];
         lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
         lv_label_set_text(body_label_, strings.intro_body);
+        lv_label_set_text(footer_right_, strings.intro_press);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
+        StartArrowBlink();
         Lvgl_unlock();
     }
 }
