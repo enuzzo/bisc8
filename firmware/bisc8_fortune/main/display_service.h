@@ -109,6 +109,7 @@ private:
     lv_obj_t *sleep_corner_group_ = nullptr; // biscuit-corner ornaments (sleep card)
     lv_obj_t *press_btn_group_ = nullptr; // dark "PREMI ->" pill (intro)
     lv_obj_t *press_label_ = nullptr;     // white "PREMI" text inside the pill
+    lv_obj_t *press_arrow_ = nullptr;     // white arrow inside the pill (blinks)
     lv_obj_t *batt_icon_fill_ = nullptr; // footer battery fill bar (width = charge)
     lv_obj_t *mascot_big_ = nullptr;
     lv_obj_t *mascot_glyph_ = nullptr;

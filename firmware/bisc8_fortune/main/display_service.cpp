@@ -92,6 +92,26 @@ void style_label(lv_obj_t *label, const lv_font_t *font, lv_text_align_t align) 
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
 }
 
+// Page titles render as a centered black chip with white block-caps text, so a
+// heading reads as a distinct bar above its body. Width hugs the text. The
+// caller sets the text (uppercased) afterwards; an empty title is hidden by
+// SetText so no empty chip shows.
+void apply_title_chip(lv_obj_t *label, const lv_font_t *font, int y) {
+    style_label(label, font, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_style_text_letter_space(label, kEyebrowLetterSpace, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(label, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(label, 255, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_pad_hor(label, 11, LV_PART_MAIN);
+    lv_obj_set_style_pad_ver(label, 3, LV_PART_MAIN);
+    lv_obj_set_style_radius(label, 0, LV_PART_MAIN);
+    lv_obj_set_width(label, LV_SIZE_CONTENT);
+    lv_obj_set_height(label, LV_SIZE_CONTENT);
+    lv_obj_set_align(label, LV_ALIGN_TOP_MID);
+    lv_obj_set_x(label, 0);
+    lv_obj_set_y(label, y);
+}
+
 void style_plain_obj(lv_obj_t *obj) {
     lv_obj_remove_style_all(obj);
     lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN);
@@ -412,23 +432,31 @@ void DisplayService::BuildPressButton() {
     // the intro screen, pointing at the physical BOOT button. Built as one group
     // so it blinks as a unit.
     press_btn_group_ = lv_obj_create(screen_);
-    style_plain_obj(press_btn_group_);
-    lv_obj_set_size(press_btn_group_, 92, 26);
+    lv_obj_remove_style_all(press_btn_group_);
+    lv_obj_set_style_bg_color(press_btn_group_, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(press_btn_group_, 255, LV_PART_MAIN);
+    lv_obj_set_style_radius(press_btn_group_, 6, LV_PART_MAIN);  // rounded corners
+    lv_obj_set_style_border_width(press_btn_group_, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(press_btn_group_, 0, LV_PART_MAIN);
+    lv_obj_remove_flag(press_btn_group_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(press_btn_group_, 98, 28);
 
-    create_block(press_btn_group_, 0, 0, 92, 26);  // black pill background
-
+    // White block-caps word, with side padding, nudged up 2px.
     press_label_ = lv_label_create(press_btn_group_);
     style_label(press_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_text_color(press_label_, lv_color_hex(0xffffff), LV_PART_MAIN);
-    lv_obj_set_pos(press_label_, 4, 5);
-    lv_obj_set_size(press_label_, 52, 18);
+    lv_obj_set_pos(press_label_, 11, 3);
+    lv_obj_set_size(press_label_, 50, 18);
 
-    // White right-arrow in the pill, with a gap from the word.
-    constexpr int ax = 62, ay = 5;
-    create_white(press_btn_group_, ax + 0, ay + 6, 15, 3);   // shaft
-    create_white(press_btn_group_, ax + 13, ay + 1, 3, 13);  // head
-    create_white(press_btn_group_, ax + 16, ay + 4, 3, 7);
-    create_white(press_btn_group_, ax + 19, ay + 6, 3, 3);   // tip
+    // White right-arrow as its own layer so only the arrow blinks; gap from word.
+    press_arrow_ = lv_obj_create(press_btn_group_);
+    style_plain_obj(press_arrow_);
+    lv_obj_set_size(press_arrow_, 24, 16);
+    lv_obj_set_pos(press_arrow_, 66, 6);
+    create_white(press_arrow_, 0, 6, 15, 3);   // shaft
+    create_white(press_arrow_, 13, 1, 3, 13);  // head
+    create_white(press_arrow_, 16, 4, 3, 7);
+    create_white(press_arrow_, 19, 6, 3, 3);   // tip
 
     set_hidden(press_btn_group_, true);
 }
@@ -530,7 +558,7 @@ void DisplayService::ArrowBlinkThunk(lv_timer_t *timer) {
 
 void DisplayService::TickArrowBlink() {
     if (arrow_blink_ticks_left_ <= 0) {
-        set_hidden(press_btn_group_, false);  // settle visible
+        set_hidden(press_arrow_, false);  // settle visible
         if (arrow_timer_ != nullptr) {
             lv_timer_delete(arrow_timer_);
             arrow_timer_ = nullptr;
@@ -539,13 +567,13 @@ void DisplayService::TickArrowBlink() {
     }
     --arrow_blink_ticks_left_;
     arrow_on_ = !arrow_on_;
-    set_hidden(press_btn_group_, !arrow_on_);
+    set_hidden(press_arrow_, !arrow_on_);
 }
 
 void DisplayService::StartArrowBlink() {
-    arrow_blink_ticks_left_ = 8;  // ~4s of blinking, then settle (bounded for e-ink)
+    arrow_blink_ticks_left_ = 10;  // the arrow keeps winking longer than the others
     arrow_on_ = false;
-    set_hidden(press_btn_group_, true);
+    set_hidden(press_arrow_, true);
     if (arrow_timer_ == nullptr) {
         arrow_timer_ = lv_timer_create(&DisplayService::ArrowBlinkThunk, 520, this);
     }
@@ -577,8 +605,12 @@ void DisplayService::ResetAuxLayers(bool speaking) {
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
-    char title_upper[64];
-    lv_label_set_text(title_label_, title != nullptr ? UpperAscii(title, title_upper, sizeof(title_upper)) : "");
+    const bool has_title = (title != nullptr && title[0] != '\0');
+    set_hidden(title_label_, !has_title);  // no empty black chip
+    if (has_title) {
+        char title_upper[64];
+        lv_label_set_text(title_label_, UpperAscii(title, title_upper, sizeof(title_upper)));
+    }
     lv_label_set_text(body_label_, body != nullptr ? body : "");
     lv_label_set_text(footer_left_, footer != nullptr ? footer : "");
     lv_obj_update_layout(screen_);
@@ -659,19 +691,17 @@ void DisplayService::LayoutIntro() {
     set_hidden(batt_icon_group_, true);
     set_hidden(press_btn_group_, false);
 
-    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 30);
-    lv_obj_set_size(title_label_, 200, 22);
+    apply_title_chip(title_label_, &bisc8_font_small, 30);
 
     // The question prompt, centered.
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 56);
+    lv_obj_set_pos(body_label_, 0, 58);
     lv_obj_set_size(body_label_, 200, 58);
 
-    // The dark "PREMI ->" pill, lowered, pointing at the BOOT button.
-    lv_obj_set_pos(press_btn_group_, 78, 128);
+    // The dark "PREMI ->" pill at the right edge (5px), pointing at the lateral
+    // BOOT button on the right.
+    lv_obj_set_pos(press_btn_group_, 97, 130);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_left_, 0, 178);
@@ -689,10 +719,7 @@ void DisplayService::LayoutMessage() {
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, false);
 
-    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 30);
-    lv_obj_set_size(title_label_, 200, 22);
+    apply_title_chip(title_label_, &bisc8_font_small, 30);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(body_label_, 176);
@@ -749,10 +776,7 @@ void DisplayService::LayoutWifiSetup() {
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
 
-    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 24);
-    lv_obj_set_size(title_label_, 200, 20);
+    apply_title_chip(title_label_, &bisc8_font_small, 24);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
@@ -838,11 +862,8 @@ void DisplayService::LayoutLowPower() {
     set_hidden(batt_icon_group_, true);
     set_hidden(sleep_corner_group_, false);
 
-    // Product name as a real title (big), with breathing room above the logo.
-    style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 6);
-    lv_obj_set_size(title_label_, 200, 34);
+    // Product name as a real title chip (big), with room above the logo.
+    apply_title_chip(title_label_, &bisc8_font_title, 6);
 
     lv_image_set_scale(mascot_big_, 320);  // ~80px; top-left pivot -> (200-80)/2
     lv_obj_set_pos(mascot_big_, 60, 46);
