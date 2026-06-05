@@ -212,6 +212,7 @@ void DisplayService::CreateScreen() {
         BuildLowBatteryGlyph();
         BuildFooterBattery();
         BuildSleepCorners();
+        BuildPressButton();
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
@@ -406,6 +407,32 @@ void DisplayService::BuildSleepCorners() {
     set_hidden(sleep_corner_group_, true);
 }
 
+void DisplayService::BuildPressButton() {
+    // A small dark pill that reads "PREMI ->" in white: the call-to-action on
+    // the intro screen, pointing at the physical BOOT button. Built as one group
+    // so it blinks as a unit.
+    press_btn_group_ = lv_obj_create(screen_);
+    style_plain_obj(press_btn_group_);
+    lv_obj_set_size(press_btn_group_, 92, 26);
+
+    create_block(press_btn_group_, 0, 0, 92, 26);  // black pill background
+
+    press_label_ = lv_label_create(press_btn_group_);
+    style_label(press_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_style_text_color(press_label_, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_pos(press_label_, 4, 5);
+    lv_obj_set_size(press_label_, 52, 18);
+
+    // White right-arrow in the pill, with a gap from the word.
+    constexpr int ax = 62, ay = 5;
+    create_white(press_btn_group_, ax + 0, ay + 6, 15, 3);   // shaft
+    create_white(press_btn_group_, ax + 13, ay + 1, 3, 13);  // head
+    create_white(press_btn_group_, ax + 16, ay + 4, 3, 7);
+    create_white(press_btn_group_, ax + 19, ay + 6, 3, 3);   // tip
+
+    set_hidden(press_btn_group_, true);
+}
+
 void DisplayService::SpeakTimerThunk(lv_timer_t *timer) {
     auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
     if (self != nullptr) {
@@ -503,7 +530,7 @@ void DisplayService::ArrowBlinkThunk(lv_timer_t *timer) {
 
 void DisplayService::TickArrowBlink() {
     if (arrow_blink_ticks_left_ <= 0) {
-        set_hidden(arrow_group_, false);  // settle visible, pointing at the button
+        set_hidden(press_btn_group_, false);  // settle visible
         if (arrow_timer_ != nullptr) {
             lv_timer_delete(arrow_timer_);
             arrow_timer_ = nullptr;
@@ -512,13 +539,13 @@ void DisplayService::TickArrowBlink() {
     }
     --arrow_blink_ticks_left_;
     arrow_on_ = !arrow_on_;
-    set_hidden(arrow_group_, !arrow_on_);
+    set_hidden(press_btn_group_, !arrow_on_);
 }
 
 void DisplayService::StartArrowBlink() {
     arrow_blink_ticks_left_ = 8;  // ~4s of blinking, then settle (bounded for e-ink)
     arrow_on_ = false;
-    set_hidden(arrow_group_, true);
+    set_hidden(press_btn_group_, true);
     if (arrow_timer_ == nullptr) {
         arrow_timer_ = lv_timer_create(&DisplayService::ArrowBlinkThunk, 520, this);
     }
@@ -546,6 +573,7 @@ void DisplayService::ResetAuxLayers(bool speaking) {
     set_hidden(wifi_group_, true);
     set_hidden(batt_big_group_, true);
     set_hidden(sleep_corner_group_, true);
+    set_hidden(press_btn_group_, true);
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
@@ -622,13 +650,14 @@ void DisplayService::LayoutIntro() {
     ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
-    set_hidden(arrow_group_, false);
+    set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, true);
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
-    set_hidden(footer_right_, false);
+    set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
+    set_hidden(press_btn_group_, false);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
@@ -638,15 +667,11 @@ void DisplayService::LayoutIntro() {
     // The question prompt, centered.
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 58);
+    lv_obj_set_pos(body_label_, 0, 56);
     lv_obj_set_size(body_label_, 200, 58);
 
-    // "premi" sits on the same line as the blinking arrow pointing at the
-    // physical BOOT button (right edge).
-    style_label(footer_right_, &bisc8_font_body, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_set_pos(footer_right_, 36, 120);
-    lv_obj_set_size(footer_right_, 118, 28);
-    lv_obj_set_pos(arrow_group_, 160, 132);
+    // The dark "PREMI ->" pill, lowered, pointing at the BOOT button.
+    lv_obj_set_pos(press_btn_group_, 78, 128);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_left_, 0, 178);
@@ -851,7 +876,7 @@ void DisplayService::ShowIntro(Language language) {
         char upper[32];
         lv_label_set_text(title_label_, UpperAscii(strings.intro_title, upper, sizeof(upper)));
         lv_label_set_text(body_label_, strings.intro_body);
-        lv_label_set_text(footer_right_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
+        lv_label_set_text(press_label_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
         StartArrowBlink();
@@ -1036,7 +1061,7 @@ void DisplayService::ShowMicDone(Language language) {
         char upper[32];
         lv_label_set_text(title_label_, UpperAscii(strings.intro_title, upper, sizeof(upper)));
         lv_label_set_text(body_label_, strings.intro_body);
-        lv_label_set_text(footer_right_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
+        lv_label_set_text(press_label_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
         StartArrowBlink();
