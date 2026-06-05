@@ -122,12 +122,12 @@ def test_new_state_copy_is_localized_in_netmilk_voice():
 
     # Italian anchors from the brief.
     assert "Niente Wi-Fi." in source
-    assert "Batteria all'osso." in source
+    assert "Quasi spenta." in source
     assert "Zero responsi caricati." in source
     # Transcreated, not left in one language.
     assert "Sin Wi-Fi." in source
     assert "No Wi-Fi." in source
-    assert "Batería al hueso." in source
+    assert "Casi muerta." in source
 
 
 def test_no_long_dashes_anywhere_in_localized_copy():

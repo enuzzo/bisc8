@@ -645,13 +645,13 @@ void DisplayService::LayoutSpeaking() {
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, false);
 
-    lv_obj_set_pos(speaker_group_, 84, 28);
+    lv_obj_set_pos(speaker_group_, 84, 32);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_width(body_label_, 176);
     lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
-    lv_obj_set_pos(body_label_, 0, 14);  // nudge below the speaker glyph
+    lv_obj_set_pos(body_label_, 12, 80);  // anchored below the speaker glyph
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
@@ -674,11 +674,14 @@ void DisplayService::LayoutGlyphMessage() {
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, false);
 
+    // Body anchored just below the glyph so the glyph+text read as one centered
+    // unit (the glyph is placed at y~34 by the caller). Avoids the old "glyph
+    // floating high, text floating low" gap.
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_width(body_label_, 188);
     lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
-    lv_obj_set_pos(body_label_, 0, 22);  // glyph sits above, message centered low
+    lv_obj_set_pos(body_label_, 6, 84);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
@@ -939,7 +942,7 @@ void DisplayService::ShowNoWifi(Language language) {
         RequestFullRefresh();
         LayoutGlyphMessage();
         set_hidden(wifi_group_, false);
-        lv_obj_set_pos(wifi_group_, 75, 30);
+        lv_obj_set_pos(wifi_group_, 75, 34);
         lv_label_set_text(body_label_, strings.no_wifi_body);
         lv_label_set_text(footer_left_, code);
         lv_obj_update_layout(screen_);
@@ -955,7 +958,7 @@ void DisplayService::ShowLowBattery(Language language) {
         RequestFullRefresh();
         LayoutGlyphMessage();
         set_hidden(batt_big_group_, false);
-        lv_obj_set_pos(batt_big_group_, 61, 32);
+        lv_obj_set_pos(batt_big_group_, 61, 34);
         StartBatteryFlash();
         lv_label_set_text(body_label_, strings.low_battery_body);
         lv_label_set_text(footer_left_, code);
