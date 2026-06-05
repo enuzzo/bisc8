@@ -1,52 +1,110 @@
 # Handoff (next session)
 
-Last session: device-states block of the redesign. Date: 2026-06-05.
+Last session: the **online GPT voice oracle**, end to end, plus a lot of polish.
+Date: 2026-06-05.
 
-## State: DONE + pushed
-- Commit `7677b56` on `main`, pushed to origin. Working tree clean (only untracked
-  `screenshots/epaper/` and `docs/gpt-suggestions/`, neither mine).
-- Host tests: **70 passed** (`.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests/`).
+## State: working on hardware
 
-## What shipped (all 4 items)
-1. Animated speaker glyph on `ShowVoiceSpeaking` (`display_service.cpp`), bounded
-   `lv_timer` pulsing 3 sound-wave bars. Driven by new `AudioService` playback hook
-   (`SetPlaybackObserver` -> `DisplayService::OnPlaybackState`). Recording hook
-   (`SetRecordingObserver` -> `OnListeningState`) is the clean seam for a future
-   "ti ascolto" state; audio pipeline NOT built (by design).
-2. Dedicated screens: `ShowNoWifi`, `ShowLowBattery`, `ShowFirstRun`. Low-battery
-   auto-triggers at boot/wake when `BatteryLevel() <= 12%`; first-run when
-   `g_fortune_count == 0` (both in `app_main.cpp` resting-screen override). Copy
-   IT/EN/ES in `localization.cpp`, no long dashes.
-3. E-ink refresh policy in `lvgl_flush_cb` (`display_service.cpp`): FULL on responso/
-   voice reveal + forced FULL after 8 partials (anti-ghost). New `EPD_DisplayFull()`
-   in `components/port_bsp/port_display.cpp`.
-4. Footer battery icon (`BuildFooterBattery`, fill width tracks charge).
-- Serial: `SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK` forces each screen for SNAP.
-- New test file `tests/test_device_states_static.py`.
+Hold BOOT, speak a question, release: Bisc8 records, transcribes, asks the LLM,
+speaks the answer aloud (coral voice), shows it on screen, and (optionally) emails
+the transcript + answer + the original recording. Confirmed working by the user.
 
-## Validated on hardware (first flash) via SNAP
-intro (intact), no-wifi, low-battery, first-run, speaking (cone-only + cone+waves).
-Refresh policy confirmed in `[EPD]` logs: `full (reveal)` -> `partial n=1..8` ->
-`full (anti-ghost)`.
+Host tests: `82 passed` (`/opt/homebrew/bin/python3 -m pytest tests/` — any arm64
+python with pytest; the in-tree `idf5.5_py3.14_env` lacks pytest).
 
-## OPEN / TODO when back at the bench
-- **RE-FLASH + replug.** The post-commit flash wrote+verified OK, but the USB-JTAG
-  port did NOT re-enumerate after `hard_reset` (no VID 303a on host). Physically
-  replug the cable, then:
-  ```
-  export BISC8_IDF_TOOLS_PATH="$PWD/.espressif" && . tools/idf_env.sh
-  idf.py -C firmware/bisc8_fortune -p /dev/cu.usbmodem14201 flash
-  ```
-  The flashed build is functionally identical to the validated one (only version
-  string differs), so this is just to confirm clean serial + run the committed
-  build version. See memory `bisc8-usb-jtag-reenumeration`.
-- Optional polish (deferred): the no-wifi glyph is a touch dense; could widen the
-  arc spacing. Re-SNAP `SCREEN SPEAK` after the animation settles for a clean
-  cone+waves shot (live animation can corrupt a streamed dump; retry or wait ~8s).
-- No-wifi screen has no organic trigger yet (connectivity always opens setup
-  portal when offline; left untouched per brief "don't touch core logic"). Reachable
-  via `SCREEN NOWIFI`.
+## The voice oracle pipeline
 
-## Reminders
-- Build/flash + host-test gotchas are in memory (`bisc8-build-flash-workflow`,
-  `bisc8-running-host-tests`, `bisc8-usb-jtag-reenumeration`).
+`VoiceOracleService::AskFromRecordedAudio` (`main/voice_oracle_service.cpp`):
+1. **STT** -> `POST /v1/audio/transcriptions`, multipart, the WAV streamed straight
+   from the `spool` flash partition (offset 0), model `gpt-4o-mini-transcribe`.
+2. **Brain** -> `POST /v1/chat/completions`, model from settings, returns JSON
+   (`detected_language`, `oracle_answer_screen`, `oracle_answer_full`, `tts_text`,
+   `voice_direction`). `response_format=json_object`, `max_completion_tokens`,
+   `reasoning_effort` sent only when set (else `temperature`).
+3. **TTS** -> `POST /v1/audio/speech` (wav), streamed to the answer spool region.
+   `instructions` = a pinned "warm mystical seer" style + the per-answer
+   `voice_direction`. Voice defaults to `coral`.
+4. Playback: `AudioService::PlayAnswerAudio` reads the answer WAV from flash.
+
+### Non-obvious things (read before touching audio/config)
+
+- **The flow runs on a dedicated 16 KB-stack worker** (`RunOracleOnWorker` /
+  `RunEmailOnWorker` in `app_main.cpp`). The main task has only 3584 B; the mbedTLS
+  handshake overflows it (stack-protection panic). Any new TLS call must run on a
+  worker too.
+- **The TTS is 24 kHz but plays at 16 kHz.** The ES8311 is opened in TDM mode and
+  reopening the codec to 24 kHz does NOT retune the I2S clock (it would play 1.5x
+  slow + an octave low). `PlayAnswerAudio` therefore **resamples 24->16 kHz**
+  (exact 3:2, integer) and keeps the codec native. Side effect: some HF loss
+  ("muffled") because the 16 kHz Nyquist is 8 kHz. A real fix is making the codec
+  actually run at 24 kHz.
+- **OpenAI streams the answer WAV with a 0xFFFFFFFF "unknown length" data size.**
+  Playback trusts `AnswerAudioBytes()` (bytes actually written), not the header.
+- Quiet TTS is lifted by `kAnswerGainPercent` (currently 150, clipped). Tunable.
+- **Question spool is pre-erased at idle** (`RearmQuestionSpool`, at boot and after
+  each query) so recording starts instantly; the 512 KB erase otherwise cost ~1-2 s
+  at press time. The voice record buffer is a small 16 KB chunk (`kVoiceChunkBytes`)
+  so it allocates even on a fragmented heap (64 KB failed).
+
+### Config gotcha that bit us (reasoning_effort -> 400)
+
+`ConfigStore::Load` = `ApplyDefaults` then per-field NVS overlay. A NEW
+`OpenAiSettings` field gets the ApplyDefaults value, while the model fields come
+from older NVS. So defaulting `reasoning_effort="low"` sent it to a user whose
+saved model was `gpt-4o-mini` (which rejects it) -> HTTP 400 -> error screen. Now
+`reasoning_effort` defaults empty and is portal-configurable. Add any new
+model-coupled param the same way (empty default + portal field).
+
+## Error codes (error-screen footer, "cod. EXX")
+
+E01 recording failed, E02 no API key, E03 STT/network, E04 nothing heard (empty
+transcript), E05 Brain. Ask the user to read the code; STT/Brain error bodies are
+now logged (`[ORACLE] brain http status=.. body=..`).
+
+## Models / voice / language (portal -> OpenAI section)
+
+- All models are portal fields (`transcription_model`, `response_model`,
+  `speech_model`); voice is a dropdown; `reasoning_effort` is a dropdown.
+  Defaults: `gpt-4o-mini` / `gpt-4o-mini-tts` (proven), voice `coral`, reasoning off.
+- Placeholders SUGGEST `gpt-5.4-mini` / `gpt-realtime-1.5` (user's choice) but these
+  are **unverified** by us. `gpt-realtime-1.5` may be a Realtime-API model that does
+  NOT work via `/v1/audio/speech` -> would E05. If the user sets them and it fails,
+  read the logged body and adjust the name/params or rearchitect TTS to the Realtime
+  API. The user's NVS still holds `gpt-4o-mini`; they must TYPE a new model to switch.
+- Reply language follows the **transcript** (the words actually spoken, read by the
+  model), not the STT language tag (which mislabels short speech). UI/device language
+  is just the menus. User confirmed: reply follows what they speak.
+
+## Email (works)
+
+`EmailService::SendOracleEmail` POSTs multipart (token + transcript + answer + the
+question WAV) to a user-set `relay_url`. The relay is a **standalone PHP file we
+own**: `server/bisc8-email.php` (+ `.config.example.php`, README). No email
+credentials on the device, only the relay token. The user deploys it to their own
+host (currently `https://netmi.lk/nomenomen/api/bisc8-email.php`) and it sends via
+the host's `mail()`. First mail from a new domain often lands in spam.
+
+## UI added this session
+
+- Listening screen: animated **mic glyph** + "Parla ora" (`BuildMic`,
+  `StartVoiceAnim(true)`). No full refresh (it looked like a reset).
+- Thinking screen: **"Consulto le briciole.."** + animated dots (`BuildWaitDots`,
+  `StartVoiceAnim(false)`).
+- A start-recording cue (`AudioCue::VoiceStart`, `start-talking.ogg`) plays at the
+  true capture start (after the pre-erase), so it is a clear "go".
+- New serial previews: `SCREEN ERROR|LISTENING|THINKING`.
+
+## Pending / follow-ups
+
+- `docs/AI_HANDOFF.md` is **stale** (still says the OpenAI transport is not
+  implemented / returns `ESP_ERR_NOT_FINISHED`); update it + its test assertions.
+- Verify `gpt-5.4-mini` / `gpt-realtime-1.5` exist for the user's key.
+- Voice quality at 16 kHz is "muffled"; revisit the 24 kHz codec path if it matters.
+- `screenshots/epaper/` is git-ignored (dev SNAPs).
+
+## Build / flash (this machine)
+
+arm64 py3.14 env, build OUTSIDE Dropbox. See memory `bisc8-build-flash-workflow`:
+`. tools/idf_env.sh` (with `BISC8_IDF_PYTHON_ENV_PATH` -> `idf5.5_py3.14_env`), then
+`idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build flash -p <port>`.
+SNAP: `tools/capture_epaper_snapshot.py --before-command "SCREEN ..."`.

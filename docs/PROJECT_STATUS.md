@@ -1,6 +1,6 @@
 # Bisc8 Project Status
 
-Date: 2026-06-03
+Date: 2026-06-05
 
 ## Hardware
 
@@ -17,7 +17,9 @@ Date: 2026-06-03
 - `BoardSupport`: I2C recovery, TCA9554 setup, power rails, deep sleep wake masks.
 - `DisplayService`: LVGL/e-paper screens, Bisc8 boot/off/idle/fortune/mic/error layouts.
 - `FortuneService`: random fortune picker backed by generated flash-safe data.
-- `AudioService`: beep generation and microphone record/playback test.
+- `AudioService`: cues, mic test, voice recording (chunked WAV to the spool), and answer playback (24->16 kHz resample). Pre-erases the question spool at idle.
+- `VoiceOracleService`: STT -> chat-completions Brain -> TTS over TLS, run on a dedicated 16 KB-stack worker; granular failure codes (E01..E05).
+- `EmailService`: multipart relay POST (transcript + answer + question WAV) to a user-configured endpoint (`server/bisc8-email.php`).
 - `ButtonController`: BOOT click, PWR click, PWR long press.
 - `DebugSerial`: structured logs, serial commands, framebuffer dump.
 
@@ -29,7 +31,11 @@ Date: 2026-06-03
 - Fortune randomizer from `assets/grimorio.txt`, currently 888 lines.
 - Beep on fortune generation.
 - Microphone record/playback test.
-- Serial debug commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `HELP`.
+- **Online voice oracle** (hold BOOT, speak, release): OpenAI STT + chat-completions + TTS, working on hardware. Answer shown on screen (<=55 chars) and spoken (coral voice, mystical-seer style); reply in the spoken language.
+- Animated listening (mic) and thinking ("Consulto le briciole.." + dots) screens; a start-talking cue; on-screen error codes E01..E05.
+- Captive portal configures Wi-Fi, language, OpenAI (models/voice dropdown/reasoning), and email relay.
+- **Email relay**: the device POSTs to a standalone PHP endpoint we own (`server/`) that emails the transcript/answer/recording; no email credentials on the device.
+- Serial debug commands: `DEBUG 0/1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START/STOP`, `SCREEN ...`, `WIFI/CONFIG ...`, `HELP`.
 - Snapshot capture tool that writes 1-bit PNGs from the real framebuffer.
 - Static tests for display structure, fortune generation, snapshot PNG generation, and power-state guardrails.
 

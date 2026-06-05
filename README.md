@@ -9,14 +9,14 @@ For future AI agents and contributors, start with the extended project map in [`
 - First boot defaults to English.
 - Boot plays a longer background startup jingle and lands on the localized introductory oracle screen.
 - BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
-- Hold BOOT to ask by recording a voice question. Release BOOT to enter the voice-oracle flow; OpenAI transport is still pending and currently returns an unconfigured/error state.
+- Hold BOOT to ask by recording a voice question. Release BOOT to run the full online oracle: speech-to-text, an LLM answer in the spoken language, text-to-speech played aloud, the answer on screen, and an optional email of the transcript/answer/recording. Errors show an on-screen code (E01..E05).
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
 - BOOT long press starts the voice/dictation flow. PWR triple click performs a full configuration reset and reopens the setup portal. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` as a maintenance fallback.
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
 - Dedicated state screens in the System 6 1-bit language: no Wi-Fi (crossed-out Wi-Fi glyph), low battery (large battery glyph, auto-shown on boot/wake when charge is at or below 12 percent), first-run empty (shown when zero responsi are loaded), and a speaking screen whose speaker glyph animates while Bisc8 voices the answer.
-- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK`, `HELP`. `SCREEN ...` forces a device screen so each state can be reached and snapshot-validated on the bench.
+- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK|LOWPOWER|STATUS|CONNFAIL|ERROR|LISTENING|THINKING`, `HELP`. `SCREEN ...` forces a device screen so each state can be reached and snapshot-validated on the bench.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
 - On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
@@ -37,21 +37,21 @@ Bisc8 is moving toward a no-recompile product setup flow:
 
 ## Voice Oracle Flow
 
-The intended online flow is:
+The online flow (implemented and working on hardware) is:
 
 1. Hold BOOT and speak a question.
 2. Release BOOT, or hit the 15 second recording limit.
-3. Bisc8 uploads the recorded audio for speech-to-text.
-4. The model detects the question language and writes a contextual oracle answer in that language.
-5. The e-paper shows a short answer of at most 100 characters.
-6. Text-to-speech generates the spoken answer and Bisc8 plays it.
-7. If email is enabled and a relay is configured, Bisc8 sends the transcript, full answer, and audio when feasible.
+3. Bisc8 uploads the recorded audio for speech-to-text (multipart, streamed from the spool partition).
+4. The model answers in the language the question was spoken in, poetic but clear, on a dedicated TLS worker task.
+5. The e-paper shows a short answer of at most 55 characters.
+6. Text-to-speech (coral voice, mystical-seer style) generates the spoken answer; Bisc8 resamples 24 kHz to 16 kHz and plays it.
+7. If email is enabled and a relay is configured, Bisc8 sends the transcript, full answer, and the question recording.
 
 Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
 
 Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
 
-Current implementation status: recording, UI states, NVS OpenAI settings, and the response contract are in place. The actual OpenAI speech-to-text, Responses API, text-to-speech, generated-audio playback, and email relay transport are not implemented yet. `VoiceOracleService::AskFromRecordedAudio()` currently returns `ESP_ERR_NOT_FINISHED`.
+Current implementation status: the full online flow is implemented and confirmed on hardware. `VoiceOracleService::AskFromRecordedAudio()` runs speech-to-text, the chat-completions Brain, and text-to-speech over TLS (`esp_crt_bundle`), each streamed to/from the spool partition, on a dedicated 16 KB-stack worker because the mbedTLS handshake overflows the 3584 B main task. Failures surface as on-screen error codes (E01 recording, E02 no key, E03 STT/network, E04 nothing heard, E05 Brain). The answer WAV is resampled 24 kHz to 16 kHz at playback (reopening the TDM codec to 24 kHz does not retune the I2S clock). Email delivery POSTs to a user-configured relay (`server/bisc8-email.php`).
 
 ## Device Screens and E-ink Refresh
 
@@ -69,9 +69,9 @@ E-ink refresh policy (decided at the `display_service` / `port_display` boundary
 
 Speaking-state speaker animation:
 
-- `AudioService` exposes `SetPlaybackObserver` and `SetRecordingObserver`. The playback observer drives the speaker glyph animation: while audio plays on the speaking screen, the sound-wave bars pulse; when playback ends, they settle. The recording observer is a clean seam for a future "ti ascolto" listening animation and is not wired to a UI animation yet.
+- `AudioService` exposes `SetPlaybackObserver` and `SetRecordingObserver`. The playback observer drives the speaker glyph animation: while audio plays on the speaking screen, the sound-wave bars pulse; when playback ends, they settle. The listening and thinking screens have their own animated glyphs (mic sound-waves, and "..." dots) driven by a shared bounded `lv_timer`.
 - `app_main` registers these observers against `DisplayService::OnPlaybackState` / `OnListeningState`. The animation is gated on the speaking screen, so cues on other screens never wake the panel.
-- The animation is bounded (about seven seconds of pulsing, then it settles to a single wave) so a resting speaking screen does not refresh the panel forever. The audio pipeline that voices the answer is intentionally not built here; only the UI state and the hooks are.
+- The animation is bounded (about seven seconds of pulsing, then it settles) so a resting screen does not refresh the panel forever. The answer is voiced by `AudioService::PlayAnswerAudio` (see the Voice Oracle Flow section above).
 
 ## Sound Assets
 
