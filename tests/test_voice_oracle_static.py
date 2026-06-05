@@ -142,6 +142,19 @@ def test_no_long_dashes_in_oracle_prompts():
     assert EN_DASH not in src
 
 
+def test_mic_gain_is_below_the_es8311_clipping_ceiling():
+    # The ES8311 mic PGA tops out at 42 dB; a value >= 42 runs it flat out, and a
+    # near-field pocket mic then rails the ADC -> clipped audio -> speech-to-text
+    # hears phonetically-rich gibberish (while the ear-forgiving loopback sounds
+    # fine). Keep the capture gain well under the ceiling, with headroom.
+    src = read(PORT_CODEC_CPP)
+    m = re.search(r"esp_codec_dev_set_in_gain\(record,\s*([0-9.]+)\)", src)
+    assert m is not None, "the record path must set an explicit mic gain"
+    gain = float(m.group(1))
+    assert gain < 42.0, f"mic gain {gain} dB hits the ES8311 ceiling -> clipping"
+    assert gain <= 30.0, f"mic gain {gain} dB is hot for a close-talk mic"
+
+
 def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     # The OpenAI HTTPS calls (mbedTLS handshake) need far more stack than the
     # main task carries; running them inline panicked with a stack-protection

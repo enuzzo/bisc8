@@ -64,7 +64,13 @@ esp_err_t Codec_StartInit() {
     if (err != ESP_OK) {
         return err;
     }
-    return esp_codec_dev_set_in_gain(record, 45.0);
+    // Mic capture gain. The ES8311 mic PGA tops out at 42 dB; the old 45.0 ran it
+    // flat out, so this near-field pocket mic railed the ADC on normal speech ->
+    // clipped audio -> speech-to-text heard gibberish (the ear-forgiving record/
+    // playback loopback masked it). 24 dB keeps a strong but unclipped level for
+    // close talk; [VOICEDIAG]/analyze_question_wav confirm clip% and dBFS, so this
+    // can be nudged (18-30) once measured on-device.
+    return esp_codec_dev_set_in_gain(record, 24.0);
 }
 
 esp_err_t Codec_PlaybackData(uint8_t *buffer,size_t bytes) {
