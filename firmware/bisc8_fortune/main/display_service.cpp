@@ -36,7 +36,7 @@ constexpr int kEyebrowLetterSpace = 2;
 // E-ink refresh policy, applied at the display_service / port_display boundary.
 // Partial refresh is the default (fast, low flicker) but it ghosts, so we force
 // a full refresh on dramatic reveals and after a small run of partials.
-constexpr int kMaxPartialsBeforeFull = 8;
+constexpr int kMaxPartialsBeforeFull = 30;
 volatile bool g_force_full_refresh = false;  // set under the LVGL lock before a reveal
 int g_partials_since_full = 0;               // touched only on the LVGL flush thread
 
@@ -1006,7 +1006,9 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
     char counter[24];
     snprintf(counter, sizeof(counter), "%u/%u", static_cast<unsigned>(index + 1), static_cast<unsigned>(count));
     if (Lvgl_lock(-1)) {
-        RequestFullRefresh();  // the responso reveal is the dramatic e-ink flash
+        // Cycling fortunes with the button must feel instant, so this is a
+        // partial refresh. The periodic anti-ghost full (every
+        // kMaxPartialsBeforeFull partials) clears any accumulated ghosting.
         LayoutResponso();
         lv_label_set_text(body_label_, fortune != nullptr ? fortune : "");
         lv_label_set_text(footer_left_, counter);

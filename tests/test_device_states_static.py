@@ -103,9 +103,12 @@ def test_eink_refresh_policy_lives_at_the_port_boundary():
     assert "EPD_DisplayFull();" in display
     assert "EPD_DisplayPart();" in display
 
-    # The responso reveal is a full refresh.
+    # Cycling fortunes stays a partial refresh (instant); the periodic anti-ghost
+    # full clears ghosting. Voice answers still force a full reveal.
     fortune = display.split("DisplayService::ShowFortune", 1)[1].split("DisplayService::", 1)[0]
-    assert "RequestFullRefresh()" in fortune
+    assert "RequestFullRefresh()" not in fortune
+    speaking = display.split("DisplayService::ShowVoiceSpeaking", 1)[1].split("DisplayService::", 1)[0]
+    assert "RequestFullRefresh()" in speaking
 
 
 def test_footer_battery_icon_tracks_charge():
