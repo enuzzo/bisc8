@@ -64,12 +64,14 @@ esp_err_t Codec_StartInit() {
     if (err != ESP_OK) {
         return err;
     }
-    // Mic capture gain. The ES8311 mic PGA tops out at 42 dB; the old 45.0 ran it
-    // flat out, so this near-field pocket mic railed the ADC on normal speech ->
-    // clipped audio -> speech-to-text heard gibberish (the ear-forgiving record/
-    // playback loopback masked it). 24 dB keeps a strong but unclipped level for
-    // close talk; [VOICEDIAG]/analyze_question_wav confirm clip% and dBFS, so this
-    // can be nudged (18-30) once measured on-device.
+    // Mic capture gain. Per the ES8311 user guide the analog mic preamp is
+    // 0-30 dB (the 36/42 dB steps are digital boost that amplifies noise and
+    // clips harder); the codec default AND the old 45.0 both ran it flat out at
+    // the 42 dB max, so this near-field pocket mic railed the ADC on normal
+    // speech -> clipped audio -> speech-to-text heard gibberish (the ear-forgiving
+    // record/playback loopback masked it). 24 dB sits well inside the clean analog
+    // range with close-talk headroom; [VOICEDIAG]/analyze_question_wav confirm
+    // clip%/dBFS, so nudge within 18-30 from on-device measurement.
     return esp_codec_dev_set_in_gain(record, 24.0);
 }
 
