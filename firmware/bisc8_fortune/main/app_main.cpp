@@ -243,6 +243,13 @@ extern "C" void app_main(void) {
     }
 
     if (!setup_mode_active && connectivity.Online()) {
+        // Keep the config portal reachable on the home network too (on the STA
+        // IP), so Wi-Fi, OpenAI and email can be changed without forcing setup
+        // mode. The httpd binds to all interfaces; no SoftAP/captive DNS here.
+        esp_err_t portal_err = portal.Start();
+        DebugSerial::LogAlways("[WEB]", "config portal on LAN ip=%s result=%s",
+                               connectivity.Status().connected_ip.empty() ? "?" : connectivity.Status().connected_ip.c_str(),
+                               esp_err_to_name(portal_err));
         display.ShowStatus(connectivity.Status(), startup_language);
         vTaskDelay(pdMS_TO_TICKS(kOnlineStatusSplashMs));
         display.ShowIntro(startup_language);
@@ -270,6 +277,13 @@ extern "C" void app_main(void) {
     for (;;) {
 #if CONFIG_BISC8_IDLE_DEEP_SLEEP_ENABLED
         if (xQueueReceive(g_event_queue, &event, pdMS_TO_TICKS(CONFIG_BISC8_IDLE_SLEEP_DELAY_MS)) != pdTRUE) {
+            if (portal.Running() && portal.ConsumeActivity()) {
+                // Someone is configuring over the network: stay awake instead of
+                // deep-sleeping (which would kill the portal mid-session and play
+                // the boot cue on the next wake).
+                DebugSerial::LogAlways("[POWER]", "idle timeout but config portal active; staying awake");
+                continue;
+            }
             g_state = "idle-sleep";
             DebugSerial::LogAlways("[POWER]",
                                    "idle timeout after %d ms; wake=BOOT|PWR",

@@ -27,6 +27,9 @@ public:
     esp_err_t Start();
     void Stop();
     bool Running() const;
+    // True if the config page hit the server since the last call (and clears it).
+    // The main loop uses this to stay awake while someone is configuring.
+    bool ConsumeActivity();
 
 private:
     static esp_err_t HandleIndex(httpd_req_t *req);
@@ -52,6 +55,7 @@ private:
     ConfigStore *config_store_ = nullptr;
     bool reboot_required_ = false;
     bool running_ = false;
+    volatile bool activity_ = false;
 };
 
 }  // namespace bisc8

@@ -299,6 +299,9 @@ function setEmailEnabled(on){document.getElementById('emailEnabled').value=on?'1
 function fill(s){if(s.language)applyLanguage(s.language);
  for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(function(el){el.textContent=valueText(k,s[k])})}
  if(typeof s.email_enabled!=='undefined')setEmailEnabled(s.email_enabled);
+ var dots='••••••••';
+ var ak=document.querySelector('input[name="api_key"]');if(ak&&s.openai_key&&s.openai_key!=='missing')ak.placeholder=dots;
+ var rt=document.querySelector('input[name="relay_token"]');if(rt&&s.email_relay==='configured')rt.placeholder=dots;
  document.getElementById('rebar').classList.toggle('show',!!s.reboot_required);}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
 document.querySelectorAll('form[data-api]').forEach(function(form){form.addEventListener('submit',async function(e){e.preventDefault();const b=form.querySelector('button[type=submit]')||form.querySelector('button');if(b)b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{if(b)b.disabled=false}})});
@@ -307,7 +310,7 @@ document.querySelectorAll('#emailSeg b').forEach(function(b){b.addEventListener(
 document.getElementById('scan').addEventListener('click',async function(){const st=document.getElementById('scanState');const list=document.getElementById('scanList');st.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');st.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(function(n){const x=document.createElement('button');x.type='button';x.textContent=n.ssid+' · '+n.band+' · '+n.rssi;x.onclick=function(){document.getElementById('ssid').value=n.ssid};list.appendChild(x)})}catch(e){st.textContent=e.message}});
 document.getElementById('reboot').addEventListener('click',async function(){try{await api('/api/reboot',{method:'POST'});note('rebooting')}catch(e){note(e.message)}});
 document.getElementById('reset').addEventListener('click',async function(){if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
-document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);});});applyLanguage('en');refresh();
+document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);});});applyLanguage('en');refresh();setInterval(refresh,25000);
 </script>
 </body>
 </html>
@@ -509,6 +512,10 @@ esp_err_t WebPortal::RegisterRoute(const char *uri, httpd_method_t method, HttpH
 
 esp_err_t WebPortal::HandleIndex(httpd_req_t *req) {
     DebugSerial::Log("[WEB]", "GET / free_heap=%u", static_cast<unsigned>(esp_get_free_heap_size()));
+    WebPortal *portal = PortalFromRequest(req);
+    if (portal != nullptr) {
+        portal->activity_ = true;
+    }
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, max-age=0");
     httpd_resp_set_hdr(req, "Pragma", "no-cache");
@@ -520,6 +527,7 @@ esp_err_t WebPortal::HandleStatus(httpd_req_t *req) {
     if (portal == nullptr) {
         return SendError(req, "500 Internal Server Error", "Portal is not ready");
     }
+    portal->activity_ = true;  // the open config page heartbeats here; stay awake
     return portal->SendStatusJson(req);
 }
 
@@ -909,6 +917,12 @@ void WebPortal::Stop() {
 
 bool WebPortal::Running() const {
     return running_;
+}
+
+bool WebPortal::ConsumeActivity() {
+    const bool had = activity_;
+    activity_ = false;
+    return had;
 }
 
 }  // namespace bisc8
