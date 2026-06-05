@@ -1,6 +1,81 @@
 # Handoff (next session)
 
-## Latest session: capture audio quality fix + answer-audio email (2026-06-05 pm)
+## Latest session: dropout fix verified + lyrical/theatrical oracle + styled localized email (2026-06-05 eve)
+
+Ran the voice-sampling test from the previous session **on hardware** and went well
+beyond it. Headlines:
+
+- **Clipping fix CONFIRMED** on-device: `clip=0.00%`, `peakMono` mid-scale, clean
+  full transcript. The 45→24 dB gain change was correct.
+- **Found & fixed a SEPARATE bug: recording dropouts / stutter.** Held BOOT ~10 s
+  but only ~⅓ of the audio was saved (`wall` >> `dur`, `maxRead` ~735-776 ms),
+  truncating speech into gibberish to STT. Root cause: the **e-paper "listening"
+  animation** (a 750 ms `lv_timer` pulsing the mic waves) — each tick fires an
+  e-ink PARTIAL REFRESH, and on the **single-core C6** that long SPI/BUSY-wait
+  steals the core from `VoiceRecordTask` (prio 4), overflowing the mic DMA (~90 ms).
+  Distinguished from a sample-rate bug BY EAR: stutter at normal pitch = CPU
+  starvation; chipmunk = clock. **Fix** (`display_service.cpp` `StartVoiceAnim`):
+  the mic/listening screen now renders ONCE, statically (both waves shown), with NO
+  refresh timer; only the post-capture "thinking" screen keeps its pulse. Verified:
+  `dur≈wall`, `maxRead` ~241 ms, clip 0%, full clean transcript. **Rule: never
+  refresh the e-ink while the mic is recording.**
+- Brain TLS `mbedtls_ssl_setup -0x7F00` (ALLOC_FAILED) on the chat step was a
+  **transient** heap pinch — succeeded on retry. Watch heap if it recurs.
+
+Product/voice tuning (all shipped):
+- **Playback volume** `kAnswerGainPercent` 150 → **180** (`audio_service.cpp`).
+- **Lyrical answers**: brain system prompt pushed to "lyrical, incantatory, musical,
+  cadence of verse, vivid sensory detail" while staying pertinent (was deliberately
+  anti-cryptic). **Theatrical voice**: TTS `instructions` now "theatrical seer in
+  the throes of a vision" (rising/falling, emphasis). `voice_oracle_service.cpp`.
+- **Translation audit** (`localization.cpp`): `cooking_title` was untranslated
+  ("Cooking") in ES/IT → "Cocinando"/"Cucino"; the new playful listening copy added
+  to EN/ES ("Bisc8 is listening. Max 15s, no rambling!" / "Bisc8 te escucha. ¡Máx
+  15s, sin rollos!"); ES `mantén` accent.
+- **Web portal** (`web_portal.html`): added a header tagline (`tagline` i18n key:
+  IT "briciomanzia tascabile" / EN "pocket crumb-oracle" / ES "migamancia de
+  bolsillo") and fixed two leaks where the Italian word **"responsi"** sat inside
+  EN/ES copy (`lang_hint`, `send_resp`). NOTE: portal HTML is embedded in firmware,
+  so it needs a reflash to take effect.
+
+**Styled, localized email** (`server/bisc8-email.php`, deploy-only, host re-uploads):
+- HTML "biscuit-terminal" look matching the web app (black/white, 2px borders, hard
+  shadow, Pixelify Sans via Google Fonts with **monospace fallback** for Gmail/Outlook,
+  black title bar, inverted RESPONSO hero, audio pills). MIME is now
+  `multipart/mixed → alternative(plain+HTML) + WAVs`; plain text kept as fallback.
+- **Localized** by the detected language: subject, labels, AND attachment filenames
+  (`domanda/risposta.wav` · `pregunta/respuesta.wav` · `question/answer.wav`).
+- **Pastry-divination theme**: badge BRICIOMANZIA / CRUMBOMANCY / MIGAMANCIA, tagline
+  "divinazione tra le briciole", response label "Letto nelle briciole", footer
+  "Sbriciolato per te da Bisc8".
+- **Full localized date/time** ("Giovedì 5 giugno 2026, 18:42", tz default
+  `Europe/Rome`, override via config `timezone`), 🍪 in the subject, and a hidden
+  **preheader** for the inbox snippet. Browser preview:
+  `docs/redesign/bisc8-email-preview.html`.
+
+Build note (IMPORTANT): **this flash Mac is Intel x86_64**, not Apple Silicon.
+`arch -arm64` fails here. Let `tools/idf_env.sh` auto-pick the **x86_64 / py3.9**
+env (builds & flashes fine). Do NOT apply this doc's older "use the arm64 / py3.14
+env" advice on this box — that was for a different, arm64 Mac.
+
+Email relay troubleshooting (learned the hard way): the device POSTs `to` (recipient)
++ `token` (Bearer header AND form field); the PHP health-check `ready` flag needs
+BOTH config `token` and `mail_to` non-empty, but `mail_to` may legitimately be empty
+(recipient comes from the device) — so `ready:false` does NOT prove the token is
+wrong. Diagnose with `curl` GET (health) then POST with the token. The actual fault
+this session: the **device app had lost its email/relay/token settings**; the host
+config + token were fine (proven by a `curl` POST that delivered). Relay token must
+be byte-identical on host config and the captive portal.
+
+Open / nice-to-have:
+- **Mic right channel is dead** (`peakR`≈185 vs `peakL`≈3824); we downmix `(L+R)/2`,
+  so we throw away ~6 dB → `rms` ran ~-26..-42 dBFS (quiet but STT-OK). Canonical
+  fix: capture the LEFT channel only instead of averaging (see the ES8311 ref note
+  below). Optional gain bump if still quiet.
+
+---
+
+## Previous session: capture audio quality fix + answer-audio email (2026-06-05 pm)
 
 **Goal:** the user's recorded question reached speech-to-text as gibberish (the
 emailed `domanda.wav` sounded terrible), while the early record->playback
@@ -46,7 +121,8 @@ capture a single channel instead of averaging.
   voice samples per query. The TTS WAV's OpenAI "unknown length" (0xFFFFFFFF)
   header is repaired to a real length so desktop players open it.
 
-**>>> NEXT SESSION: run the voice sampling test to verify the fix <<<**
+**>>> DONE — the voice sampling test ran and PASSED (clipping fixed); it also
+surfaced & fixed a separate dropout bug. See "Latest session" at the top. <<<**
 1. **Build on the machine you flash from** -- `$HOME/bisc8-build` is LOCAL (not
    Dropbox-synced), so it won't exist on a different Mac; rebuild it. Set the env
    (see Build/flash below), then build, then plug the device in, find the port
