@@ -2,15 +2,27 @@
 
 This document is written for future AI agents and contributors who need to continue Bisc8 without rediscovering the project shape from scratch.
 
+> **⚠️ STATUS (updated 2026-06-06): partly historical — read with care.** This
+> guide predates the working online voice oracle. Since it was written: the oracle
+> (**STT → chat-completions → TTS → playback → email**) is **fully implemented and
+> confirmed on hardware**; the brain uses **chat/completions**, not the Responses
+> API; the on-screen answer limit is **55** chars (not 100); and the display/portal
+> fonts are **Pixelify Sans** (not Montserrat). For the current state, build/flash
+> steps and known follow-ups, use **`docs/HANDOFF_NEXT.md`** (latest) and
+> **`docs/PROJECT_STATUS.md`**. Treat the "not implemented yet" / "Responses API" /
+> font / char-limit specifics below as historical planning notes, not current truth.
+
 ## Project Summary
 
 Bisc8 is ESP-IDF firmware for the Waveshare ESP32-C6-ePaper-1.54 black-and-white board. The product is a small e-paper oracle with two buttons, audio cues, localized UI, Wi-Fi setup, a local web portal, and a planned OpenAI-powered voice-oracle flow.
 
-The current firmware is useful as an offline fortune oracle and as a product setup scaffold. The online voice oracle is partially scaffolded but not complete.
+The current firmware is useful as an offline fortune oracle AND as a fully working
+online voice oracle (confirmed on hardware), plus a product setup scaffold.
 
 ## Current Truth About OpenAI
 
-OpenAI STT/Responses/TTS transport is not implemented yet.
+OpenAI STT, brain (chat/completions) and TTS transport are implemented and working
+on hardware (see `main/voice_oracle_service.cpp`). The text below is historical.
 
 Implemented pieces:
 

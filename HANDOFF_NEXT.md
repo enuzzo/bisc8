@@ -154,8 +154,9 @@ Hold BOOT, speak a question, release: Bisc8 records, transcribes, asks the LLM,
 speaks the answer aloud (coral voice), shows it on screen, and (optionally) emails
 the transcript + answer + the original recording. Confirmed working by the user.
 
-Host tests: `82 passed` (`/opt/homebrew/bin/python3 -m pytest tests/` — any arm64
-python with pytest; the in-tree `idf5.5_py3.14_env` lacks pytest).
+Host tests: `94 passed` (on this Intel box:
+`.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests/` — or any
+python3 that has pytest; the in-tree envs lack it).
 
 ## The voice oracle pipeline
 
@@ -263,13 +264,14 @@ TEXT field).
 
 ## Build / flash (full incantation -- self-contained)
 
-The toolchain (`.esp/`, `.espressif/`) is in the repo (Dropbox-synced), so this
-works on any **Apple-Silicon (arm64)** Mac. From the repo root:
+The toolchain (`.esp/`, `.espressif/`) is in the repo (Dropbox-synced) and ships
+**both** a `idf5.5_py3.9_env` (x86_64) and a `idf5.5_py3.14_env` (arm64). Just set
+`BISC8_IDF_TOOLS_PATH` and let `tools/idf_env.sh` **auto-pick the env by `uname -m`**.
+From the repo root:
 
 ```sh
-export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"
-export BISC8_IDF_PYTHON_ENV_PATH="$PWD/.espressif/python_env/idf5.5_py3.14_env"
-. tools/idf_env.sh
+export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"   # toolchain lives in-repo
+. tools/idf_env.sh                              # auto-picks py3.9 (x86_64) or py3.14 (arm64)
 idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build
 ls /dev/cu.usbmodem*    # find the port (re-enumerates on replug)
 idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p <PORT> flash monitor
@@ -279,8 +281,13 @@ Critical gotchas:
 - **Build OUTSIDE Dropbox** (`-B "$HOME/bisc8-build"`, local SSD): the in-tree
   `build/` crawls under the FUSE sync layer and is stale anyway. This dir is local,
   so on a fresh machine the first build runs from scratch (a few minutes).
-- **Must use the arm64 env** (`idf5.5_py3.14_env`). The repo also ships an
-  x86_64 `idf5.5_py3.9_env` that crashes idf.py ("incompatible architecture ...
-  pydantic_core") -- the `BISC8_IDF_PYTHON_ENV_PATH` export above avoids it.
-- Host tests: `python3 -m pytest tests/` (any arm64 python3 with pytest).
+- **Match the env to the host arch — do NOT force one.** `idf_env.sh` picks it from
+  `uname -m`. **The current flash Mac is Intel x86_64** → it uses `idf5.5_py3.9_env`
+  (confirmed building & flashing fine). Do NOT export
+  `BISC8_IDF_PYTHON_ENV_PATH=.../idf5.5_py3.14_env` here: the arm64 env has no working
+  `python` on this box (`env: python: No such file or directory`), and `arch -arm64`
+  fails (Intel hardware). On an Apple-Silicon Mac the script auto-picks py3.14
+  instead — also fine. The rule: let the script choose.
+- Host tests: `python3 -m pytest tests/` (any python3 with pytest; the in-tree env
+  lacks it).
 - SNAP a screen: `tools/capture_epaper_snapshot.py --before-command "SCREEN ..."`.
