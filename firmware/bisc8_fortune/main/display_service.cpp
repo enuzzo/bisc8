@@ -665,14 +665,25 @@ void DisplayService::TickVoiceAnim() {
 void DisplayService::StartVoiceAnim(bool is_mic) {
     voice_anim_is_mic_ = is_mic;
     voice_anim_phase_ = 0;
-    voice_anim_ticks_left_ = 16;  // ~12s of pulsing, then settle (e-ink bounded)
     if (is_mic) {
-        set_hidden(mic_wave1_, true);
-        set_hidden(mic_wave2_, true);
-    } else {
-        set_hidden(wait_dot2_, true);
-        set_hidden(wait_dot3_, true);
+        // CAPTURE IS LIVE during the mic ("listening") screen. Each animation
+        // tick triggers an e-ink PARTIAL REFRESH, and on this single-core
+        // ESP32-C6 that long SPI/BUSY-wait steals the core from the I2S capture
+        // task (prio 4), overflowing the mic DMA (~90 ms) and dropping ~2/3 of
+        // the audio as a periodic stutter -- the 750 ms timer period lined up
+        // exactly with the measured maxRead (~735-776 ms) and the per-recording
+        // [EPD] flush cadence. So render the listening screen ONCE, statically
+        // (both mic waves shown), and start NO refresh timer: zero screen
+        // activity while the mic is recording. The "thinking" screen below runs
+        // AFTER capture, so it keeps its pulse.
+        voice_anim_ticks_left_ = 0;
+        set_hidden(mic_wave1_, false);
+        set_hidden(mic_wave2_, false);
+        return;
     }
+    voice_anim_ticks_left_ = 16;  // ~12s of pulsing, then settle (e-ink bounded)
+    set_hidden(wait_dot2_, true);
+    set_hidden(wait_dot3_, true);
     if (voice_anim_timer_ == nullptr) {
         voice_anim_timer_ = lv_timer_create(&DisplayService::VoiceAnimThunk, 750, this);
     }

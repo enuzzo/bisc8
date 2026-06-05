@@ -76,6 +76,8 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
   <div class="titlebar"><div class="close"></div><div class="ttl"><span class="mascot"></span>Bisc8</div></div>
   <div class="wrap">
 
+    <p data-i18n="tagline" style="text-align:center;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:2px 0 14px;color:var(--ink);">briciomanzia tascabile</p>
+
     <div class="status">
       <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
       <div class="cell"><div class="k" data-i18n="st_net">Rete</div><div class="v" data-bind="network_label">setup</div></div>
@@ -176,7 +178,7 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
 
 <script>
 const I18N={
- it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",
+ it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",tagline:"briciomanzia tascabile",
  wifi_label:"Wi-Fi",wifi_hint:"Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.",
  wifi_scan:"Cerca reti",wifi_scan_note:"le reti vicine, niente di più.",scan_h:"Reti trovate",
  ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
@@ -194,15 +196,15 @@ const I18N={
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
  resetConfirm:"Cancellare tutta la configurazione locale?",resetDone:"Configurazione cancellata"},
- en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",
+ en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",tagline:"pocket crumb-oracle",
  wifi_label:"Wi-Fi",wifi_hint:"Saved networks stay right here, on the device. No cloud, no nonsense.",
  wifi_scan:"Scan",wifi_scan_note:"the networks nearby, nothing more.",scan_h:"Networks found",
  ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
- lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The responsi follow suit.",
+ lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The readings follow suit.",
  oracle_label:"Oracle",oracle_hint:"The key lives here and nowhere else. We don't go bragging about it.",
  api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",
  save_oracle:"Save Oracle",key_stored:"Stored key:",
- email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the responsi",yes:"Yes",no:"No",
+ email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the readings",yes:"Yes",no:"No",
  relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
  rec_lbl:"Recipient",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
@@ -212,15 +214,15 @@ const I18N={
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
  resetConfirm:"Wipe all local configuration?",resetDone:"Configuration wiped"},
- es:{st_state:"Estado",st_net:"Red",st_addr:"Dirección",st_lang:"Idioma",
+ es:{st_state:"Estado",st_net:"Red",st_addr:"Dirección",st_lang:"Idioma",tagline:"migamancia de bolsillo",
  wifi_label:"Wi-Fi",wifi_hint:"Las redes guardadas se quedan aquí, en el dispositivo. Sin nube, sin líos.",
  wifi_scan:"Buscar redes",wifi_scan_note:"las redes cercanas, nada más.",scan_h:"Redes encontradas",
  ssid:"SSID",password:"Contraseña",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
- lang_label:"Idioma",lang_hint:"En qué lengua vaticina el oráculo. Los responsi la siguen.",
+ lang_label:"Idioma",lang_hint:"En qué lengua vaticina el oráculo. Las lecturas la siguen.",
  oracle_label:"Oráculo",oracle_hint:"La clave vive solo aquí. No la andamos pregonando.",
  api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",
  save_oracle:"Guardar Oráculo",key_stored:"Clave guardada:",
- email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda los responsi",yes:"Sí",no:"No",
+ email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda las lecturas",yes:"Sí",no:"No",
  relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"déjalo vacío para no tocarlo",save_email:"Guardar Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
