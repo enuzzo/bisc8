@@ -34,6 +34,7 @@ constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTO
 constexpr uint32_t kMinimumBootSplashMs = 5000;
 constexpr uint32_t kOnlineStatusSplashMs = 2800;
 constexpr uint32_t kLowPowerSplashMs = 1600;
+constexpr uint32_t kConnectFailedSplashMs = 2600;
 constexpr uint8_t kLowBatteryWarnPct = 12;
 
 // Audio -> display state trampolines: AudioService fires these from its
@@ -133,6 +134,9 @@ bool handle_serial_command(const char *line) {
         if (strcmp(which, "STATUS") == 0) {
             return post_serial_event(AppEvent::ShowStatus, "screen status");
         }
+        if (strcmp(which, "CONNFAIL") == 0) {
+            return post_serial_event(AppEvent::PreviewConnectFailed, "screen connect-failed");
+        }
     }
     return false;
 }
@@ -224,6 +228,16 @@ extern "C" void app_main(void) {
         connectivity.StartSetupPortal(display, portal, startup_language, true);
         setup_mode_active = true;
     } else if (connectivity.TryKnownNetworks(settings, display, startup_language, false) != ESP_OK) {
+        if (settings.wifi_count > 0) {
+            // We had saved networks but reached none: name the one that failed
+            // before dropping into the setup portal, so a just-saved network
+            // gives the user a clear "couldn't connect" instead of a silent
+            // bounce back to setup.
+            DebugSerial::LogAlways("[WIFI]", "saved networks unreachable; last=%s",
+                                   connectivity.LastAttemptSsid().c_str());
+            display.ShowWifiConnectFailed(connectivity.LastAttemptSsid().c_str(), startup_language);
+            vTaskDelay(pdMS_TO_TICKS(kConnectFailedSplashMs));
+        }
         connectivity.StartSetupPortal(display, portal, startup_language, true);
         setup_mode_active = true;
     }
@@ -379,6 +393,14 @@ extern "C" void app_main(void) {
             case AppEvent::PreviewLowPower:
                 g_state = "low-power";
                 display.ShowLowPower(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewConnectFailed:
+                g_state = "connect-failed";
+                display.ShowWifiConnectFailed(
+                    settings.wifi_count > 0 ? settings.wifi[0].ssid.c_str() : "Casa Wi-Fi",
+                    ParseLanguage(settings.language.c_str()));
                 g_state = "idle";
                 break;
 

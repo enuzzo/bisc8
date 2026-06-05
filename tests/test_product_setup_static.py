@@ -328,9 +328,11 @@ def test_wifi_save_tests_credentials_and_requires_reboot_to_apply():
 
     wifi_body = source.split("esp_err_t WebPortal::HandleWifiCredentials", 1)[1].split("\nesp_err_t WebPortal::", 1)[0]
     assert "DeviceSettings candidate = *portal->settings_" in wifi_body
-    assert "portal->connectivity_->TestCredentials" in wifi_body
     assert "*portal->settings_ = candidate" in wifi_body
-    assert "Could not connect" in wifi_body
+    # Save-then-restart: the handler saves and asks for a restart; it does NOT
+    # live-test in AP mode (single-radio channel switch drops the portal).
+    assert "reboot_required_ = true" in wifi_body
+    assert "TestCredentials" not in wifi_body
 
     for token in (
         "id=\"rebar\"",

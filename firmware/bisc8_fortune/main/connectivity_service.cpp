@@ -284,6 +284,7 @@ esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, 
     dns_.Stop();
     online_ = false;
     status_ = WifiStatus{};
+    last_attempt_ssid_.clear();
 
     esp_err_t err = EnsureInitialized();
     if (err != ESP_OK) {
@@ -320,6 +321,7 @@ esp_err_t ConnectivityService::TryKnownNetworks(const DeviceSettings &settings, 
             if (visible[i] != want_visible) {
                 continue;
             }
+            last_attempt_ssid_ = settings.wifi[i].ssid;
             err = ConnectToNetwork(settings.wifi[i].ssid.c_str(), settings.wifi[i].password.c_str(), display, language, show_progress);
             if (err == ESP_OK) {
                 return ESP_OK;
@@ -407,6 +409,10 @@ bool ConnectivityService::Online() const {
 
 const WifiStatus &ConnectivityService::Status() const {
     return status_;
+}
+
+const std::string &ConnectivityService::LastAttemptSsid() const {
+    return last_attempt_ssid_;
 }
 
 }  // namespace bisc8

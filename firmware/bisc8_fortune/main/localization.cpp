@@ -51,6 +51,7 @@ constexpr LocalizedStrings kEnglish = {
     "Resting",
     "Click to wake me up",
     "on your phone or pc",
+    "couldn't reach\n%s",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -98,6 +99,7 @@ constexpr LocalizedStrings kSpanish = {
     "Reposo",
     "Pulsa para despertarme",
     "con el móvil o pc",
+    "no alcanzo\n%s",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -145,6 +147,7 @@ constexpr LocalizedStrings kItalian = {
     "Riposo",
     "Premi per svegliarmi",
     "col telefono o pc",
+    "non raggiungo\n%s",
 };
 
 }  // namespace

@@ -30,6 +30,9 @@ public:
     esp_err_t StartSetupPortal(DisplayService &display, WebPortal &portal, Language language, bool show_display = true);
     bool Online() const;
     const WifiStatus &Status() const;
+    // SSID of the last saved network we attempted at boot (empty if none); used
+    // to tell the user which network we could not reach.
+    const std::string &LastAttemptSsid() const;
     void UpdateConnectedIp(const char *ip);
     void MarkDisconnected();
 
@@ -43,6 +46,7 @@ private:
     bool initialized_ = false;
     CaptiveDnsService dns_;
     WifiStatus status_;
+    std::string last_attempt_ssid_;
 };
 
 }  // namespace bisc8

@@ -22,6 +22,7 @@ public:
     void ShowIdle(size_t fortune_count, Language language);
     void ShowWifiConnecting(const char *ssid, int seconds_left, Language language);
     void ShowWifiSetup(const char *ssid, const char *url, Language language);
+    void ShowWifiConnectFailed(const char *ssid, Language language);
     void ShowFortune(const char *fortune, size_t index, size_t count);
     void ShowVoiceListening(Language language);
     void ShowVoiceCooking(Language language);

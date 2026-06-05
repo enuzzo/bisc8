@@ -152,6 +152,18 @@ void CopyLangCode(const char *code, char *dst, size_t dst_len) {
     dst[i] = '\0';
 }
 
+// Page titles render in UPPERCASE so they read as headings, distinct from the
+// body below. ASCII-only fold: multibyte UTF-8 (accents) passes through
+// untouched, which is fine for the short title strings we use.
+const char *UpperAscii(const char *src, char *dst, size_t dst_len) {
+    size_t i = 0;
+    for (; src != nullptr && src[i] != '\0' && i + 1 < dst_len; ++i) {
+        dst[i] = static_cast<char>(toupper((unsigned char)src[i]));
+    }
+    dst[i] = '\0';
+    return dst;
+}
+
 const char *SetupDisplayAddress(const char *url, char *buffer, size_t buffer_len) {
     if (buffer == nullptr || buffer_len == 0) {
         return "";
@@ -493,7 +505,8 @@ void DisplayService::ResetAuxLayers(bool speaking) {
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
-    lv_label_set_text(title_label_, title != nullptr ? title : "");
+    char title_upper[64];
+    lv_label_set_text(title_label_, title != nullptr ? UpperAscii(title, title_upper, sizeof(title_upper)) : "");
     lv_label_set_text(body_label_, body != nullptr ? body : "");
     lv_label_set_text(footer_left_, footer != nullptr ? footer : "");
     lv_obj_update_layout(screen_);
@@ -784,7 +797,8 @@ void DisplayService::ShowIntro(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
-        lv_label_set_text(title_label_, strings.intro_title);
+        char title_upper[32];
+        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
         lv_label_set_text(body_label_, strings.intro_body);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
@@ -867,10 +881,24 @@ void DisplayService::ShowWifiSetup(const char *ssid, const char *url, Language l
     snprintf(body, sizeof(body), "%s\n\n%s", net, open_line);
     if (Lvgl_lock(-1)) {
         LayoutWifiSetup();
-        lv_label_set_text(title_label_, strings.wifi_setup_title);
+        char title_upper[48];
+        lv_label_set_text(title_label_, UpperAscii(strings.wifi_setup_title, title_upper, sizeof(title_upper)));
         lv_label_set_text(body_label_, body);
         lv_label_set_text(footer_left_, strings.wifi_setup_hint);
         lv_obj_update_layout(screen_);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowWifiConnectFailed(const char *ssid, Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    char body[96];
+    snprintf(body, sizeof(body), strings.wifi_connect_failed_body,
+             (ssid == nullptr || ssid[0] == '\0') ? "Wi-Fi" : ssid);
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutMessage();
+        SetText(strings.wifi_connecting_title, body, "");
         Lvgl_unlock();
     }
 }
@@ -952,7 +980,8 @@ void DisplayService::ShowMicDone(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
-        lv_label_set_text(title_label_, strings.intro_title);
+        char title_upper[32];
+        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
         lv_label_set_text(body_label_, strings.intro_body);
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
@@ -1037,7 +1066,7 @@ void DisplayService::ShowLowPower(Language language) {
     if (Lvgl_lock(-1)) {
         RequestFullRefresh();
         LayoutLowPower();
-        lv_label_set_text(title_label_, "Bisc8");
+        lv_label_set_text(title_label_, "BISC8");
         lv_label_set_text(body_label_, "Zzz ...zzzz....");
         lv_label_set_text(footer_left_, strings.low_power_body);
         lv_obj_update_layout(screen_);

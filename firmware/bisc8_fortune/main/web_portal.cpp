@@ -217,7 +217,7 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
 
 <div class="rebar" id="rebar">
   <div class="ic"><span class="mascot"></span></div>
-  <div class="txt"><b data-i18n="reboot_title">Wi-Fi pronta.</b><span data-i18n="reboot_msg">Testata e salvata. Riavvia per applicarla.</span></div>
+  <div class="txt"><b data-i18n="reboot_title">Wi-Fi salvata.</b><span data-i18n="reboot_msg">Riavvia per connettere. L'esito appare sullo schermo del dispositivo.</span></div>
   <button class="go" type="button" id="reboot" data-i18n="reboot_now">Riavvia ora</button>
 </div>
 <div class="toast" id="toast"></div>
@@ -237,7 +237,7 @@ const I18N={
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
  firmware:"Firmware",secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
- reboot_title:"Wi-Fi pronta.",reboot_msg:"Testata e salvata. Riavvia per applicarla.",reboot_now:"Riavvia ora",
+ reboot_title:"Wi-Fi salvata.",reboot_msg:"Riavvia per connettere. L'esito appare sullo schermo del dispositivo.",reboot_now:"Riavvia ora",
  diac_label:"test diacritici",
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
@@ -255,7 +255,7 @@ const I18N={
  rec_lbl:"Recipient",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
  firmware:"Firmware",secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
- reboot_title:"Wi-Fi ready.",reboot_msg:"Tested and saved. Reboot to apply it.",reboot_now:"Reboot now",
+ reboot_title:"Wi-Fi saved.",reboot_msg:"Restart to connect. The result shows on the device screen.",reboot_now:"Restart now",
  diac_label:"diacritics test",
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
@@ -273,7 +273,7 @@ const I18N={
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
  firmware:"Firmware",secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de producción.",
- reboot_title:"Wi-Fi lista.",reboot_msg:"Probada y guardada. Reinicia para aplicarla.",reboot_now:"Reiniciar ahora",
+ reboot_title:"Wi-Fi guardada.",reboot_msg:"Reinicia para conectar. El resultado sale en la pantalla.",reboot_now:"Reiniciar ahora",
  diac_label:"test de diacríticos",
  missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
  saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",
@@ -545,7 +545,6 @@ esp_err_t WebPortal::HandleWifiCredentials(httpd_req_t *req) {
     const FormFields form = ParseForm(body);
     const std::string action = FormValue(form, "action");
     DeviceSettings candidate = *portal->settings_;
-    bool wifi_tested = false;
 
     if (action == "remove") {
         const size_t index = static_cast<size_t>(std::strtoul(FormValue(form, "index", "999").c_str(), nullptr, 10));
@@ -577,17 +576,12 @@ esp_err_t WebPortal::HandleWifiCredentials(httpd_req_t *req) {
             }
             candidate.wifi[candidate.wifi_count++] = WifiCredential{ssid, password};
         }
-        if (portal->connectivity_ == nullptr || portal->display_ == nullptr) {
-            return SendError(req, "500 Internal Server Error", "Wi-Fi tester is not ready");
-        }
-        err = portal->connectivity_->TestCredentials(ssid.c_str(), password.c_str(), *portal->display_, ParseLanguage(candidate.language.c_str()));
-        if (err != ESP_OK) {
-            // Surfaced verbatim in the portal toast; keep it actionable. The
-            // credential is NOT saved on a failed test, so the user can just fix
-            // the password and submit again.
-            return SendError(req, "400 Bad Request", "Could not connect. Check the Wi-Fi password and try again.");
-        }
-        wifi_tested = true;
+        // No live STA test here. On a single-radio ESP32-C6, associating to the
+        // home network in AP+STA mode yanks the SoftAP onto the home channel and
+        // drops the phone's portal session mid-test (the "it just rebooted, no
+        // feedback" symptom). Instead we save the network and let the user hit
+        // Restart; the device connects on a clean STA boot and shows the result
+        // on its own screen ("Connesso a X" or a "couldn't reach X" notice).
     }
 
     *portal->settings_ = candidate;
@@ -595,9 +589,7 @@ esp_err_t WebPortal::HandleWifiCredentials(httpd_req_t *req) {
     if (err != ESP_OK) {
         return SendError(req, "500 Internal Server Error", esp_err_to_name(err));
     }
-    if (wifi_tested) {
-        portal->reboot_required_ = true;
-    }
+    portal->reboot_required_ = true;  // the Wi-Fi list changed; restart to apply
     return portal->SendStatusJson(req);
 }
 
