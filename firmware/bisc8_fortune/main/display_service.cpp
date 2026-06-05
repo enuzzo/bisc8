@@ -646,7 +646,7 @@ void DisplayService::LayoutIntro() {
     style_label(footer_right_, &bisc8_font_body, LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(footer_right_, 36, 120);
     lv_obj_set_size(footer_right_, 118, 28);
-    lv_obj_set_pos(arrow_group_, 160, 122);
+    lv_obj_set_pos(arrow_group_, 160, 132);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(footer_left_, 0, 178);
@@ -848,10 +848,10 @@ void DisplayService::ShowIntro(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
-        char title_upper[32];
-        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
+        char upper[32];
+        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, upper, sizeof(upper)));
         lv_label_set_text(body_label_, strings.intro_body);
-        lv_label_set_text(footer_right_, strings.intro_press);
+        lv_label_set_text(footer_right_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
         StartArrowBlink();
@@ -1033,10 +1033,10 @@ void DisplayService::ShowMicDone(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutIntro();
-        char title_upper[32];
-        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, title_upper, sizeof(title_upper)));
+        char upper[32];
+        lv_label_set_text(title_label_, UpperAscii(strings.intro_title, upper, sizeof(upper)));
         lv_label_set_text(body_label_, strings.intro_body);
-        lv_label_set_text(footer_right_, strings.intro_press);
+        lv_label_set_text(footer_right_, UpperAscii(strings.intro_press, upper, sizeof(upper)));
         lv_label_set_text(footer_left_, strings.intro_footer);
         lv_obj_update_layout(screen_);
         StartArrowBlink();
