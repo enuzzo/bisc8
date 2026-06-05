@@ -80,18 +80,30 @@ if ($lang !== '') {
 }
 $text .= "\n-- Inviato dal tuo Bisc8\n";
 
-// --- Optional WAV attachment (the original question recording). ---
-$wav = null;
-if (!empty($_FILES['audio']) && (int)($_FILES['audio']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-    $tmp = (string)$_FILES['audio']['tmp_name'];
-    $size = (int)($_FILES['audio']['size'] ?? 0);
-    $max = ((int)$cfg['max_attach_mb']) * 1024 * 1024;
-    if ($size > 0 && $size <= $max && is_uploaded_file($tmp)) {
-        $data = file_get_contents($tmp);
-        if ($data !== false && $data !== '') {
-            $wav = $data;
-        }
+// --- Optional WAV attachments: the question recording (field "audio") and the
+//     generated answer audio (field "answer"). Either may be absent. ---
+$maxBytes = ((int)$cfg['max_attach_mb']) * 1024 * 1024;
+$readUpload = static function (string $field) use ($maxBytes): ?string {
+    if (empty($_FILES[$field]) || (int)($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return null;
     }
+    $tmp = (string)$_FILES[$field]['tmp_name'];
+    $size = (int)($_FILES[$field]['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes || !is_uploaded_file($tmp)) {
+        return null;
+    }
+    $data = file_get_contents($tmp);
+    return ($data !== false && $data !== '') ? $data : null;
+};
+
+$attachments = [];
+$question = $readUpload('audio');
+if ($question !== null) {
+    $attachments[] = ['filename' => 'domanda.wav', 'data' => $question];
+}
+$answer = $readUpload('answer_audio');  // "answer" is the answer-text POST field
+if ($answer !== null) {
+    $attachments[] = ['filename' => 'risposta.wav', 'data' => $answer];
 }
 
 $from = (string)$cfg['mail_from'] !== ''
@@ -102,13 +114,16 @@ $fromName = (string)($cfg['mail_from_name'] ?? 'Bisc8');
 $headers = ['From: ' . ($fromName !== '' ? sprintf('"%s" <%s>', addcslashes($fromName, '"'), $from) : $from),
             'MIME-Version: 1.0'];
 
-if ($wav !== null) {
+if (!empty($attachments)) {
     $boundary = 'b_' . bin2hex(random_bytes(8));
     $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
-    $body  = "--{$boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $text . "\r\n";
-    $body .= "--{$boundary}\r\nContent-Type: audio/wav; name=\"domanda.wav\"\r\n"
-           . "Content-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"domanda.wav\"\r\n\r\n"
-           . chunk_split(base64_encode($wav)) . "\r\n";
+    $body = "--{$boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $text . "\r\n";
+    foreach ($attachments as $att) {
+        $fn = $att['filename'];
+        $body .= "--{$boundary}\r\nContent-Type: audio/wav; name=\"{$fn}\"\r\n"
+               . "Content-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"{$fn}\"\r\n\r\n"
+               . chunk_split(base64_encode($att['data'])) . "\r\n";
+    }
     $body .= "--{$boundary}--\r\n";
 } else {
     $headers[] = 'Content-Type: text/plain; charset=utf-8';
@@ -118,7 +133,7 @@ if ($wav !== null) {
 
 $ok = @mail($to, $subject, $body, implode("\r\n", $headers));
 if ($ok) {
-    echo json_encode(['ok' => true, 'attached' => $wav !== null]);
+    echo json_encode(['ok' => true, 'attached' => count($attachments)]);
 } else {
     http_response_code(502);
     echo json_encode(['ok' => false, 'error' => 'mail() failed']);

@@ -28,31 +28,77 @@ void AddField(std::string &out, const std::string &boundary, const char *name, c
 }
 }  // namespace
 
-esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const OracleResponse &response, const char *audio_path) {
+esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const OracleResponse &response,
+                                        const char *audio_path, uint32_t answer_audio_bytes) {
     if (!settings.enabled || settings.recipient.empty() || settings.relay_url.empty()) {
         DebugSerial::LogAlways("[EMAIL]", "relay skipped; settings incomplete");
         return ESP_ERR_INVALID_STATE;
     }
 
-    // Read the question WAV from the spool (offset 0) and trust its header for the
-    // exact recorded length, so we attach precisely the recorded bytes.
-    const bool want_attach = (audio_path != nullptr && audio_path[0] != '\0');
     const esp_partition_t *spool =
         esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kSpoolPartition);
+
+    auto le32 = [](const uint8_t *p) {
+        return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+               (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+    };
+    auto put_le32 = [](uint8_t *p, uint32_t v) {
+        p[0] = static_cast<uint8_t>(v & 0xff);
+        p[1] = static_cast<uint8_t>((v >> 8) & 0xff);
+        p[2] = static_cast<uint8_t>((v >> 16) & 0xff);
+        p[3] = static_cast<uint8_t>((v >> 24) & 0xff);
+    };
+
+    // Question recording (spool offset 0): trust its header for the exact length.
+    const bool want_question = (audio_path != nullptr && audio_path[0] != '\0');
     uint32_t wav_total = 0;
-    if (want_attach && spool != nullptr) {
+    if (want_question && spool != nullptr) {
         uint8_t header[44] = {};
         if (esp_partition_read(spool, 0, header, sizeof(header)) == ESP_OK &&
             memcmp(header, "RIFF", 4) == 0 && memcmp(header + 8, "WAVE", 4) == 0) {
-            const uint32_t data_bytes = static_cast<uint32_t>(header[40]) | (static_cast<uint32_t>(header[41]) << 8) |
-                                        (static_cast<uint32_t>(header[42]) << 16) | (static_cast<uint32_t>(header[43]) << 24);
+            const uint32_t data_bytes = le32(header + 40);
             const uint32_t total = 44 + data_bytes;
             if (data_bytes > 0 && total <= static_cast<uint32_t>(spool->size)) {
                 wav_total = total;
             }
         }
     }
-    const bool attach = (wav_total > 0);
+    const bool attach_question = (wav_total > 0);
+
+    // Answer audio (TTS) from the reserved answer region. OpenAI streams the WAV
+    // with a 0xFFFFFFFF "unknown length" data size, so the stored header lies;
+    // we send a patched copy with the real RIFF + data sizes (computed from the
+    // true byte count the caller passes), or desktop players refuse the file.
+    uint8_t ans_hdr[128] = {};
+    uint32_t ans_hdr_len = 0;      // patched header bytes sent before the payload
+    uint32_t ans_payload_off = 0;  // where audio data begins inside the answer WAV
+    uint32_t ans_total = 0;        // whole answer WAV size relayed
+    if (answer_audio_bytes >= 44 && spool != nullptr &&
+        static_cast<uint64_t>(kVoiceAnswerSpoolOffset) + answer_audio_bytes <= spool->size) {
+        uint8_t probe[128] = {};
+        if (esp_partition_read(spool, kVoiceAnswerSpoolOffset, probe, sizeof(probe)) == ESP_OK &&
+            memcmp(probe, "RIFF", 4) == 0 && memcmp(probe + 8, "WAVE", 4) == 0) {
+            size_t p = 12;
+            uint32_t data_size_field_pos = 0;
+            while (p + 8 <= sizeof(probe)) {
+                const uint32_t csize = le32(probe + p + 4);
+                if (memcmp(probe + p, "data", 4) == 0) {
+                    data_size_field_pos = static_cast<uint32_t>(p + 4);
+                    ans_payload_off = static_cast<uint32_t>(p + 8);
+                    break;
+                }
+                p += 8 + csize + (csize & 1);
+            }
+            if (ans_payload_off >= 44 && ans_payload_off <= sizeof(probe) && answer_audio_bytes > ans_payload_off) {
+                ans_total = answer_audio_bytes;
+                ans_hdr_len = ans_payload_off;
+                memcpy(ans_hdr, probe, ans_hdr_len);
+                put_le32(ans_hdr + 4, ans_total - 8);                                  // RIFF chunk size
+                put_le32(ans_hdr + data_size_field_pos, ans_total - ans_payload_off);  // data chunk size
+            }
+        }
+    }
+    const bool attach_answer = (ans_total > 0);
 
     const std::string boundary = kEmailBoundary;
     std::string preamble;
@@ -62,15 +108,24 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     AddField(preamble, boundary, "answer", Str(response.oracle_answer_full));
     AddField(preamble, boundary, "lang", Str(response.detected_language));
 
-    std::string file_header;
-    if (attach) {
-        file_header += "--" + boundary + "\r\n";
-        file_header += "Content-Disposition: form-data; name=\"audio\"; filename=\"question.wav\"\r\n";
-        file_header += "Content-Type: audio/wav\r\n\r\n";
-    }
-    const std::string epilogue = std::string(attach ? "\r\n" : "") + "--" + boundary + "--\r\n";
-    const int content_length =
-        static_cast<int>(preamble.size() + file_header.size() + (attach ? wav_total : 0) + epilogue.size());
+    // Each file part is self-terminating (body followed by CRLF), so question +
+    // answer concatenate cleanly and a missing question still yields valid MIME.
+    auto file_part_header = [&](const char *field, const char *filename) {
+        std::string h = "--" + boundary + "\r\n";
+        h += "Content-Disposition: form-data; name=\"" + std::string(field) + "\"; filename=\"" +
+             std::string(filename) + "\"\r\n";
+        h += "Content-Type: audio/wav\r\n\r\n";
+        return h;
+    };
+    const std::string fh_q = attach_question ? file_part_header("audio", "question.wav") : std::string();
+    // "answer_audio", not "answer": "answer" is already the answer-TEXT form field.
+    const std::string fh_a = attach_answer ? file_part_header("answer_audio", "answer.wav") : std::string();
+    const std::string closing = "--" + boundary + "--\r\n";
+    const int content_length = static_cast<int>(
+        preamble.size() +
+        (attach_question ? fh_q.size() + wav_total + 2 : 0) +  // +2: CRLF terminating the part body
+        (attach_answer ? fh_a.size() + ans_total + 2 : 0) +
+        closing.size());
 
     esp_http_client_config_t cfg = {};
     cfg.url = settings.relay_url.c_str();
@@ -109,25 +164,38 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
         return err;
     }
 
-    bool ok = write_all(preamble.data(), preamble.size());
-    if (ok && attach) {
-        ok = write_all(file_header.data(), file_header.size());
-        uint8_t chunk[2048];
-        uint32_t off = 0;
-        uint32_t remaining = wav_total;
-        while (ok && remaining > 0) {
+    // Stream a [base, base+len) spool region to the client in flash-friendly chunks.
+    uint8_t chunk[2048];
+    auto stream_region = [&](uint32_t base, uint32_t len) -> bool {
+        uint32_t off = base;
+        uint32_t remaining = len;
+        while (remaining > 0) {
             const uint32_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
             if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
-                ok = false;
-                break;
+                return false;
             }
-            ok = write_all(reinterpret_cast<const char *>(chunk), n);
+            if (!write_all(reinterpret_cast<const char *>(chunk), n)) {
+                return false;
+            }
             off += n;
             remaining -= n;
         }
+        return true;
+    };
+
+    bool ok = write_all(preamble.data(), preamble.size());
+    if (ok && attach_question) {
+        ok = write_all(fh_q.data(), fh_q.size()) && stream_region(0, wav_total) && write_all("\r\n", 2);
+    }
+    if (ok && attach_answer) {
+        // Patched header first, then the audio payload that follows it in flash.
+        ok = write_all(fh_a.data(), fh_a.size()) &&
+             write_all(reinterpret_cast<const char *>(ans_hdr), ans_hdr_len) &&
+             stream_region(kVoiceAnswerSpoolOffset + ans_payload_off, ans_total - ans_payload_off) &&
+             write_all("\r\n", 2);
     }
     if (ok) {
-        ok = write_all(epilogue.data(), epilogue.size());
+        ok = write_all(closing.data(), closing.size());
     }
 
     int status = 0;
@@ -142,8 +210,9 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
 
-    DebugSerial::LogAlways("[EMAIL]", "relay POST status=%d wav=%uB attach=%d", status,
-                           static_cast<unsigned>(wav_total), attach ? 1 : 0);
+    DebugSerial::LogAlways("[EMAIL]", "relay POST status=%d question=%uB answer=%uB", status,
+                           static_cast<unsigned>(attach_question ? wav_total : 0),
+                           static_cast<unsigned>(attach_answer ? ans_total : 0));
     if (!ok) {
         return ESP_FAIL;
     }

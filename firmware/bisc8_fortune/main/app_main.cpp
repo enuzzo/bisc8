@@ -86,20 +86,24 @@ struct EmailJob {
     const EmailSettings *settings;
     const OracleResponse *response;
     const char *audio_path;
+    uint32_t answer_audio_bytes;
     esp_err_t result;
     TaskHandle_t caller;
 };
 
 void EmailTaskEntry(void *arg) {
     auto *job = static_cast<EmailJob *>(arg);
-    job->result = job->email->SendOracleEmail(*job->settings, *job->response, job->audio_path);
+    job->result = job->email->SendOracleEmail(*job->settings, *job->response, job->audio_path,
+                                              job->answer_audio_bytes);
     xTaskNotifyGive(job->caller);
     vTaskDelete(nullptr);
 }
 
 esp_err_t RunEmailOnWorker(EmailService &email, const EmailSettings &settings,
-                           const OracleResponse &response, const char *audio_path) {
-    EmailJob job{&email, &settings, &response, audio_path, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+                           const OracleResponse &response, const char *audio_path,
+                           uint32_t answer_audio_bytes) {
+    EmailJob job{&email, &settings, &response, audio_path, answer_audio_bytes, ESP_FAIL,
+                 xTaskGetCurrentTaskHandle()};
     if (xTaskCreate(EmailTaskEntry, "email", 16384, &job, 5, nullptr) != pdPASS) {
         DebugSerial::LogAlways("[EMAIL]", "worker task create failed (no mem)");
         return ESP_ERR_NO_MEM;
@@ -447,9 +451,12 @@ extern "C" void app_main(void) {
                         audio.PlayAnswerAudio(oracle.AnswerAudioBytes());  // speaks the answer; animates the glyph
                     }
                     if (settings.email.enabled) {
-                        // Relay transcript + answer + the question WAV (still in the
-                        // spool here, before the rearm erases it).
-                        RunEmailOnWorker(email, settings.email, response, wav_path);
+                        // Relay transcript + answer + the question WAV and the
+                        // generated answer audio (both still in the spool here,
+                        // before the rearm erases the question region).
+                        const uint32_t answer_bytes =
+                            oracle.HasAnswerAudio() ? oracle.AnswerAudioBytes() : 0;
+                        RunEmailOnWorker(email, settings.email, response, wav_path, answer_bytes);
                     }
                 } else {
                     const OracleErr e = OracleErrorInfo(StringsFor(language), oracle.LastFailure());
