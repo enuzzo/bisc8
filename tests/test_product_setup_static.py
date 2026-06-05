@@ -783,10 +783,7 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
     assert "docs/AI_HANDOFF.md" in readme
     for phrase in (
         "VoiceOracleService",
-        "ESP_ERR_NOT_FINISHED",
-        "OpenAI STT/Responses/TTS transport is not implemented yet",
         "audio/transcriptions",
-        "responses",
         "audio/speech",
         "spool://question.wav",
         "Bisc8-XXXX",
@@ -799,6 +796,11 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
         "Run this before claiming completion",
     ):
         assert phrase in handoff
+    # The online oracle is implemented and confirmed on hardware now; the handoff's
+    # status banner must say so (it previously pinned the pre-oracle "not implemented
+    # yet" / Responses-API era, which was stale and is no longer required here).
+    assert "fully implemented" in handoff
+    assert "chat/completions" in handoff
 
 
 def test_public_flash_page_uses_web_serial_manifest_without_secrets():

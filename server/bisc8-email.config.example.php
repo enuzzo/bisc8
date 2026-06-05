@@ -22,6 +22,10 @@ return [
     'mail_from' => '',
     'mail_from_name' => 'Bisc8',
 
+    // Local timezone for the email's spelled-out date/time (e.g. "Giovedì 5
+    // giugno 2026, 18:42"). Defaults to Europe/Rome if omitted.
+    'timezone' => 'Europe/Rome',
+
     // Reject attachments larger than this (the question WAV is well under 1 MB).
     'max_attach_mb' => 9,
 ];

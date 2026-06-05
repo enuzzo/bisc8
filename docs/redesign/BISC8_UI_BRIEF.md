@@ -29,7 +29,7 @@ Therefore:
 
 ## 2. References (look at these first)
 
-All under `docs/claude/guidelines/`:
+All under `docs/redesign/`:
 
 - `ui-01.webp` and `ui-01.jpg`: photos of the physical device.
 - `ref-device-screens.html`: pixel-accurate target for every device screen at true 200x200.

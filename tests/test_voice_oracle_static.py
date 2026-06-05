@@ -128,12 +128,13 @@ def test_oracle_failures_map_to_reportable_codes():
     assert "voice_error_generic_body" in loc_h
 
 
-def test_tts_pins_a_mystical_spoken_style():
-    # The oracle's spoken delivery is pinned in code (a warm mystical seer) so it
-    # stays consistent; the model only adds per-answer emotional colour.
+def test_tts_pins_a_theatrical_spoken_style():
+    # The oracle's spoken delivery is pinned in code (a theatrical seer in the
+    # throes of a vision) so it stays consistent; the model only adds per-answer
+    # emotional colour via voice_direction.
     src = read(ORACLE_CPP)
-    assert "mystical seer" in src
-    assert "quiet wonder" in src
+    assert "theatrical seer" in src
+    assert "rises and falls" in src
 
 
 def test_no_long_dashes_in_oracle_prompts():

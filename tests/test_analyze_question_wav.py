@@ -8,7 +8,6 @@ domanda.wav are themselves trustworthy.
 import importlib.util
 import math
 import struct
-import tempfile
 import wave
 from pathlib import Path
 

@@ -79,7 +79,7 @@ body{background:repeating-conic-gradient(var(--desk) 0% 25%,#c6c0b3 0% 50%) 0 0/
 .hint.below{margin:10px 0 0;}
 label.fld{display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 4px;}
 input,select{font-family:inherit;width:100%;min-height:42px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:8px 10px;font-size:16px;border-radius:0;}
-input:focus,select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--ink);}
+input:focus,select:focus{outline:none;box-shadow:3px 3px 0 var(--ink);}
 .field{margin-bottom:11px;}.pwd{position:relative;display:block;}.pwd>input{padding-right:48px;}.pwd .eye{position:absolute;right:2px;top:2px;bottom:2px;width:42px;border:0;border-left:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0;}.pwd .eye.on{background:var(--ink);color:var(--paper);}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
 .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;}
@@ -87,6 +87,7 @@ input:focus,select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--ink);}
 .btn:active{transform:translate(3px,3px);box-shadow:none;}
 .btn.sec{background:var(--paper);color:var(--ink);}
 .btn:disabled{opacity:.55;cursor:wait;}
+.btn:focus-visible,.seg b:focus-visible,.scan button:focus-visible,.eye:focus-visible,details summary:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
 .seg{display:inline-flex;border:2px solid var(--ink);}
 .seg b{font-weight:700;padding:9px 16px;cursor:pointer;font-size:15px;min-width:46px;text-align:center;user-select:none;}
 .seg b+b{border-left:2px solid var(--ink);}
@@ -124,6 +125,8 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
   <div class="titlebar"><div class="close"></div><div class="ttl"><span class="mascot"></span>Bisc8</div></div>
   <div class="wrap">
 
+    <p data-i18n="tagline" style="text-align:center;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:2px 0 14px;color:var(--ink);">briciomanzia tascabile</p>
+
     <div class="status">
       <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
       <div class="cell"><div class="k" data-i18n="st_net">Rete</div><div class="v" data-bind="network_label">setup</div></div>
@@ -141,7 +144,7 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
       <div class="scan"><div class="h"><span data-i18n="scan_h">Reti trovate</span></div><div id="scanList"></div></div>
       <form data-api="/api/wifi/credentials">
         <div class="field"><label class="fld" data-i18n="ssid">SSID</label><input id="ssid" name="ssid" autocomplete="off" required></div>
-        <div class="field"><label class="fld" data-i18n="password">Password</label><span class="pwd"><input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="pwd_ph"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+        <div class="field"><label class="fld" data-i18n="password">Password</label><span class="pwd"><input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="pwd_ph"><button class="eye" type="button" aria-pressed="false" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_wifi">Salva Wi-Fi</button></div>
       </form>
       <form data-api="/api/wifi/credentials" class="remove">
@@ -149,7 +152,7 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
         <div class="row" style="margin-top:11px">
           <span data-i18n="forget_label">Dimentica slot</span>
           <span style="display:flex;gap:8px;align-items:center">
-            <input name="index" inputmode="numeric" placeholder="0" style="width:58px;min-height:38px;text-align:center">
+            <input name="index" inputmode="numeric" placeholder="0" aria-label="slot" style="width:58px;min-height:42px;text-align:center">
             <button class="btn sec" type="submit" data-i18n="forget">Dimentica</button>
           </span>
         </div>
@@ -166,16 +169,15 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
       <span class="glabel" data-i18n="oracle_label">Oracolo</span>
       <p class="hint" data-i18n="oracle_hint">.</p>
       <form data-api="/api/openai">
-        <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+        <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" aria-pressed="false" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         <div class="two">
           <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div>
-          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-5.4-mini"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-4o-mini"></div>
         </div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-realtime-1.5"></div>
-          <div class="field"><label class="fld" data-i18n="voice">Voce</label><select name="voice"><option value="">- mantieni -</option><option value="coral">coral</option><option value="alloy">alloy</option><option value="ash">ash</option><option value="ballad">ballad</option><option value="cedar">cedar</option><option value="echo">echo</option><option value="fable">fable</option><option value="marin">marin</option><option value="nova">nova</option><option value="onyx">onyx</option><option value="sage">sage</option><option value="shimmer">shimmer</option><option value="verse">verse</option></select></div>
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-4o-mini-tts"></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><input name="voice" placeholder="alloy"></div>
         </div>
-        <div class="field"><label class="fld">Ragionamento (reasoning)</label><select name="reasoning_effort"><option value="">- mantieni -</option><option value="off">spento</option><option value="minimal">minimal</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>
       </form>
       <p class="hint below"><span data-i18n="key_stored">Chiave salvata:</span> <span data-bind="openai_key">missing</span></p>
@@ -193,7 +195,7 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
         <details>
           <summary><span data-i18n="relay_adv">Relay (avanzato)</span></summary>
           <div class="field"><label class="fld" data-i18n="relay_url">URL relay</label><input name="relay_url" inputmode="url" placeholder="https://relay.example.com/v1/bisc8/email"></div>
-          <div class="field"><label class="fld" data-i18n="relay_token">Token relay</label><span class="pwd"><input name="relay_token" type="password" data-i18n-placeholder="keep_token"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
+          <div class="field"><label class="fld" data-i18n="relay_token">Token relay</label><span class="pwd"><input name="relay_token" type="password" data-i18n-placeholder="keep_token"><button class="eye" type="button" aria-pressed="false" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         </details>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_email">Salva Email</button></div>
       </form>
@@ -218,14 +220,14 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
 
 <div class="rebar" id="rebar">
   <div class="ic"><span class="mascot"></span></div>
-  <div class="txt"><b data-i18n="reboot_title">Modifiche salvate</b><span data-i18n="reboot_msg">Riavvia per applicarle.</span></div>
-  <button class="go" type="button" id="reboot" data-i18n="reboot_now">Applica e riavvia</button>
+  <div class="txt"><b data-i18n="reboot_title">Wi-Fi pronta.</b><span data-i18n="reboot_msg">Testata e salvata. Riavvia per applicarla.</span></div>
+  <button class="go" type="button" id="reboot" data-i18n="reboot_now">Riavvia ora</button>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 const I18N={
- it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",
+ it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",tagline:"briciomanzia tascabile",
  wifi_label:"Wi-Fi",wifi_hint:"Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.",
  wifi_scan:"Cerca reti",wifi_scan_note:"le reti vicine, niente di più.",scan_h:"Reti trovate",
  ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
@@ -238,43 +240,43 @@ const I18N={
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
  firmware:"Firmware",secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
- reboot_title:"Modifiche salvate",reboot_msg:"Riavvia per applicarle.",reboot_now:"Applica e riavvia",
+ reboot_title:"Wi-Fi pronta.",reboot_msg:"Testata e salvata. Riavvia per applicarla.",reboot_now:"Riavvia ora",
  diac_label:"test diacritici",
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
  resetConfirm:"Cancellare tutta la configurazione locale?",resetDone:"Configurazione cancellata"},
- en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",
+ en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",tagline:"pocket crumbomancy",
  wifi_label:"Wi-Fi",wifi_hint:"Saved networks stay right here, on the device. No cloud, no nonsense.",
  wifi_scan:"Scan",wifi_scan_note:"the networks nearby, nothing more.",scan_h:"Networks found",
  ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
- lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The responsi follow suit.",
+ lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The readings follow suit.",
  oracle_label:"Oracle",oracle_hint:"The key lives here and nowhere else. We don't go bragging about it.",
  api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",
  save_oracle:"Save Oracle",key_stored:"Stored key:",
- email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the responsi",yes:"Yes",no:"No",
+ email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the readings",yes:"Yes",no:"No",
  relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
  rec_lbl:"Recipient",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
  firmware:"Firmware",secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
- reboot_title:"Changes saved",reboot_msg:"Restart to apply them.",reboot_now:"Apply & restart",
+ reboot_title:"Wi-Fi ready.",reboot_msg:"Tested and saved. Reboot to apply it.",reboot_now:"Reboot now",
  diac_label:"diacritics test",
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
  resetConfirm:"Wipe all local configuration?",resetDone:"Configuration wiped"},
- es:{st_state:"Estado",st_net:"Red",st_addr:"Dirección",st_lang:"Idioma",
+ es:{st_state:"Estado",st_net:"Red",st_addr:"Dirección",st_lang:"Idioma",tagline:"migamancia de bolsillo",
  wifi_label:"Wi-Fi",wifi_hint:"Las redes guardadas se quedan aquí, en el dispositivo. Sin nube, sin líos.",
  wifi_scan:"Buscar redes",wifi_scan_note:"las redes cercanas, nada más.",scan_h:"Redes encontradas",
  ssid:"SSID",password:"Contraseña",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
- lang_label:"Idioma",lang_hint:"En qué lengua vaticina el oráculo. Los responsi la siguen.",
+ lang_label:"Idioma",lang_hint:"En qué lengua vaticina el oráculo. Las lecturas la siguen.",
  oracle_label:"Oráculo",oracle_hint:"La clave vive solo aquí. No la andamos pregonando.",
  api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",
  save_oracle:"Guardar Oráculo",key_stored:"Clave guardada:",
- email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda los responsi",yes:"Sí",no:"No",
+ email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda las lecturas",yes:"Sí",no:"No",
  relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"déjalo vacío para no tocarlo",save_email:"Guardar Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
  reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
  firmware:"Firmware",secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de producción.",
- reboot_title:"Cambios guardados",reboot_msg:"Reinicia para aplicarlas.",reboot_now:"Aplicar y reiniciar",
+ reboot_title:"Wi-Fi lista.",reboot_msg:"Probada y guardada. Reinicia para aplicarla.",reboot_now:"Reiniciar ahora",
  diac_label:"test de diacríticos",
  missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
  saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",
@@ -290,19 +292,16 @@ function body(f){return new URLSearchParams(new FormData(f)).toString()}
 function applyLanguage(l){currentLanguage=I18N[l]?l:'en';document.documentElement.lang=currentLanguage;
  document.querySelectorAll('[data-i18n]').forEach(function(e){e.textContent=tr(e.dataset.i18n)});
  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(e){e.placeholder=tr(e.dataset.i18nPlaceholder)});
- document.querySelectorAll('#langSeg b').forEach(function(b){b.classList.toggle('on',b.dataset.lang===currentLanguage)});}
+ document.querySelectorAll('#langSeg b').forEach(function(b){var on=b.dataset.lang===currentLanguage;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});}
 function valueText(k,v){if(k==='language')return (v||'').toUpperCase();
  if(v===''||v==null||v==='missing')return tr('missing');
  if(v==='setup mode')return tr('setupMode');if(v==='online')return tr('onlineMode');if(v==='offline')return tr('offlineMode');
  if(v==='configured')return tr('configured');return v;}
 function setEmailEnabled(on){document.getElementById('emailEnabled').value=on?'1':'0';
- document.querySelectorAll('#emailSeg b').forEach(function(b){b.classList.toggle('on',(b.dataset.val==='1')===!!on)});}
+ document.querySelectorAll('#emailSeg b').forEach(function(b){var sel=(b.dataset.val==='1')===!!on;b.classList.toggle('on',sel);b.setAttribute('aria-pressed',sel)});}
 function fill(s){if(s.language)applyLanguage(s.language);
  for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(function(el){el.textContent=valueText(k,s[k])})}
  if(typeof s.email_enabled!=='undefined')setEmailEnabled(s.email_enabled);
- var dots='••••••••';
- var ak=document.querySelector('input[name="api_key"]');if(ak&&s.openai_key&&s.openai_key!=='missing')ak.placeholder=dots;
- var rt=document.querySelector('input[name="relay_token"]');if(rt&&s.email_relay==='configured')rt.placeholder=dots;
  document.getElementById('rebar').classList.toggle('show',!!s.reboot_required);}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
 document.querySelectorAll('form[data-api]').forEach(function(form){form.addEventListener('submit',async function(e){e.preventDefault();const b=form.querySelector('button[type=submit]')||form.querySelector('button');if(b)b.disabled=true;try{fill(await api(form.dataset.api,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body(form)}));note('saved')}catch(err){note(err.message)}finally{if(b)b.disabled=false}})});
@@ -311,7 +310,9 @@ document.querySelectorAll('#emailSeg b').forEach(function(b){b.addEventListener(
 document.getElementById('scan').addEventListener('click',async function(){const st=document.getElementById('scanState');const list=document.getElementById('scanList');st.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');st.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(function(n){const x=document.createElement('button');x.type='button';x.textContent=n.ssid+' · '+n.band+' · '+n.rssi;x.onclick=function(){document.getElementById('ssid').value=n.ssid};list.appendChild(x)})}catch(e){st.textContent=e.message}});
 document.getElementById('reboot').addEventListener('click',async function(){try{await api('/api/reboot',{method:'POST'});note('rebooting')}catch(e){note(e.message)}});
 document.getElementById('reset').addEventListener('click',async function(){if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
-document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);});});applyLanguage('en');refresh();setInterval(refresh,25000);
+document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);b.setAttribute('aria-pressed',show?'true':'false');b.setAttribute('aria-label',show?'hide':'show');});});
+document.querySelectorAll('.seg b').forEach(function(b){b.tabIndex=0;b.setAttribute('role','button');b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});});
+applyLanguage('en');refresh();
 </script>
 </body>
 </html>

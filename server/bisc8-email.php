@@ -161,8 +161,8 @@ $headers = ['From: ' . ($fromName !== '' ? sprintf('"%s" <%s>', addcslashes($fro
 //     strip web fonts and fall back to monospace, which keeps the terminal feel.
 //     User content is escaped; line breaks become <br>. ---
 $esc = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
-$qHtml = $transcript !== '' ? nl2br($esc($transcript)) : '<span style="color:#888;">' . $esc($S['empty']) . '</span>';
-$aHtml = $answerText !== '' ? nl2br($esc($answerText)) : '<span style="color:#bbb;">' . $esc($S['empty']) . '</span>';
+$qHtml = $transcript !== '' ? nl2br($esc($transcript)) : '<span style="font-style:italic;">' . $esc($S['empty']) . '</span>';
+$aHtml = $answerText !== '' ? nl2br($esc($answerText)) : '<span style="font-style:italic;">' . $esc($S['empty']) . '</span>';
 $langUpper = $lang !== '' ? strtoupper($esc($lang)) : '';
 $chipsHtml = '';
 foreach ($attachments as $att) {

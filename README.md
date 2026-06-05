@@ -134,14 +134,19 @@ firmware/bisc8_fortune
 Build and flash:
 
 ```sh
-source tools/idf_env.sh
-python "$IDF_PATH/tools/idf_tools.py" install --targets esp32c6
-python "$IDF_PATH/tools/idf_tools.py" install-python-env
-idf.py -C firmware/bisc8_fortune build
-idf.py -C firmware/bisc8_fortune -p /dev/cu.usbmodemXXXX flash
+export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"   # toolchain ships in-repo, no install step needed
+source tools/idf_env.sh                          # auto-picks the python env from `uname -m`
+idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build
+idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p /dev/cu.usbmodemXXXX flash
 ```
 
-`tools/idf_env.sh` chooses an architecture-specific ESP-IDF tools cache from `uname -m`, for example `~/.espressif-bisc8-x86_64` on Intel Macs and `~/.espressif-bisc8-arm64` on Apple Silicon. Keep toolchains out of the Dropbox-synced project folder, or use separate `.espressif-x86_64` and `.espressif-arm64` caches, because ESP-IDF extracts same-version tools to the same directory name for different host architectures.
+The ESP-IDF toolchain and python envs are committed in-repo under `.espressif/`
+(both an x86_64 `idf5.5_py3.9_env` and an arm64 `idf5.5_py3.14_env`), so there is
+**no `idf_tools.py install` step** — set `BISC8_IDF_TOOLS_PATH` to that in-repo dir
+and let `tools/idf_env.sh` pick the env matching your host (`uname -m`): py3.9 on
+Intel, py3.14 on Apple Silicon. Build to a LOCAL dir outside the Dropbox-synced
+tree (`-B "$HOME/bisc8-build"`); the in-tree `build/` crawls under the FUSE sync
+layer. See `docs/HANDOFF_NEXT.md` for the full build/flash notes.
 
 The current firmware profile targets the 16 MB flash board and maps the full chip. The custom partition table keeps the app at `0x10000`, reserves a 6 MB app partition, a 5 MB raw `assets` partition for future bundled media/data, and a raw `spool` partition from `0xb10000` to the end of flash for recorded voice audio and temporary generated payloads. The `assets` partition is reserved but not mounted yet.
 
@@ -208,5 +213,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-70 passed
+94 passed
 ```

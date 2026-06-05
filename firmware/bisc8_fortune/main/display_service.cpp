@@ -474,7 +474,7 @@ void DisplayService::BuildPressButton() {
     lv_obj_remove_style_all(press_btn_group_);
     lv_obj_set_style_bg_color(press_btn_group_, lv_color_hex(0x000000), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(press_btn_group_, 255, LV_PART_MAIN);
-    lv_obj_set_style_radius(press_btn_group_, 6, LV_PART_MAIN);  // rounded corners
+    lv_obj_set_style_radius(press_btn_group_, 0, LV_PART_MAIN);  // sharp corners: the whole system is hard-cornered
     lv_obj_set_style_border_width(press_btn_group_, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(press_btn_group_, 0, LV_PART_MAIN);
     lv_obj_remove_flag(press_btn_group_, LV_OBJ_FLAG_SCROLLABLE);
