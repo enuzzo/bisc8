@@ -26,7 +26,7 @@ def test_config_schema_declares_product_limits_and_secret_masking():
 
     assert "constexpr size_t kMaxWifiCredentials = 8" in header
     assert "constexpr size_t kMaxScreenAnswerChars = 100" in header
-    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 8000" in header
+    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 10000" in header
     assert "constexpr uint32_t kVoiceRecordLimitMs = 15000" in header
     assert "MaskSecret" in header
     assert 'return "***";' in source
@@ -330,7 +330,7 @@ def test_wifi_save_tests_credentials_and_requires_reboot_to_apply():
     assert "DeviceSettings candidate = *portal->settings_" in wifi_body
     assert "portal->connectivity_->TestCredentials" in wifi_body
     assert "*portal->settings_ = candidate" in wifi_body
-    assert "Wi-Fi test failed" in wifi_body
+    assert "Could not connect" in wifi_body
 
     for token in (
         "id=\"rebar\"",
@@ -387,7 +387,7 @@ def test_setup_screen_and_status_do_not_expose_or_track_pairing_pin():
     assert "strings.wifi_setup_pin_footer" not in display
     assert "wifi_setup_pin_footer" not in localization_header
     assert "PIN %s" not in localization
-    assert '"collegati a %s"' in localization
+    assert '"collegati a\\n%s"' in localization
 
     status_json = web.split("esp_err_t WebPortal::SendStatusJson", 1)[1].split("esp_err_t WebPortal::SendWifiScanJson", 1)[0]
     assert '"setup_pin"' not in status_json
@@ -506,7 +506,7 @@ def test_connected_wifi_status_exposes_sta_ip_to_web_and_intro_splash():
     assert 'data-bind="device_address"' in web
     assert "wifi_mode" in web
     assert "status.connected_ip" in display
-    assert "Connected\\n%s\\n%s" in localization
+    assert "Connected to\\n%s\\n%s" in localization
     assert "kOnlineStatusSplashMs" in app_main
     assert "display.ShowStatus(connectivity.Status(), startup_language)" in app_main
 
@@ -521,8 +521,8 @@ def test_setup_portal_uses_conservative_ap_and_http_resources():
     assert "ap_config.ap.max_connection = 2;" in connectivity
     assert "config.max_open_sockets = 3;" in web
     assert "config.backlog_conn = 2;" in web
-    assert "config.recv_wait_timeout = 8;" in web
-    assert "config.send_wait_timeout = 8;" in web
+    assert "config.recv_wait_timeout = 16;" in web
+    assert "config.send_wait_timeout = 16;" in web
     assert "GET /api/wifi/scan start" in web
 
 

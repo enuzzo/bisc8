@@ -130,6 +130,9 @@ bool handle_serial_command(const char *line) {
         if (strcmp(which, "LOWPOWER") == 0) {
             return post_serial_event(AppEvent::PreviewLowPower, "screen low-power");
         }
+        if (strcmp(which, "STATUS") == 0) {
+            return post_serial_event(AppEvent::ShowStatus, "screen status");
+        }
     }
     return false;
 }

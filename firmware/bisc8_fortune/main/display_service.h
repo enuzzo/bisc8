@@ -55,6 +55,7 @@ private:
     void BuildWifiGlyph();
     void BuildLowBatteryGlyph();
     void BuildFooterBattery();
+    void BuildSleepCorners();          // biscuit-corner ornaments for the sleep card
 
     // Layouts (call inside an Lvgl_lock).
     void LayoutBoot();                 // full-screen splash + mascot, no chrome
@@ -96,6 +97,7 @@ private:
     lv_obj_t *batt_big_group_ = nullptr; // large battery glyph (low-battery screen)
     lv_obj_t *batt_big_flash_ = nullptr; // blinking bar after the big battery glyph
     lv_obj_t *batt_icon_group_ = nullptr;// footer battery icon
+    lv_obj_t *sleep_corner_group_ = nullptr; // biscuit-corner ornaments (sleep card)
     lv_obj_t *batt_icon_fill_ = nullptr; // footer battery fill bar (width = charge)
     lv_obj_t *mascot_big_ = nullptr;
     lv_obj_t *mascot_glyph_ = nullptr;

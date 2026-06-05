@@ -199,6 +199,7 @@ void DisplayService::CreateScreen() {
         BuildWifiGlyph();
         BuildLowBatteryGlyph();
         BuildFooterBattery();
+        BuildSleepCorners();
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
@@ -349,6 +350,46 @@ void DisplayService::BuildFooterBattery() {
     set_hidden(batt_icon_group_, true);
 }
 
+void DisplayService::BuildSleepCorners() {
+    // Four corner ornaments framing the sleep card: an L-bracket plus two little
+    // "fork pricks", like the docked corners of a baked biscuit.
+    sleep_corner_group_ = lv_obj_create(screen_);
+    style_plain_obj(sleep_corner_group_);
+    lv_obj_set_pos(sleep_corner_group_, 0, 0);
+    lv_obj_set_size(sleep_corner_group_, EPD_WIDTH, EPD_HEIGHT);
+
+    constexpr int kArm = 16;   // bracket arm length
+    constexpr int kThick = 3;  // bracket thickness
+    constexpr int kIn = 6;     // inset from the screen edge
+    constexpr int kRight = 200 - kIn - kThick;   // 191
+    constexpr int kBottom = 200 - kIn - kThick;  // 191
+    constexpr int kArmR = 200 - kIn - kArm;      // 178
+    constexpr int kDot = 3;
+
+    // top-left
+    create_block(sleep_corner_group_, kIn, kIn, kArm, kThick);
+    create_block(sleep_corner_group_, kIn, kIn, kThick, kArm);
+    create_block(sleep_corner_group_, kIn + kArm + 4, kIn + 2, kDot, kDot);
+    create_block(sleep_corner_group_, kIn + 2, kIn + kArm + 4, kDot, kDot);
+    // top-right
+    create_block(sleep_corner_group_, kArmR, kIn, kArm, kThick);
+    create_block(sleep_corner_group_, kRight, kIn, kThick, kArm);
+    create_block(sleep_corner_group_, kArmR - 4 - kDot, kIn + 2, kDot, kDot);
+    create_block(sleep_corner_group_, kRight + kThick - 2 - kDot, kIn + kArm + 4, kDot, kDot);
+    // bottom-left
+    create_block(sleep_corner_group_, kIn, kBottom, kArm, kThick);
+    create_block(sleep_corner_group_, kIn, kArmR, kThick, kArm);
+    create_block(sleep_corner_group_, kIn + kArm + 4, kBottom + kThick - 2 - kDot, kDot, kDot);
+    create_block(sleep_corner_group_, kIn + 2, kArmR - 4 - kDot, kDot, kDot);
+    // bottom-right
+    create_block(sleep_corner_group_, kArmR, kBottom, kArm, kThick);
+    create_block(sleep_corner_group_, kRight, kArmR, kThick, kArm);
+    create_block(sleep_corner_group_, kArmR - 4 - kDot, kBottom + kThick - 2 - kDot, kDot, kDot);
+    create_block(sleep_corner_group_, kRight + kThick - 2 - kDot, kArmR - 4 - kDot, kDot, kDot);
+
+    set_hidden(sleep_corner_group_, true);
+}
+
 void DisplayService::SpeakTimerThunk(lv_timer_t *timer) {
     auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
     if (self != nullptr) {
@@ -448,6 +489,7 @@ void DisplayService::ResetAuxLayers(bool speaking) {
     set_hidden(speaker_group_, !speaking);
     set_hidden(wifi_group_, true);
     set_hidden(batt_big_group_, true);
+    set_hidden(sleep_corner_group_, true);
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
@@ -621,17 +663,17 @@ void DisplayService::LayoutWifiSetup() {
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 30);
-    lv_obj_set_size(title_label_, 200, 22);
+    lv_obj_set_pos(title_label_, 0, 24);
+    lv_obj_set_size(title_label_, 200, 20);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 4, 60);
-    lv_obj_set_size(body_label_, 192, 90);
+    lv_obj_set_pos(body_label_, 4, 50);
+    lv_obj_set_size(body_label_, 192, 128);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 176);
-    lv_obj_set_size(footer_left_, 200, 22);
+    lv_obj_set_pos(footer_left_, 0, 180);
+    lv_obj_set_size(footer_left_, 200, 18);
 }
 
 void DisplayService::LayoutSpeaking() {
@@ -694,28 +736,35 @@ void DisplayService::LayoutGlyphMessage() {
 }
 
 void DisplayService::LayoutLowPower() {
-    // Sleep card: a big mascot, a drowsy "Zzz" line, and a tap-to-wake hint.
+    // Sleep card: product name up top, a big centered mascot, a drowsy "Zzz"
+    // line, a tap-to-wake hint, and biscuit-corner ornaments framing it all.
     ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, true);
     set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, false);
-    set_hidden(title_label_, true);
+    set_hidden(title_label_, false);
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
+    set_hidden(sleep_corner_group_, false);
+
+    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
+    lv_obj_set_pos(title_label_, 0, 14);
+    lv_obj_set_size(title_label_, 200, 20);
 
     lv_image_set_scale(mascot_big_, 384);  // ~96px, the logo "in grande"
-    lv_obj_set_pos(mascot_big_, 52, 24);
+    lv_obj_set_pos(mascot_big_, 52, 44);    // lowered + horizontally centered
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 128);
-    lv_obj_set_size(body_label_, 200, 30);
+    lv_obj_set_pos(body_label_, 0, 144);
+    lv_obj_set_size(body_label_, 200, 28);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 166);
+    lv_obj_set_pos(footer_left_, 0, 172);
     lv_obj_set_size(footer_left_, 200, 22);
 }
 
@@ -745,28 +794,27 @@ void DisplayService::ShowIntro(Language language) {
 
 void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
+
+    if (status.setup_active && !status.online) {
+        // Pressing PWR while in setup used to render "SSID | IP" cramped onto one
+        // line. Render the exact same balanced setup screen instead.
+        ShowWifiSetup(status.setup_ssid.c_str(), status.setup_url.c_str(), language);
+        return;
+    }
+
     char body[96];
-    char footer[48];
-    snprintf(footer, sizeof(footer), "%s", strings.status_footer);
     if (status.online) {
         snprintf(body,
                  sizeof(body),
                  strings.status_online_body,
-                 status.connected_ip.empty() ? "IP pending" : status.connected_ip.c_str(),
-                 status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str());
-    } else if (status.setup_active) {
-        char address[32];
-        snprintf(body,
-                 sizeof(body),
-                 strings.status_setup_body,
-                 status.setup_ssid.empty() ? "Bisc8-XXXX" : status.setup_ssid.c_str(),
-                 SetupDisplayAddress(status.setup_url.c_str(), address, sizeof(address)));
+                 status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str(),
+                 status.connected_ip.empty() ? "IP pending" : status.connected_ip.c_str());
     } else {
         snprintf(body, sizeof(body), "%s", strings.status_offline_body);
     }
     if (Lvgl_lock(-1)) {
         LayoutMessage();
-        SetText(strings.status_title, body, footer);
+        SetText(strings.status_title, body, strings.status_footer);
         Lvgl_unlock();
     }
 }
@@ -806,17 +854,22 @@ void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left, Lang
 
 void DisplayService::ShowWifiSetup(const char *ssid, const char *url, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
-    char net[64];
-    snprintf(net, sizeof(net), strings.wifi_setup_body, (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid);
     char address[32];
     SetupDisplayAddress(url, address, sizeof(address));
-    char hint[48];
-    snprintf(hint, sizeof(hint), strings.wifi_setup_footer, address);
+    // Two readable steps in the main body, each datum on its own whole line so a
+    // network name never breaks mid-word: "connect to / Bisc8-XXXX" then "open /
+    // 192.168.4.1". The footer carries an accessory orienting hint, not the IP.
+    char net[64];
+    char open_line[48];
+    snprintf(net, sizeof(net), strings.wifi_setup_body, (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid);
+    snprintf(open_line, sizeof(open_line), strings.wifi_setup_footer, address);
+    char body[160];
+    snprintf(body, sizeof(body), "%s\n\n%s", net, open_line);
     if (Lvgl_lock(-1)) {
         LayoutWifiSetup();
         lv_label_set_text(title_label_, strings.wifi_setup_title);
-        lv_label_set_text(body_label_, net);
-        lv_label_set_text(footer_left_, hint);
+        lv_label_set_text(body_label_, body);
+        lv_label_set_text(footer_left_, strings.wifi_setup_hint);
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
@@ -984,6 +1037,7 @@ void DisplayService::ShowLowPower(Language language) {
     if (Lvgl_lock(-1)) {
         RequestFullRefresh();
         LayoutLowPower();
+        lv_label_set_text(title_label_, "Bisc8");
         lv_label_set_text(body_label_, "Zzz ...zzzz....");
         lv_label_set_text(footer_left_, strings.low_power_body);
         lv_obj_update_layout(screen_);

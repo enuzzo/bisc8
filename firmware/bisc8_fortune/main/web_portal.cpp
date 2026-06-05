@@ -582,7 +582,10 @@ esp_err_t WebPortal::HandleWifiCredentials(httpd_req_t *req) {
         }
         err = portal->connectivity_->TestCredentials(ssid.c_str(), password.c_str(), *portal->display_, ParseLanguage(candidate.language.c_str()));
         if (err != ESP_OK) {
-            return SendError(req, "400 Bad Request", "Wi-Fi test failed");
+            // Surfaced verbatim in the portal toast; keep it actionable. The
+            // credential is NOT saved on a failed test, so the user can just fix
+            // the password and submit again.
+            return SendError(req, "400 Bad Request", "Could not connect. Check the Wi-Fi password and try again.");
         }
         wifi_tested = true;
     }
@@ -839,8 +842,13 @@ esp_err_t WebPortal::Start() {
     config.lru_purge_enable = true;
     config.max_open_sockets = 3;
     config.backlog_conn = 2;
-    config.recv_wait_timeout = 8;
-    config.send_wait_timeout = 8;
+    // The "Save Wi-Fi" handler tests the credentials synchronously, which now
+    // blocks up to kWifiAttemptTimeoutMs (10s) while ConnectToNetwork re-kicks
+    // the association. Keep the socket timeouts comfortably above that so the
+    // success/failure response actually reaches the browser instead of the
+    // socket being closed mid-test (which looked like "no feedback / reboot").
+    config.recv_wait_timeout = 16;
+    config.send_wait_timeout = 16;
     config.max_uri_handlers = sizeof(kPortalRoutes) / sizeof(kPortalRoutes[0]) +
                               sizeof(kCaptiveProbePaths) / sizeof(kCaptiveProbePaths[0]);
 

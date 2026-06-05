@@ -237,9 +237,9 @@ def test_wifi_setup_shows_real_ssid_and_big_ip():
     assert "LayoutWifiSetup" in display
     assert "SetupDisplayAddress" in display
     assert "ShowWifiSetup(const char *ssid, const char *url, Language" in display
-    assert '"collegati a %s"' in localization
-    assert '"connect to %s"' in localization
-    assert '"%s | %s"' in localization  # online status line stays one-line
+    # The network name must drop onto its own whole line, never breaking mid-word.
+    assert '"collegati a\\n%s"' in localization
+    assert '"connect to\\n%s"' in localization
 
 
 def test_localized_display_strings_keep_required_accents_and_english_cooking():

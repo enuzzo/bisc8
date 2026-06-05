@@ -13,8 +13,8 @@ constexpr LocalizedStrings kEnglish = {
     "Hold BOOT to ask\nPWR power",
     "Wi-Fi",
     "Setup Wi-Fi",
-    "connect to %s",
-    "then open %s",
+    "connect to\n%s",
+    "then open\n%s",
     "Listening",
     "Speak now.\nRelease BOOT to send.",
     "Thinking",
@@ -31,7 +31,7 @@ constexpr LocalizedStrings kEnglish = {
     "Think your question,\npress here",
     "hold to speak",
     "Status",
-    "Connected\n%s\n%s",
+    "Connected to\n%s\n%s",
     "%s | %s",
     "No network\nSetup unavailable",
     "BOOT oracle",
@@ -50,6 +50,7 @@ constexpr LocalizedStrings kEnglish = {
     "Zero answers loaded.\nAn oracle on\nan empty stomach.",
     "Resting",
     "Click to wake me up",
+    "on your phone or pc",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -59,8 +60,8 @@ constexpr LocalizedStrings kSpanish = {
     "Mantén BOOT para preguntar\nPWR energía",
     "Wi-Fi",
     "Configura Wi-Fi",
-    "conéctate a %s",
-    "luego abre %s",
+    "conéctate a\n%s",
+    "luego abre\n%s",
     "Escuchando",
     "Habla ahora.\nSuelta BOOT para enviar.",
     "Pensando",
@@ -77,7 +78,7 @@ constexpr LocalizedStrings kSpanish = {
     "Piensa tu pregunta,\npulsa aquí",
     "manten pulsado: habla",
     "Estado",
-    "Conectado\n%s\n%s",
+    "Conectado a\n%s\n%s",
     "%s | %s",
     "Sin red\nPortal no listo",
     "BOOT oráculo",
@@ -96,6 +97,7 @@ constexpr LocalizedStrings kSpanish = {
     "Cero respuestas.\nVaya oráculo\nen ayunas.",
     "Reposo",
     "Pulsa para despertarme",
+    "con el móvil o pc",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -105,8 +107,8 @@ constexpr LocalizedStrings kItalian = {
     "Tieni BOOT per chiedere\nPWR energia",
     "Wi-Fi",
     "Configura Wi-Fi",
-    "collegati a %s",
-    "poi apri %s",
+    "collegati a\n%s",
+    "poi apri\n%s",
     "Ascolto",
     "Parla ora.\nRilascia BOOT per inviare.",
     "Penso",
@@ -123,7 +125,7 @@ constexpr LocalizedStrings kItalian = {
     "Pensa al tuo quesito,\npremi qua",
     "tieni premuto: parla",
     "Stato",
-    "Connesso\n%s\n%s",
+    "Connesso a\n%s\n%s",
     "%s | %s",
     "Senza rete\nPortale non pronto",
     "BOOT oracolo",
@@ -142,6 +144,7 @@ constexpr LocalizedStrings kItalian = {
     "Zero responsi caricati.\nChe oracolo\na digiuno.",
     "Riposo",
     "Premi per svegliarmi",
+    "col telefono o pc",
 };
 
 }  // namespace

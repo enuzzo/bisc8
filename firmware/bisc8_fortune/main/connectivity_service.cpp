@@ -226,16 +226,18 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
         return err;
     }
 
-    DebugSerial::LogAlways("[WIFI]", "connecting ssid=%s timeout_ms=%lu", ssid, static_cast<unsigned long>(kWifiAttemptTimeoutMs));
+    const int budget_s = static_cast<int>(kWifiAttemptTimeoutMs / 1000);
+    constexpr int kKickEverySec = 3;  // re-issue connect if the association stalls
+    DebugSerial::LogAlways("[WIFI]", "connecting ssid=%s budget_ms=%lu", ssid, static_cast<unsigned long>(kWifiAttemptTimeoutMs));
     err = esp_wifi_connect();
     if (err != ESP_OK) {
         return err;
     }
 
-    const int seconds = static_cast<int>(kWifiAttemptTimeoutMs / 1000);
-    for (int remaining = seconds; remaining > 0; --remaining) {
+    int attempts = 1;
+    for (int sec = 1; sec <= budget_s; ++sec) {
         if (show_progress) {
-            display.ShowWifiConnecting(ssid, remaining, language);
+            display.ShowWifiConnecting(ssid, budget_s - sec + 1, language);
         }
         EventBits_t bits = xEventGroupWaitBits(g_wifi_events,
                                                WIFI_CONNECTED_BIT | WIFI_FAILED_BIT,
@@ -248,13 +250,25 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
             status_.connected_ssid = ssid;
             status_.ssid_attempt.clear();
             DebugSerial::LogAlways("[WIFI]",
-                                   "connected ssid=%s ip=%s",
+                                   "connected ssid=%s ip=%s attempts=%d",
                                    ssid,
-                                   status_.connected_ip.empty() ? "pending" : status_.connected_ip.c_str());
+                                   status_.connected_ip.empty() ? "pending" : status_.connected_ip.c_str(),
+                                   attempts);
             return ESP_OK;
         }
-        if ((bits & WIFI_FAILED_BIT) != 0) {
-            break;
+        // The first association after boot stalls ~half the time on the C6: it
+        // neither connects nor reports a disconnect. Re-kick esp_wifi_connect on
+        // an explicit failure, or every few stalled seconds; a prompt retry
+        // almost always associates. This is what kept dropping us into setup.
+        const bool failed = (bits & WIFI_FAILED_BIT) != 0;
+        const bool stalled = (sec % kKickEverySec == 0);
+        if ((failed || stalled) && sec < budget_s) {
+            esp_wifi_disconnect();
+            xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT);
+            esp_wifi_connect();
+            ++attempts;
+            DebugSerial::LogAlways("[WIFI]", "reconnect kick ssid=%s attempt=%d reason=%s",
+                                   ssid, attempts, failed ? "disconnect" : "stall");
         }
     }
 
@@ -262,7 +276,7 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
     online_ = false;
     status_.online = false;
     status_.connected_ip.clear();
-    DebugSerial::LogAlways("[WIFI]", "connection timeout ssid=%s", ssid);
+    DebugSerial::LogAlways("[WIFI]", "connection timeout ssid=%s attempts=%d", ssid, attempts);
     return ESP_ERR_TIMEOUT;
 }
 
