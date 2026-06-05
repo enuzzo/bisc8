@@ -1,5 +1,63 @@
 # Handoff (next session)
 
+## Latest session: capture audio quality fix + answer-audio email (2026-06-05 pm)
+
+**Goal:** the user's recorded question reached speech-to-text as gibberish (the
+emailed `domanda.wav` sounded terrible), while the early record->playback
+loopback was excellent.
+
+**Root cause (high confidence): mic clipping.** `Codec_StartInit` set the ES8311
+`in_gain` to **45.0 dB**, but the chip's mic PGA tops out at **42 dB**
+(`es8311_set_mic_gain` buckets anything >=42 to the max), so the mic ran at
+MAXIMUM analog gain. On this near-field pocket device that rails the ADC on
+ordinary speech -> hard clipping -> STT hears phonetically-rich gibberish. The
+ear (and the speaker loopback) tolerate clipping that STT does not, which is why
+the SAME mic sounded "ottimo" in the loopback yet transcribed as nonsense, and
+why it was intermittent (level-dependent): the emailed transcripts alternate
+clean ("Pioverà domani?") and gibberish ("Manitroona trimulindusperdu") minutes
+apart -- not a uniform sample-rate error, and never empty (loud-distorted, not
+weak/far).
+
+**Fix:** `port_codec.cpp` `in_gain` 45.0 -> **24.0 dB** (strong but unclipped for
+close talk, with headroom). One change, one variable -- to be confirmed by
+measurement on-device (below).
+
+**Also shipped this session:**
+- **Capture diagnostics** (`audio_service.cpp`): one `[VOICEDIAG]` serial line per
+  recording -- per-channel + mono peak, RMS dBFS, clip%, worst codec-read /
+  flash-write stall (ms), and wall-clock vs frame-derived duration. This is the
+  test harness: it names the defect instead of guessing.
+- **`tools/analyze_question_wav.py`**: desktop twin of `[VOICEDIAG]` -- run it on
+  any emailed `domanda.wav` to get clip%/dBFS/dropout/per-channel verdict
+  (CLIPPING vs WEAK/FAR vs DROPOUTS vs levels-OK). Stdlib only.
+- **Answer audio in the email** (`email_service.*`, `bisc8-email.php`,
+  `app_main.cpp`): the verification email now carries transcript + answer text +
+  `domanda.wav` (question) + `risposta.wav` (the TTS answer) -- text and BOTH
+  voice samples per query. The TTS WAV's OpenAI "unknown length" (0xFFFFFFFF)
+  header is repaired to a real length so desktop players open it.
+
+**>>> NEXT SESSION: run the voice sampling test to verify the fix <<<**
+1. Firmware is already built at `$HOME/bisc8-build`. Plug the device in, find the
+   port (`ls /dev/cu.usbmodem*` -- it re-enumerates on replug), then flash +
+   monitor: `idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p <PORT> flash monitor`
+   (set the env first; see Build/flash below).
+2. Hold BOOT, speak a clear phrase, release. Read the `[VOICEDIAG]` line:
+   - `clip=` should now be ~0% and `peakMono` well under 32000 (was the bug if high).
+   - `rms_dBFS` healthy ≈ -20..-12. If `< -35` it's too quiet -> raise gain
+     (`port_codec.cpp` 24 -> 30). If `clip` still > 0.5% -> still hot -> lower (24 -> 18).
+   - `peakL` vs `peakR`: if one is ~0, the codec gives mono in a single slot ->
+     change the downmix to take that channel instead of `(L+R)/2`.
+   - `wall` ≈ `dur` (and small `maxRead`/`maxWrite`) confirms NO stalls -> rules
+     out dropouts. If `wall` >> `dur` or the stall times spike, revisit decoupling
+     the I2S read from the flash write.
+3. The email now has `domanda.wav` + `risposta.wav`. Run
+   `python3 tools/analyze_question_wav.py <domanda.wav>` -> expect "levels look OK",
+   clip ~0, and a duration matching how long you actually spoke (mismatch => rate).
+4. Confirm the transcript matches what you said. Repeat 2-3 phrases at different
+   volume/distance to dial in the best gain, then lock it in.
+
+---
+
 Last session: the **online GPT voice oracle**, end to end, plus a lot of polish.
 Date: 2026-06-05.
 
@@ -77,12 +135,19 @@ now logged (`[ORACLE] brain http status=.. body=..`).
 
 ## Email (works)
 
-`EmailService::SendOracleEmail` POSTs multipart (token + transcript + answer + the
-question WAV) to a user-set `relay_url`. The relay is a **standalone PHP file we
-own**: `server/bisc8-email.php` (+ `.config.example.php`, README). No email
-credentials on the device, only the relay token. The user deploys it to their own
-host (currently `https://netmi.lk/nomenomen/api/bisc8-email.php`) and it sends via
-the host's `mail()`. First mail from a new domain often lands in spam.
+`EmailService::SendOracleEmail` POSTs multipart (token + transcript + answer text
++ the question WAV `audio` field + the answer WAV `answer_audio` field) to a
+user-set `relay_url`. The relay is a **standalone PHP file we own**:
+`server/bisc8-email.php` (+ `.config.example.php`, README). No email credentials
+on the device, only the relay token. The user deploys it to their own host
+(currently `https://netmi.lk/nomenomen/api/bisc8-email.php`) and it sends via the
+host's `mail()`. First mail from a new domain often lands in spam.
+
+**REDEPLOY the relay** to get `risposta.wav`: the answer-audio attachment needs
+the updated `server/bisc8-email.php` on the host (it now reads the `answer_audio`
+upload and attaches it). The firmware sends it regardless; an old relay just drops
+it. The answer file field is `answer_audio` (not `answer`, which is the answer
+TEXT field).
 
 ## UI added this session
 
@@ -96,10 +161,17 @@ the host's `mail()`. First mail from a new domain often lands in spam.
 
 ## Pending / follow-ups
 
+- **Confirm the mic-gain fix on-device** (see the sampling test above) and lock in
+  the best value from `[VOICEDIAG]`. If it needs frequent tuning, consider making
+  `in_gain` a portal field (like the model fields) so it's adjustable without a
+  reflash.
+- **Redeploy `server/bisc8-email.php`** on the host so the `risposta.wav` answer
+  attachment actually goes out (the firmware already sends it).
 - `docs/AI_HANDOFF.md` is **stale** (still says the OpenAI transport is not
   implemented / returns `ESP_ERR_NOT_FINISHED`); update it + its test assertions.
 - Verify `gpt-5.4-mini` / `gpt-realtime-1.5` exist for the user's key.
 - Voice quality at 16 kHz is "muffled"; revisit the 24 kHz codec path if it matters.
+  (This is the ANSWER playback path, separate from the capture clipping fix.)
 - `screenshots/epaper/` is git-ignored (dev SNAPs).
 
 ## Build / flash (this machine)

@@ -9,7 +9,7 @@ For future AI agents and contributors, start with the extended project map in [`
 - First boot defaults to English.
 - Boot plays a longer background startup jingle and lands on the localized introductory oracle screen.
 - BOOT click: pick a random non-repeating fortune from the generated grimoire data for the selected language and play the oracle-button cue.
-- Hold BOOT to ask by recording a voice question. Release BOOT to run the full online oracle: speech-to-text, an LLM answer in the spoken language, text-to-speech played aloud, the answer on screen, and an optional email of the transcript/answer/recording. Errors show an on-screen code (E01..E05).
+- Hold BOOT to ask by recording a voice question. Release BOOT to run the full online oracle: speech-to-text, an LLM answer in the spoken language, text-to-speech played aloud, the answer on screen, and an optional email of the transcript, answer, question recording, and spoken answer audio. Errors show an on-screen code (E01..E05).
 - On voice release, Bisc8 shows the localized voice flow with the English title "Cooking" and plays the voice-submit cue while the answer is prepared.
 - BOOT long press starts the voice/dictation flow. PWR triple click performs a full configuration reset and reopens the setup portal. BOOT + PWR long press may be intercepted as a board reboot on this hardware; use serial `CONFIG RESET` as a maintenance fallback.
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
@@ -45,11 +45,11 @@ The online flow (implemented and working on hardware) is:
 4. The model answers in the language the question was spoken in, poetic but clear, on a dedicated TLS worker task.
 5. The e-paper shows a short answer of at most 55 characters.
 6. Text-to-speech (coral voice, mystical-seer style) generates the spoken answer; Bisc8 resamples 24 kHz to 16 kHz and plays it.
-7. If email is enabled and a relay is configured, Bisc8 sends the transcript, full answer, and the question recording.
+7. If email is enabled and a relay is configured, Bisc8 sends the transcript, full answer, the question recording (`domanda.wav`), and the generated answer audio (`risposta.wav`).
 
 Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are missing.
 
-Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
+Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in short (250 ms) chunks. Mic capture gain is set below the ES8311 clipping ceiling (`port_codec.cpp`); each recording logs a `[VOICEDIAG]` line (peak/clip%/RMS dBFS) and `tools/analyze_question_wav.py` reports the same from an emailed `domanda.wav`.
 
 Current implementation status: the full online flow is implemented and confirmed on hardware. `VoiceOracleService::AskFromRecordedAudio()` runs speech-to-text, the chat-completions Brain, and text-to-speech over TLS (`esp_crt_bundle`), each streamed to/from the spool partition, on a dedicated 16 KB-stack worker because the mbedTLS handshake overflows the 3584 B main task. Failures surface as on-screen error codes (E01 recording, E02 no key, E03 STT/network, E04 nothing heard, E05 Brain). The answer WAV is resampled 24 kHz to 16 kHz at playback (reopening the TDM codec to 24 kHz does not retune the I2S clock). Email delivery POSTs to a user-configured relay (`server/bisc8-email.php`).
 

@@ -1,7 +1,9 @@
 # Bisc8 email relay
 
 A tiny, **standalone** PHP endpoint that turns a Bisc8 voice query into an email
-(transcript + oracle answer + the original `question.wav` attached).
+(transcript + oracle answer, with the question recording attached as
+`domanda.wav` and the spoken answer as `risposta.wav`). Upload fields: `audio`
+(question WAV) and `answer_audio` (answer WAV); either may be absent.
 
 The device cannot send email itself: it has no mail server, and its residential
 IP would be rejected by Gmail & co. So it POSTs here, and this script sends the
