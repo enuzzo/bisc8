@@ -22,6 +22,16 @@ weak/far).
 close talk, with headroom). One change, one variable -- to be confirmed by
 measurement on-device (below).
 
+**Reference check (Waveshare/ES8311 user guide, as the user suggested):** the
+ES8311 *analog* mic preamp is **0-30 dB**; 36/42 dB are *digital* boost (more
+noise, harder clipping), and the codec/driver default is **42 dB (max)** -- so
+45.0 was the worst case. 24 dB is squarely in the clean analog band, which is why
+the tune window is 18-30. The reference record config also uses **mono, left
+slot** (`I2S_SLOT_MODE_MONO`/`I2S_STD_SLOT_LEFT`), not stereo + `(L+R)/2`; our
+codec is opened 2-ch and downmixed. That's fine today (clean transcripts prove
+the format works), but if `[VOICEDIAG]` shows `peakR` ~ 0 the canonical move is to
+capture a single channel instead of averaging.
+
 **Also shipped this session:**
 - **Capture diagnostics** (`audio_service.cpp`): one `[VOICEDIAG]` serial line per
   recording -- per-channel + mono peak, RMS dBFS, clip%, worst codec-read /
