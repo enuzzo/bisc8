@@ -7,6 +7,7 @@
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
 #include <esp_system.h>
+#include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -623,9 +624,27 @@ void AudioService::VoiceRecordTaskEntry(void *arg) {
 
 void AudioService::VoiceRecordTask() {
     int chunks = 0;
+    // Capture diagnostics: one [VOICEDIAG] line per recording so an on-device
+    // test can tell WHY the question audio is bad instead of us guessing.
+    //   peakL/peakR/peakMono : ~32767 => clipping (gain too hot); tiny => too weak.
+    //   rms_dBFS             : healthy speech ~ -20..-12; < -40 => far/too quiet.
+    //   clip%                : fraction of near-full-scale samples (distortion).
+    //   maxRead/maxWrite     : per-chunk codec-read / flash-write stalls (ms).
+    //   wall vs dur          : wall >> dur => the loop stalled (dropouts); wall
+    //                          far below dur => real capture rate != 16 kHz.
+    // The hot loop stays integer-only; the dBFS/log math runs once at the end.
+    int32_t peak_l = 0, peak_r = 0, peak_mono = 0;
+    uint64_t sumsq_mono = 0;
+    uint32_t clip_count = 0;
+    uint32_t stat_frames = 0;
+    int64_t max_read_us = 0, max_write_us = 0;
+    const int64_t t_start = esp_timer_get_time();
     while (!voice_stop_requested_ && chunks < kVoiceMaxChunks) {
         memset(record_buffer_, 0, kVoiceChunkBytes);
+        const int64_t r0 = esp_timer_get_time();
         esp_err_t err = Codec_RecordData(record_buffer_, kVoiceChunkBytes);
+        const int64_t read_us = esp_timer_get_time() - r0;
+        if (read_us > max_read_us) max_read_us = read_us;
         if (err != ESP_OK) {
             voice_err_ = err;
             break;
@@ -636,15 +655,28 @@ void AudioService::VoiceRecordTask() {
         for (size_t i = 0; i < frames; ++i) {
             const int32_t left = samples[i * kChannels];
             const int32_t right = samples[i * kChannels + 1];
-            samples[i] = static_cast<int16_t>((left + right) / 2);
+            const int32_t mono = (left + right) / 2;
+            samples[i] = static_cast<int16_t>(mono);
+            const int32_t al = left < 0 ? -left : left;
+            const int32_t ar = right < 0 ? -right : right;
+            const int32_t am = mono < 0 ? -mono : mono;
+            if (al > peak_l) peak_l = al;
+            if (ar > peak_r) peak_r = ar;
+            if (am > peak_mono) peak_mono = am;
+            sumsq_mono += static_cast<uint64_t>(mono * mono);
+            if (am >= 32000) ++clip_count;  // within ~0.2 dB of full scale
         }
+        stat_frames += static_cast<uint32_t>(frames);
 
         const size_t mono_bytes = frames * kVoiceChannels * kBytesPerSample;
         if (voice_pcm_bytes_ + mono_bytes > kVoiceMaxPcmBytes) {
             voice_err_ = ESP_ERR_INVALID_SIZE;
             break;
         }
+        const int64_t w0 = esp_timer_get_time();
         err = esp_partition_write(spool_partition_, kWavHeaderBytes + voice_pcm_bytes_, record_buffer_, mono_bytes);
+        const int64_t write_us = esp_timer_get_time() - w0;
+        if (write_us > max_write_us) max_write_us = write_us;
         if (err != ESP_OK) {
             voice_err_ = err;
             break;
@@ -652,6 +684,7 @@ void AudioService::VoiceRecordTask() {
         voice_pcm_bytes_ += mono_bytes;
         ++chunks;
     }
+    const uint32_t wall_ms = static_cast<uint32_t>((esp_timer_get_time() - t_start) / 1000);
 
     if (voice_err_ == ESP_OK) {
         uint8_t header[kWavHeaderBytes] = {};
@@ -659,6 +692,21 @@ void AudioService::VoiceRecordTask() {
         voice_err_ = esp_partition_write(spool_partition_, 0, header, sizeof(header));
         voice_file_ready_ = voice_pcm_bytes_ > 0;
     }
+
+    if (stat_frames > 0) {
+        const double rms = sqrt(static_cast<double>(sumsq_mono) / stat_frames);
+        const double dbfs = rms > 1.0 ? 20.0 * log10(rms / 32768.0) : -120.0;
+        const double clip_pct = 100.0 * clip_count / stat_frames;
+        DebugSerial::LogAlways("[VOICEDIAG]",
+            "frames=%u dur=%ums wall=%ums peakL=%d peakR=%d peakMono=%d rms_dBFS=%.1f clip=%.2f%% maxRead=%ums maxWrite=%ums",
+            static_cast<unsigned>(stat_frames),
+            static_cast<unsigned>(stat_frames * 1000u / static_cast<unsigned>(kSampleRate)),
+            static_cast<unsigned>(wall_ms),
+            static_cast<int>(peak_l), static_cast<int>(peak_r), static_cast<int>(peak_mono),
+            dbfs, clip_pct,
+            static_cast<unsigned>(max_read_us / 1000), static_cast<unsigned>(max_write_us / 1000));
+    }
+
     ReleaseRecordBuffer();
     voice_recording_ = false;
     voice_task_ = nullptr;
