@@ -71,6 +71,22 @@ esp_err_t Codec_PlaybackData(uint8_t *buffer,size_t bytes) {
 	return esp_codec_dev_write(playback, buffer, bytes);
 }
 
+esp_err_t Codec_PlaybackOpen(int sample_rate, int channels) {
+    if (playback == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    esp_codec_dev_close(playback);
+    esp_codec_dev_sample_info_t fs = {};
+    fs.sample_rate = sample_rate;
+    fs.channel = channels;
+    fs.bits_per_sample = 16;
+    esp_err_t err = esp_codec_dev_open(playback, &fs);
+    if (err != ESP_OK) {
+        return err;
+    }
+    return esp_codec_dev_set_out_vol(playback, 100);
+}
+
 esp_err_t Codec_RecordData(uint8_t *buffer,size_t bytes) {
 	return esp_codec_dev_read(record, buffer, bytes);
 }

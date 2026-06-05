@@ -22,6 +22,7 @@
 #include "epaper_config.h"
 #include "fortune_service.h"
 #include "voice_oracle_service.h"
+#include "email_service.h"
 #include "web_portal.h"
 #include "build_info.h"
 #include "sdkconfig.h"
@@ -44,6 +45,84 @@ void OnAudioPlayback(void *ctx, bool active) {
 }
 void OnAudioRecording(void *ctx, bool active) {
     static_cast<DisplayService *>(ctx)->OnListeningState(active);
+}
+
+// The OpenAI voice flow (STT/Brain/TTS) runs mbedTLS HTTPS handshakes, which
+// need far more stack than the main task carries (the inline call panicked with
+// a stack-protection fault). Run it on a dedicated worker with a generous stack
+// and block until it finishes. Keeping the main task small also leaves a big
+// contiguous heap free for the 64 KB microphone buffer.
+struct OracleJob {
+    VoiceOracleService *oracle;
+    const char *wav_path;
+    const OpenAiSettings *openai;
+    OracleResponse *response;
+    esp_err_t result;
+    TaskHandle_t caller;
+};
+
+void OracleTaskEntry(void *arg) {
+    auto *job = static_cast<OracleJob *>(arg);
+    job->result = job->oracle->AskFromRecordedAudio(job->wav_path, *job->openai, job->response);
+    xTaskNotifyGive(job->caller);
+    vTaskDelete(nullptr);
+}
+
+esp_err_t RunOracleOnWorker(VoiceOracleService &oracle, const char *wav_path,
+                            const OpenAiSettings &openai, OracleResponse *response) {
+    OracleJob job{&oracle, wav_path, &openai, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+    if (xTaskCreate(OracleTaskEntry, "oracle", 16384, &job, 5, nullptr) != pdPASS) {
+        DebugSerial::LogAlways("[ORACLE]", "worker task create failed (no mem)");
+        return ESP_ERR_NO_MEM;
+    }
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    return job.result;
+}
+
+// The email relay POST also runs mbedTLS, so it needs the same generous stack as
+// the oracle. Same worker pattern: run it off the main task and block.
+struct EmailJob {
+    EmailService *email;
+    const EmailSettings *settings;
+    const OracleResponse *response;
+    const char *audio_path;
+    esp_err_t result;
+    TaskHandle_t caller;
+};
+
+void EmailTaskEntry(void *arg) {
+    auto *job = static_cast<EmailJob *>(arg);
+    job->result = job->email->SendOracleEmail(*job->settings, *job->response, job->audio_path);
+    xTaskNotifyGive(job->caller);
+    vTaskDelete(nullptr);
+}
+
+esp_err_t RunEmailOnWorker(EmailService &email, const EmailSettings &settings,
+                           const OracleResponse &response, const char *audio_path) {
+    EmailJob job{&email, &settings, &response, audio_path, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+    if (xTaskCreate(EmailTaskEntry, "email", 16384, &job, 5, nullptr) != pdPASS) {
+        DebugSerial::LogAlways("[EMAIL]", "worker task create failed (no mem)");
+        return ESP_ERR_NO_MEM;
+    }
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    return job.result;
+}
+
+// Map an oracle failure onto a friendly localized message plus a short code the
+// user reads off the error screen and reports back for diagnosis.
+struct OracleErr {
+    const char *message;
+    const char *code;
+};
+OracleErr OracleErrorInfo(const LocalizedStrings &s, VoiceOracleService::OracleFailure f) {
+    using F = VoiceOracleService::OracleFailure;
+    switch (f) {
+        case F::NoKey:      return {s.voice_oracle_unconfigured_body, "E02"};
+        case F::Transcribe: return {s.voice_error_generic_body, "E03"};
+        case F::NoSpeech:   return {s.voice_no_speech_body, "E04"};
+        case F::Brain:      return {s.voice_error_generic_body, "E05"};
+        default:            return {s.voice_error_generic_body, "E00"};
+    }
 }
 
 bool battery_is_low() {
@@ -137,6 +216,15 @@ bool handle_serial_command(const char *line) {
         if (strcmp(which, "CONNFAIL") == 0) {
             return post_serial_event(AppEvent::PreviewConnectFailed, "screen connect-failed");
         }
+        if (strcmp(which, "ERROR") == 0) {
+            return post_serial_event(AppEvent::PreviewError, "screen error");
+        }
+        if (strcmp(which, "LISTENING") == 0) {
+            return post_serial_event(AppEvent::PreviewListening, "screen listening");
+        }
+        if (strcmp(which, "THINKING") == 0) {
+            return post_serial_event(AppEvent::PreviewThinking, "screen thinking");
+        }
     }
     return false;
 }
@@ -163,6 +251,7 @@ extern "C" void app_main(void) {
     DeviceSettings settings;
     ConnectivityService connectivity;
     VoiceOracleService oracle;
+    EmailService email;
     WebPortal portal;
     portal.BindStatus(&connectivity.Status());
     portal.BindConfig(&config_store, &settings);
@@ -217,6 +306,7 @@ extern "C" void app_main(void) {
         display.ShowAudioUnavailable(startup_language);
     } else {
         audio.PlayCueAsync(AudioCue::Boot);
+        audio.RearmQuestionSpool();  // pre-erase now so the first question records instantly
     }
     WaitForMinimumBootSplash(boot_started);
     display.SetBattery(BatteryLevel());
@@ -341,14 +431,33 @@ extern "C" void app_main(void) {
                 display.ShowVoiceCooking(language);
                 audio.PlayCueAsync(AudioCue::VoiceSubmit);
                 const char *wav_path = audio.FinishVoiceRecording();
+                if (wav_path == nullptr) {
+                    // Recording never started (e.g. mic buffer unavailable): do
+                    // not answer a stale question still sitting in the spool.
+                    display.ShowError(StringsFor(language).recording_failed_body, "E01", language);
+                    g_state = "idle";
+                    break;
+                }
                 display.ShowVoiceThinking(language);
                 OracleResponse response;
-                err = oracle.AskFromRecordedAudio(wav_path, &response);
+                err = RunOracleOnWorker(oracle, wav_path, settings.openai, &response);
                 if (err == ESP_OK) {
                     display.ShowVoiceSpeaking(response.oracle_answer_screen, language);
+                    if (oracle.HasAnswerAudio()) {
+                        audio.PlayAnswerAudio(oracle.AnswerAudioBytes());  // speaks the answer; animates the glyph
+                    }
+                    if (settings.email.enabled) {
+                        // Relay transcript + answer + the question WAV (still in the
+                        // spool here, before the rearm erases it).
+                        RunEmailOnWorker(email, settings.email, response, wav_path);
+                    }
                 } else {
-                    display.ShowError(StringsFor(language).voice_oracle_unconfigured_body, language);
+                    const OracleErr e = OracleErrorInfo(StringsFor(language), oracle.LastFailure());
+                    display.ShowError(e.message, e.code, language);
                 }
+                // Question WAV no longer needed (STT + email done); pre-erase the
+                // spool now so the next recording starts instantly.
+                audio.RearmQuestionSpool();
                 g_state = "idle";
                 break;
             }
@@ -415,6 +524,26 @@ extern "C" void app_main(void) {
                 display.ShowWifiConnectFailed(
                     settings.wifi_count > 0 ? settings.wifi[0].ssid.c_str() : "Casa Wi-Fi",
                     ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewError: {
+                g_state = "error";
+                const Language lang = ParseLanguage(settings.language.c_str());
+                display.ShowError(StringsFor(lang).voice_oracle_unconfigured_body, "E02", lang);
+                g_state = "idle";
+                break;
+            }
+
+            case AppEvent::PreviewListening:
+                g_state = "listening";
+                display.ShowVoiceListening(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewThinking:
+                g_state = "thinking";
+                display.ShowVoiceThinking(ParseLanguage(settings.language.c_str()));
                 g_state = "idle";
                 break;
 

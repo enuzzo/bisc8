@@ -249,10 +249,12 @@ def test_localized_display_strings_keep_required_accents_and_english_cooking():
         "oráculo cargando",
         "Mantén BOOT",
         "PWR energía",
-        "El oráculo lee tu pregunta.",
         "La pregunta está al fuego.",
     ):
         assert phrase in source
+    # Waiting screen copy (the oracle "consults its crumbs" while OpenAI works).
+    assert "Consulto le briciole.." in source
+    assert "Leo las migas.." in source
     assert '"Cooking"' in source
     assert "Bisc8 sta cucinando" not in source
     assert "Bisc8 esta cocinando" not in source

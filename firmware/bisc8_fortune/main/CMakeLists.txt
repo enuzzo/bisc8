@@ -23,10 +23,14 @@ idf_component_register(
     esp_adc
     esp_driver_gpio
     esp_event
+    esp_http_client
     esp_http_server
     esp_netif
+    esp_timer
     esp_wifi
+    json
     lwip
+    mbedtls
     espressif__esp_io_expander
     espressif__esp_io_expander_tca9554
     REQUIRES

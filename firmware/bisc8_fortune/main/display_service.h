@@ -33,7 +33,7 @@ public:
     void ShowMicDone(Language language);
     void ShowAudioUnavailable(Language language);
     void ShowSleep(Language language);
-    void ShowError(const char *message, Language language);
+    void ShowError(const char *message, const char *code, Language language);
     void ShowNoWifi(Language language);
     void ShowLowBattery(Language language);
     void ShowFirstRun(Language language);
@@ -58,6 +58,8 @@ private:
     void BuildFooterBattery();
     void BuildSleepCorners();          // biscuit-corner ornaments for the sleep card
     void BuildPressButton();           // dark "PREMI ->" pill on the intro screen
+    void BuildMic();                   // microphone glyph + sound-wave bars (listening)
+    void BuildWaitDots();              // three "..." dots (thinking/waiting)
 
     // Layouts (call inside an Lvgl_lock).
     void LayoutBoot();                 // full-screen splash + mascot, no chrome
@@ -94,6 +96,14 @@ private:
     void TickArrowBlink();
     static void ArrowBlinkThunk(lv_timer_t *timer);
 
+    // Shared bounded pulse for the voice glyphs: the mic sound-waves while
+    // listening, the "..." dots while waiting on OpenAI. mic and dots are never
+    // on screen at once, so one timer drives whichever is active.
+    void StartVoiceAnim(bool is_mic);
+    void StopVoiceAnim();
+    void TickVoiceAnim();
+    static void VoiceAnimThunk(lv_timer_t *timer);
+
     lv_obj_t *screen_ = nullptr;
     lv_obj_t *chrome_group_ = nullptr;
     lv_obj_t *splash_group_ = nullptr;
@@ -102,6 +112,12 @@ private:
     lv_obj_t *speaker_wave1_ = nullptr;
     lv_obj_t *speaker_wave2_ = nullptr;
     lv_obj_t *speaker_wave3_ = nullptr;
+    lv_obj_t *mic_group_ = nullptr;      // microphone glyph (listening state)
+    lv_obj_t *mic_wave1_ = nullptr;      // mic sound-wave bars (animated)
+    lv_obj_t *mic_wave2_ = nullptr;
+    lv_obj_t *wait_group_ = nullptr;     // "..." dots (thinking/waiting state)
+    lv_obj_t *wait_dot2_ = nullptr;      // dot1 is always on; dot2/dot3 animate
+    lv_obj_t *wait_dot3_ = nullptr;
     lv_obj_t *wifi_group_ = nullptr;     // crossed-out Wi-Fi glyph (no-wifi screen)
     lv_obj_t *batt_big_group_ = nullptr; // large battery glyph (low-battery screen)
     lv_obj_t *batt_big_flash_ = nullptr; // blinking bar after the big battery glyph
@@ -126,6 +142,11 @@ private:
     bool batt_flash_on_ = false;
     lv_timer_t *arrow_timer_ = nullptr;
     int arrow_blink_ticks_left_ = 0;
+
+    lv_timer_t *voice_anim_timer_ = nullptr;
+    int voice_anim_ticks_left_ = 0;
+    int voice_anim_phase_ = 0;
+    bool voice_anim_is_mic_ = false;
     bool arrow_on_ = false;
     uint8_t battery_pct_ = 255;          // 255 = unknown
 };

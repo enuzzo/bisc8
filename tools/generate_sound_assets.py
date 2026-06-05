@@ -29,6 +29,7 @@ CUES = (
     Cue("boot", "kSoundBoot", ROOT / "assets/candidate/full-reboot.mp3", 0.58),
     Cue("oracle_button", "kSoundOracleButton", ROOT / "assets/candidate/oracle-button.ogg", 0.68),
     Cue("voice_submit", "kSoundVoiceSubmit", ROOT / "assets/candidate/oracle-audio-before.ogg", 0.68),
+    Cue("voice_start", "kSoundVoiceStart", ROOT / "assets/candidate/start-talking.ogg", 0.68),
     Cue("shutdown", "kSoundShutdown", ROOT / "assets/candidate/shutdown.ogg", 0.62),
 )
 
@@ -108,25 +109,25 @@ def main() -> int:
             data = raw_path.read_bytes()
             generated.append((cue, duration, data, wav_path))
 
-    header = """#pragma once
+    # Declarations are generated from CUES so adding a cue never desyncs the
+    # header from the .cpp (a hardcoded list silently dropped new symbols).
+    externs = "\n".join(f"extern const SoundAsset {cue.symbol};" for cue in CUES)
+    header = f"""#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
 
-namespace bisc8 {
+namespace bisc8 {{
 
-struct SoundAsset {
+struct SoundAsset {{
     const uint8_t *data;
     size_t bytes;
     const char *name;
-};
+}};
 
-extern const SoundAsset kSoundBoot;
-extern const SoundAsset kSoundOracleButton;
-extern const SoundAsset kSoundVoiceSubmit;
-extern const SoundAsset kSoundShutdown;
+{externs}
 
-}  // namespace bisc8
+}}  // namespace bisc8
 """
     (args.out_dir / "sound_assets.h").write_text(header, encoding="utf-8")
 

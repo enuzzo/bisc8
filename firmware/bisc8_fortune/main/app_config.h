@@ -10,10 +10,15 @@
 namespace bisc8 {
 
 constexpr size_t kMaxWifiCredentials = 8;
-constexpr size_t kMaxScreenAnswerChars = 100;
+constexpr size_t kMaxScreenAnswerChars = 55;  // tiny 200x200 e-paper; keep it short
 constexpr uint32_t kWifiAttemptTimeoutMs = 10000;
 constexpr uint32_t kVoiceRecordLimitMs = 15000;
 constexpr uint32_t kConfigSchemaVersion = 2;
+
+// Generated answer audio lives high in the spool partition, well past the
+// question region (first ~512 KB), so STT input and TTS output never collide.
+constexpr uint32_t kVoiceAnswerSpoolOffset = 0x200000;        // 2 MB into spool
+constexpr uint32_t kVoiceAnswerSpoolMaxBytes = 0x100000;      // up to 1 MB of WAV
 
 struct WifiCredential {
     std::string ssid;
@@ -26,6 +31,7 @@ struct OpenAiSettings {
     std::string response_model;
     std::string speech_model;
     std::string voice;
+    std::string reasoning_effort;  // minimal|low|medium|high; empty = omit (non-reasoning models)
 };
 
 struct EmailSettings {

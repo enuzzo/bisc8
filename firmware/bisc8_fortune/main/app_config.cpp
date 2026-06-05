@@ -20,6 +20,7 @@ constexpr const char *kOpenAiTranscriptionModelKey = "openai_stt";
 constexpr const char *kOpenAiResponseModelKey = "openai_resp";
 constexpr const char *kOpenAiSpeechModelKey = "openai_tts";
 constexpr const char *kOpenAiVoiceKey = "openai_voice";
+constexpr const char *kOpenAiReasoningKey = "openai_reason";  // <=15 chars for NVS
 constexpr const char *kEmailEnabledKey = "email_enabled";
 constexpr const char *kEmailRecipientKey = "email_recipient";
 constexpr const char *kEmailRelayUrlKey = "email_relay_url";
@@ -127,7 +128,8 @@ OpenAiSettings DefaultOpenAiSettings() {
     settings.transcription_model = "gpt-4o-mini-transcribe";
     settings.response_model = "gpt-4o-mini";
     settings.speech_model = "gpt-4o-mini-tts";
-    settings.voice = "alloy";
+    settings.voice = "coral";
+    settings.reasoning_effort = "";  // off by default; set per reasoning-capable model in the portal
     return settings;
 }
 
@@ -214,6 +216,11 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
         nvs_close(handle);
         return err;
     }
+    err = GetString(handle, kOpenAiReasoningKey, &settings->openai.reasoning_effort);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return err;
+    }
 
     uint8_t email_enabled = 0;
     if (nvs_get_u8(handle, kEmailEnabledKey, &email_enabled) == ESP_OK) {
@@ -271,6 +278,9 @@ esp_err_t ConfigStore::Save(const DeviceSettings &settings) {
     }
     if (err == ESP_OK) {
         err = SetString(handle, kOpenAiVoiceKey, settings.openai.voice);
+    }
+    if (err == ESP_OK) {
+        err = SetString(handle, kOpenAiReasoningKey, settings.openai.reasoning_effort);
     }
     if (err == ESP_OK) {
         err = nvs_set_u8(handle, kEmailEnabledKey, settings.email.enabled ? 1 : 0);

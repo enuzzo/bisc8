@@ -55,6 +55,8 @@ struct LocalizedStrings {
     const char *wifi_setup_hint;
     const char *wifi_connect_failed_body;
     const char *intro_press;
+    const char *voice_no_speech_body;
+    const char *voice_error_generic_body;
 };
 
 const char *DefaultLanguage();

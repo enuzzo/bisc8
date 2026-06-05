@@ -23,9 +23,16 @@ constexpr int kSampleRate = 16000;
 constexpr int kChannels = 2;
 constexpr int kVoiceChannels = 1;
 constexpr int kBytesPerSample = 2;
-constexpr int kRecordMillis = 1000;
+constexpr int kRecordMillis = 1000;       // mic-test loopback chunk
 constexpr int kChimeMillis = 120;
-constexpr int kVoiceMaxChunks = kVoiceRecordLimitMs / kRecordMillis;
+// Voice recording streams to flash in small chunks. A small working buffer
+// allocates reliably even with a fragmented heap (a 64 KB contiguous block
+// often does not at ~85 KB free), and a short chunk makes the BOOT-release stop
+// prompt. This is decoupled from the larger mic-test buffer above.
+constexpr int kVoiceChunkMillis = 250;
+constexpr size_t kVoiceChunkBytes =
+    static_cast<size_t>(kSampleRate) * kVoiceChunkMillis / 1000 * kChannels * kBytesPerSample;
+constexpr int kVoiceMaxChunks = kVoiceRecordLimitMs / kVoiceChunkMillis;
 constexpr size_t kWavHeaderBytes = 44;
 constexpr size_t kVoiceMaxPcmBytes = (kSampleRate * kVoiceRecordLimitMs / 1000) * kVoiceChannels * kBytesPerSample;
 constexpr size_t kVoiceSpoolEraseBytes = 512 * 1024;
@@ -35,6 +42,7 @@ constexpr uint32_t kPlaybackTaskStackBytes = 3072;
 constexpr uint32_t kCuePlaybackWaitMs = 20000;
 constexpr UBaseType_t kVoiceTaskPriority = 4;
 constexpr UBaseType_t kPlaybackTaskPriority = 6;
+constexpr int kAnswerGainPercent = 150;  // lift the (quiet) TTS without over-clipping it
 constexpr float kChimeAttackRatio = 0.16f;
 constexpr float kChimeAmplitude = 7800.0f;
 constexpr float kPi = 3.14159265f;
@@ -157,6 +165,7 @@ void AudioService::PlayChime() {
 const AudioService::QueuedSound *AudioService::SoundFor(AudioCue cue) const {
     static const QueuedSound boot = {&kSoundBoot};
     static const QueuedSound oracle_button = {&kSoundOracleButton};
+    static const QueuedSound voice_start = {&kSoundVoiceStart};
     static const QueuedSound voice_submit = {&kSoundVoiceSubmit};
     static const QueuedSound shutdown = {&kSoundShutdown};
 
@@ -165,6 +174,8 @@ const AudioService::QueuedSound *AudioService::SoundFor(AudioCue cue) const {
             return &boot;
         case AudioCue::OracleButton:
             return &oracle_button;
+        case AudioCue::VoiceStart:
+            return &voice_start;
         case AudioCue::VoiceSubmit:
             return &voice_submit;
         case AudioCue::Shutdown:
@@ -231,24 +242,31 @@ void AudioService::StopPlayback() {
     }
 }
 
-esp_err_t AudioService::EnsureRecordBuffer() {
-    if (record_buffer_ != nullptr) {
-        return ESP_OK;
-    }
-    if (record_bytes_ == 0) {
+esp_err_t AudioService::EnsureRecordBuffer(size_t bytes) {
+    if (bytes == 0) {
         return ESP_ERR_INVALID_SIZE;
     }
-    record_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(record_bytes_, MALLOC_CAP_DEFAULT));
+    if (record_buffer_ != nullptr && record_buf_size_ == bytes) {
+        return ESP_OK;
+    }
+    if (record_buffer_ != nullptr) {
+        heap_caps_free(record_buffer_);
+        record_buffer_ = nullptr;
+        record_buf_size_ = 0;
+    }
+    record_buffer_ = static_cast<uint8_t *>(heap_caps_malloc(bytes, MALLOC_CAP_DEFAULT));
     if (record_buffer_ == nullptr) {
         DebugSerial::LogAlways("[AUDIO]",
-                               "record buffer allocation failed: bytes=%u free_heap=%u",
-                               static_cast<unsigned>(record_bytes_),
-                               static_cast<unsigned>(esp_get_free_heap_size()));
+                               "record buffer allocation failed: bytes=%u free_heap=%u largest_block=%u",
+                               static_cast<unsigned>(bytes),
+                               static_cast<unsigned>(esp_get_free_heap_size()),
+                               static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT)));
         return ESP_ERR_NO_MEM;
     }
+    record_buf_size_ = bytes;
     DebugSerial::LogAlways("[AUDIO]",
                            "record buffer allocated bytes=%u free_heap=%u",
-                           static_cast<unsigned>(record_bytes_),
+                           static_cast<unsigned>(bytes),
                            static_cast<unsigned>(esp_get_free_heap_size()));
     return ESP_OK;
 }
@@ -259,6 +277,7 @@ void AudioService::ReleaseRecordBuffer() {
     }
     heap_caps_free(record_buffer_);
     record_buffer_ = nullptr;
+    record_buf_size_ = 0;
     DebugSerial::LogAlways("[AUDIO]",
                            "record buffer released free_heap=%u",
                            static_cast<unsigned>(esp_get_free_heap_size()));
@@ -311,7 +330,7 @@ void AudioService::StartVoiceRecording() {
         return;
     }
 
-    esp_err_t err = EnsureRecordBuffer();
+    esp_err_t err = EnsureRecordBuffer(kVoiceChunkBytes);
     if (err != ESP_OK) {
         voice_err_ = err;
         DebugSerial::LogAlways("[AUDIO]", "voice recording skipped; record buffer unavailable");
@@ -325,6 +344,10 @@ void AudioService::StartVoiceRecording() {
         DebugSerial::LogAlways("[AUDIO]", "voice spool prepare failed: %s", esp_err_to_name(err));
         return;
     }
+
+    // "Start talking" cue, played to completion BEFORE capture begins so it is a
+    // clear go signal and is not itself recorded.
+    PlayCue(AudioCue::VoiceStart);
 
     voice_stop_requested_ = false;
     voice_recording_ = true;
@@ -354,7 +377,7 @@ const char *AudioService::FinishVoiceRecording() {
 
     voice_stop_requested_ = true;
     const TickType_t start = xTaskGetTickCount();
-    while (voice_task_ != nullptr && xTaskGetTickCount() - start < pdMS_TO_TICKS(1500)) {
+    while (voice_task_ != nullptr && xTaskGetTickCount() - start < pdMS_TO_TICKS(2500)) {
         vTaskDelay(pdMS_TO_TICKS(25));
     }
     if (voice_task_ != nullptr) {
@@ -373,13 +396,153 @@ const char *AudioService::FinishVoiceRecording() {
     return kVoiceQuestionPath;
 }
 
+esp_err_t AudioService::PlayAnswerAudio(uint32_t wav_total_bytes) {
+    if (!available_) {
+        DebugSerial::LogAlways("[AUDIO]", "answer playback skipped; audio unavailable");
+        return ESP_ERR_INVALID_STATE;
+    }
+    StopPlayback();
+    const esp_partition_t *spool =
+        esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kSpoolPartition);
+    if (spool == nullptr) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    uint8_t hdr[128] = {};
+    esp_err_t err = esp_partition_read(spool, kVoiceAnswerSpoolOffset, hdr, sizeof(hdr));
+    if (err != ESP_OK) {
+        return err;
+    }
+    if (memcmp(hdr, "RIFF", 4) != 0 || memcmp(hdr + 8, "WAVE", 4) != 0) {
+        DebugSerial::LogAlways("[AUDIO]", "answer audio is not a WAV");
+        return ESP_ERR_INVALID_STATE;
+    }
+    auto le16 = [](const uint8_t *p) { return static_cast<uint16_t>(p[0] | (p[1] << 8)); };
+    auto le32 = [](const uint8_t *p) {
+        return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+               (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+    };
+    uint16_t channels = 1;
+    uint16_t bits = 16;
+    uint32_t rate = 24000;
+    uint32_t data_off = 0;
+    uint32_t data_size = 0;
+    size_t p = 12;
+    while (p + 8 <= sizeof(hdr)) {
+        const uint32_t csize = le32(hdr + p + 4);
+        if (memcmp(hdr + p, "fmt ", 4) == 0) {
+            channels = le16(hdr + p + 8 + 2);
+            rate = le32(hdr + p + 8 + 4);
+            bits = le16(hdr + p + 8 + 14);
+        } else if (memcmp(hdr + p, "data", 4) == 0) {
+            data_off = static_cast<uint32_t>(p + 8);
+            data_size = csize;
+            break;
+        }
+        p += 8 + csize + (csize & 1);
+    }
+    // OpenAI streams the answer WAV with an "unknown length" placeholder in the
+    // data-chunk size (seen as 0xFFFFFFFF), so it cannot be trusted. Use the
+    // bytes actually written to the spool, and guard every bound against
+    // uint32 overflow (data_off + 0xFFFFFFFF would wrap and defeat the clamp).
+    const uint32_t avail = (wav_total_bytes > data_off) ? (wav_total_bytes - data_off) : 0;
+    if (data_size == 0 || data_size == 0xFFFFFFFFu || data_size > avail) {
+        data_size = avail;
+    }
+    if (data_off < kVoiceAnswerSpoolMaxBytes &&
+        data_size > kVoiceAnswerSpoolMaxBytes - data_off) {
+        data_size = kVoiceAnswerSpoolMaxBytes - data_off;
+    }
+    if (data_off == 0 || data_size == 0 || bits != 16 || channels != 1) {
+        DebugSerial::LogAlways("[AUDIO]", "answer WAV unsupported ch=%u bits=%u data=%u total=%u",
+                               channels, bits, static_cast<unsigned>(data_size),
+                               static_cast<unsigned>(wav_total_bytes));
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+    DebugSerial::LogAlways("[AUDIO]", "answer WAV rate=%u ch=%u bytes=%u",
+                           static_cast<unsigned>(rate), channels, static_cast<unsigned>(data_size));
+
+    // The codec runs at kSampleRate (16 kHz). OpenAI returns 24 kHz audio, and
+    // reopening the codec to 24 kHz does NOT actually retune the TDM I2S clock,
+    // so it plays 1.5x slow and an octave low. Resample 24->16 kHz here instead
+    // (exact 3:2 ratio, integer math: 3 input samples -> 2 output) and leave the
+    // codec at its native rate. The answer is mono; we duplicate to stereo.
+    const bool resample = (rate == 24000 && kSampleRate == 16000);
+    if (!resample && rate != static_cast<uint32_t>(kSampleRate)) {
+        DebugSerial::LogAlways("[AUDIO]", "answer rate=%u unhandled; playing as-is",
+                               static_cast<unsigned>(rate));
+    }
+
+    constexpr size_t kInBytes = 6144;  // 3072 mono samples; multiple of 6 for clean 3:2 groups
+    int16_t *inbuf = static_cast<int16_t *>(heap_caps_malloc(kInBytes, MALLOC_CAP_DEFAULT));
+    int16_t *outbuf = static_cast<int16_t *>(heap_caps_malloc(kInBytes * 2, MALLOC_CAP_DEFAULT));
+    if (inbuf == nullptr || outbuf == nullptr) {
+        heap_caps_free(inbuf);
+        heap_caps_free(outbuf);
+        return ESP_ERR_NO_MEM;
+    }
+    auto clip16 = [](int32_t v) -> int16_t {
+        return v > 32767 ? 32767 : (v < -32768 ? -32768 : static_cast<int16_t>(v));
+    };
+
+    // The answer plays from the (low-priority) main task; raise its priority for
+    // the duration so Wi-Fi and friends can't starve the codec feed (stutter).
+    const UBaseType_t prev_prio = uxTaskPriorityGet(nullptr);
+    vTaskPrioritySet(nullptr, kPlaybackTaskPriority);
+
+    NotifyPlayback(true);
+    uint32_t off = kVoiceAnswerSpoolOffset + data_off;
+    uint32_t remaining = data_size & ~static_cast<uint32_t>(1);  // whole samples only
+    err = ESP_OK;
+    while (remaining >= 2) {
+        size_t want = remaining < kInBytes ? remaining : kInBytes;
+        want -= want % (resample ? 6 : 2);
+        if (want == 0) {
+            break;  // trailing 1-2 samples, inaudible
+        }
+        if (esp_partition_read(spool, off, inbuf, want) != ESP_OK) {
+            err = ESP_FAIL;
+            break;
+        }
+        const size_t in_samples = want / 2;
+        size_t out_i = 0;
+        if (resample) {
+            for (size_t g = 0; g + 3 <= in_samples; g += 3) {
+                const int16_t o0 = clip16(static_cast<int32_t>(inbuf[g]) * kAnswerGainPercent / 100);
+                const int32_t mix = (static_cast<int32_t>(inbuf[g + 1]) + inbuf[g + 2]) / 2;
+                const int16_t o1 = clip16(mix * kAnswerGainPercent / 100);
+                outbuf[out_i++] = o0; outbuf[out_i++] = o0;
+                outbuf[out_i++] = o1; outbuf[out_i++] = o1;
+            }
+        } else {
+            for (size_t s = 0; s < in_samples; ++s) {
+                const int16_t o = clip16(static_cast<int32_t>(inbuf[s]) * kAnswerGainPercent / 100);
+                outbuf[out_i++] = o; outbuf[out_i++] = o;
+            }
+        }
+        err = Codec_PlaybackData(reinterpret_cast<uint8_t *>(outbuf), out_i * sizeof(int16_t));
+        if (err != ESP_OK) {
+            break;
+        }
+        off += want;
+        remaining -= want;
+    }
+    NotifyPlayback(false);
+    vTaskPrioritySet(nullptr, prev_prio);
+    heap_caps_free(inbuf);
+    heap_caps_free(outbuf);
+    DebugSerial::LogAlways("[AUDIO]", "answer playback done rate=%u resample=%d result=%s",
+                           static_cast<unsigned>(rate), resample ? 1 : 0, esp_err_to_name(err));
+    return err;
+}
+
 void AudioService::RunMicTest(DisplayService &display, Language language) {
     if (!available_) {
         display.ShowAudioUnavailable(language);
         DebugSerial::LogAlways("[AUDIO]", "mic test skipped; audio unavailable");
         return;
     }
-    esp_err_t err = EnsureRecordBuffer();
+    esp_err_t err = EnsureRecordBuffer(record_bytes_);
     if (err != ESP_OK) {
         display.ShowAudioUnavailable(language);
         DebugSerial::LogAlways("[AUDIO]", "mic test skipped; record buffer unavailable");
@@ -392,7 +555,7 @@ void AudioService::RunMicTest(DisplayService &display, Language language) {
     err = Codec_RecordData(record_buffer_, record_bytes_);
     DebugSerial::LogAlways("[AUDIO]", "record bytes=%u result=%s", static_cast<unsigned>(record_bytes_), esp_err_to_name(err));
     if (err != ESP_OK) {
-        display.ShowError(StringsFor(language).recording_failed_body, language);
+        display.ShowError(StringsFor(language).recording_failed_body, "E01", language);
         ReleaseRecordBuffer();
         return;
     }
@@ -416,21 +579,41 @@ esp_err_t AudioService::PrepareSpool() {
         return ESP_ERR_INVALID_SIZE;
     }
 
+    // The 512 KB erase costs ~1-2s. RearmQuestionSpool() pre-erases it during
+    // idle (at boot and after each query), so a real recording starts instantly.
+    if (question_spool_clean_) {
+        question_spool_clean_ = false;  // this recording is about to dirty it
+        DebugSerial::LogAlways("[AUDIO]", "voice spool pre-erased; instant start");
+        return ESP_OK;
+    }
+
     const size_t erase_bytes = std::min(kVoiceSpoolEraseBytes, static_cast<size_t>(spool_partition_->size));
     esp_err_t err = esp_partition_erase_range(spool_partition_, 0, erase_bytes);
     if (err != ESP_OK) {
         return err;
     }
 
-    uint8_t header[kWavHeaderBytes] = {};
-    BuildWavHeader(header, 0);
-    err = esp_partition_write(spool_partition_, 0, header, sizeof(header));
-    if (err == ESP_OK) {
-        DebugSerial::LogAlways("[AUDIO]", "voice raw spool prepared partition=%s erase_bytes=%u",
-                               kSpoolPartition,
-                               static_cast<unsigned>(erase_bytes));
+    // Do NOT write a placeholder header here. The final WAV header is written
+    // once, after recording, over still-erased flash (0xFF -> any value works).
+    // A placeholder with size 0 could not later be raised to the real size,
+    // since NOR flash can only clear bits without an erase, which left readers
+    // (the speech-to-text upload) seeing a 0-length data chunk.
+    DebugSerial::LogAlways("[AUDIO]", "voice raw spool prepared partition=%s erase_bytes=%u",
+                           kSpoolPartition,
+                           static_cast<unsigned>(erase_bytes));
+    return ESP_OK;
+}
+
+void AudioService::RearmQuestionSpool() {
+    // Pre-erase the question region during idle (boot, and after each query once
+    // the WAV is no longer needed) so the next recording skips the slow erase.
+    if (voice_recording_ || voice_task_ != nullptr) {
+        return;  // never erase under an active recording
     }
-    return err;
+    question_spool_clean_ = false;  // force PrepareSpool down the erase path
+    if (PrepareSpool() == ESP_OK) {
+        question_spool_clean_ = true;
+    }
 }
 
 void AudioService::VoiceRecordTaskEntry(void *arg) {
@@ -441,15 +624,15 @@ void AudioService::VoiceRecordTaskEntry(void *arg) {
 void AudioService::VoiceRecordTask() {
     int chunks = 0;
     while (!voice_stop_requested_ && chunks < kVoiceMaxChunks) {
-        memset(record_buffer_, 0, record_bytes_);
-        esp_err_t err = Codec_RecordData(record_buffer_, record_bytes_);
+        memset(record_buffer_, 0, kVoiceChunkBytes);
+        esp_err_t err = Codec_RecordData(record_buffer_, kVoiceChunkBytes);
         if (err != ESP_OK) {
             voice_err_ = err;
             break;
         }
 
         int16_t *samples = reinterpret_cast<int16_t *>(record_buffer_);
-        const size_t frames = record_bytes_ / (kChannels * kBytesPerSample);
+        const size_t frames = kVoiceChunkBytes / (kChannels * kBytesPerSample);
         for (size_t i = 0; i < frames; ++i) {
             const int32_t left = samples[i * kChannels];
             const int32_t right = samples[i * kChannels + 1];

@@ -25,7 +25,7 @@ def test_config_schema_declares_product_limits_and_secret_masking():
     source = read(MAIN / "app_config.cpp")
 
     assert "constexpr size_t kMaxWifiCredentials = 8" in header
-    assert "constexpr size_t kMaxScreenAnswerChars = 100" in header
+    assert "constexpr size_t kMaxScreenAnswerChars = 55" in header
     assert "constexpr uint32_t kWifiAttemptTimeoutMs = 10000" in header
     assert "constexpr uint32_t kVoiceRecordLimitMs = 15000" in header
     assert "MaskSecret" in header
@@ -542,7 +542,7 @@ def test_voice_oracle_contract_and_audio_limits_are_explicit():
     ):
         assert field in source
     assert "audio/transcriptions" in source
-    assert "responses" in source
+    assert "chat/completions" in source  # Brain endpoint (chat completions, JSON mode)
     assert "audio/speech" in source
     assert "kMaxScreenAnswerChars" in source
     assert "StartVoiceRecording" in audio_header
@@ -583,13 +583,15 @@ def test_audio_record_buffer_is_lazy_to_keep_setup_portal_heap_available():
     mic_body = source.split("void AudioService::RunMicTest", 1)[1].split("esp_err_t AudioService::PrepareSpool()", 1)[0]
     voice_task_body = source.split("void AudioService::VoiceRecordTask()", 1)[1]
 
-    assert "esp_err_t EnsureRecordBuffer();" in header
+    assert "esp_err_t EnsureRecordBuffer(size_t bytes);" in header
     assert "void ReleaseRecordBuffer();" in header
     assert "record_buffer=lazy" in source
     assert "heap_caps_malloc(record_bytes_" not in init_body
-    assert "EnsureRecordBuffer()" in start_voice_body
+    # Voice recording uses a small dedicated chunk (reliable alloc + prompt stop);
+    # the mic-test loopback keeps the larger record_bytes_ buffer. Both stay lazy.
+    assert "EnsureRecordBuffer(kVoiceChunkBytes)" in start_voice_body
     assert "ReleaseRecordBuffer();" in start_voice_body
-    assert "EnsureRecordBuffer()" in mic_body
+    assert "EnsureRecordBuffer(record_bytes_)" in mic_body
     assert "ReleaseRecordBuffer();" in mic_body
     assert "ReleaseRecordBuffer();" in voice_task_body
 
@@ -680,9 +682,14 @@ def test_email_service_uses_relay_contract_and_degrades_to_text_only():
 
     assert "SendOracleEmail" in header
     assert "EmailSettings" in header
-    assert "relay HTTPS POST" in source
-    assert "text-only" in source
-    assert "attachment upload pending" in source
+    # Real relay POST over TLS: multipart form-data, streaming the question WAV
+    # from flash, Bearer-token auth, degrading to text-only when there is no WAV.
+    assert "esp_http_client_open" in source
+    assert "esp_crt_bundle_attach" in source
+    assert "multipart/form-data" in source
+    assert "esp_partition_read" in source
+    assert '"Bearer "' in source
+    assert "attach" in source
 
 
 def test_button_events_cover_voice_and_setup_recovery():

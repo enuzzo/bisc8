@@ -18,7 +18,7 @@ constexpr LocalizedStrings kEnglish = {
     "Listening",
     "Speak now.\nRelease BOOT to send.",
     "Thinking",
-    "The oracle is reading your question.",
+    "Reading the crumbs..",
     "Cooking",
     "Keep the question warm.",
     "Speaking",
@@ -53,6 +53,8 @@ constexpr LocalizedStrings kEnglish = {
     "on your phone or pc",
     "couldn't reach\n%s",
     "press",
+    "I didn't hear you.\nTry again.",
+    "The oracle\nglitched.",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -67,7 +69,7 @@ constexpr LocalizedStrings kSpanish = {
     "Escuchando",
     "Habla ahora.\nSuelta BOOT para enviar.",
     "Pensando",
-    "El oráculo lee tu pregunta.",
+    "Leo las migas..",
     "Cooking",
     "La pregunta está al fuego.",
     "Hablando",
@@ -102,6 +104,8 @@ constexpr LocalizedStrings kSpanish = {
     "con el móvil o pc",
     "no alcanzo\n%s",
     "pulsa",
+    "No te he oído.\nInténtalo otra vez.",
+    "El oráculo\nse ha trabado.",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -116,7 +120,7 @@ constexpr LocalizedStrings kItalian = {
     "Ascolto",
     "Parla ora.\nRilascia BOOT per inviare.",
     "Penso",
-    "L'oracolo legge la domanda.",
+    "Consulto le briciole..",
     "Cooking",
     "La domanda è sul fuoco.",
     "Parlo",
@@ -151,6 +155,8 @@ constexpr LocalizedStrings kItalian = {
     "col telefono o pc",
     "non raggiungo\n%s",
     "premi",
+    "Non ho sentito nulla.\nRiprova.",
+    "L'oracolo si è\nincantato.",
 };
 
 }  // namespace
@@ -245,6 +251,12 @@ const char *LocalizedValue(Language language, const char *key) {
     }
     if (strcmp(key, "voice_oracle_unconfigured_body") == 0) {
         return strings.voice_oracle_unconfigured_body;
+    }
+    if (strcmp(key, "voice_no_speech_body") == 0) {
+        return strings.voice_no_speech_body;
+    }
+    if (strcmp(key, "voice_error_generic_body") == 0) {
+        return strings.voice_error_generic_body;
     }
     if (strcmp(key, "error_footer") == 0) {
         return strings.error_footer;

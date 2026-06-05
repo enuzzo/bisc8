@@ -13,6 +13,7 @@ struct SoundAsset {
 
 extern const SoundAsset kSoundBoot;
 extern const SoundAsset kSoundOracleButton;
+extern const SoundAsset kSoundVoiceStart;
 extern const SoundAsset kSoundVoiceSubmit;
 extern const SoundAsset kSoundShutdown;
 

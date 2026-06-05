@@ -169,12 +169,13 @@ details summary{font-size:13px;font-weight:600;cursor:pointer;margin:6px 0 9px;l
         <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" tabindex="-1" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         <div class="two">
           <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div>
-          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-4o-mini"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-5.4-mini"></div>
         </div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-4o-mini-tts"></div>
-          <div class="field"><label class="fld" data-i18n="voice">Voce</label><input name="voice" placeholder="alloy"></div>
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-realtime-1.5"></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><select name="voice"><option value="">- mantieni -</option><option value="coral">coral</option><option value="alloy">alloy</option><option value="ash">ash</option><option value="ballad">ballad</option><option value="cedar">cedar</option><option value="echo">echo</option><option value="fable">fable</option><option value="marin">marin</option><option value="nova">nova</option><option value="onyx">onyx</option><option value="sage">sage</option><option value="shimmer">shimmer</option><option value="verse">verse</option></select></div>
         </div>
+        <div class="field"><label class="fld">Ragionamento (reasoning)</label><select name="reasoning_effort"><option value="">- mantieni -</option><option value="off">spento</option><option value="minimal">minimal</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>
       </form>
       <p class="hint below"><span data-i18n="key_stored">Chiave salvata:</span> <span data-bind="openai_key">missing</span></p>
@@ -656,6 +657,12 @@ esp_err_t WebPortal::HandleOpenAi(httpd_req_t *req) {
     }
     if (!voice.empty()) {
         portal->settings_->openai.voice = voice;
+    }
+    const std::string reasoning = FormValue(form, "reasoning_effort");
+    if (reasoning == "off") {
+        portal->settings_->openai.reasoning_effort.clear();  // explicit off (non-reasoning models)
+    } else if (!reasoning.empty()) {
+        portal->settings_->openai.reasoning_effort = reasoning;
     }
     err = portal->SaveCurrentSettings();
     if (err != ESP_OK) {

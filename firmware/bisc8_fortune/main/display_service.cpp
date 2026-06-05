@@ -32,6 +32,10 @@ constexpr int kBodyLineSpace = 2;
 constexpr int kSmallLineSpace = 2;
 constexpr int kTitleLineSpace = 2;
 constexpr int kEyebrowLetterSpace = 2;
+// Message screens (LayoutMessage) center the body within the band between the
+// title chip and the footer. This shifts the centring anchor down from the
+// screen middle to that band's middle, so tall messages never touch the title.
+constexpr int kMessageBodyDrop = 15;
 
 // E-ink refresh policy, applied at the display_service / port_display boundary.
 // Partial refresh is the default (fast, low flicker) but it ghosts, so we force
@@ -233,6 +237,8 @@ void DisplayService::CreateScreen() {
         BuildFooterBattery();
         BuildSleepCorners();
         BuildPressButton();
+        BuildMic();
+        BuildWaitDots();
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
@@ -332,6 +338,39 @@ void DisplayService::BuildSpeaker() {
     speaker_wave2_ = create_block(speaker_group_, 23, 6, 3, 17);
     speaker_wave3_ = create_block(speaker_group_, 27, 3, 3, 23);
     set_hidden(speaker_group_, true);
+}
+
+void DisplayService::BuildMic() {
+    // Pixel-art microphone (capsule head in a U-cradle on a stand) with two
+    // sound-wave bars on the right that the animation pulses. "Speak now".
+    mic_group_ = lv_obj_create(screen_);
+    style_plain_obj(mic_group_);
+    lv_obj_set_size(mic_group_, 29, 30);
+
+    create_block(mic_group_, 8, 0, 6, 2);    // head: top cap
+    create_block(mic_group_, 6, 2, 10, 13);  // head: body
+    create_block(mic_group_, 8, 15, 6, 2);   // head: bottom cap
+    create_block(mic_group_, 2, 9, 2, 7);    // cradle: left arm
+    create_block(mic_group_, 18, 9, 2, 7);   // cradle: right arm
+    create_block(mic_group_, 2, 16, 18, 2);  // cradle: bottom
+    create_block(mic_group_, 10, 18, 2, 8);  // stand: stem
+    create_block(mic_group_, 4, 26, 14, 2);  // stand: base
+
+    mic_wave1_ = create_block(mic_group_, 23, 5, 2, 7);    // inner wave
+    mic_wave2_ = create_block(mic_group_, 26, 2, 2, 13);   // outer wave
+    set_hidden(mic_group_, true);
+}
+
+void DisplayService::BuildWaitDots() {
+    // Three dots; dot1 stays on, dot2/dot3 reveal in sequence ("." ".." "...").
+    wait_group_ = lv_obj_create(screen_);
+    style_plain_obj(wait_group_);
+    lv_obj_set_size(wait_group_, 32, 8);
+
+    create_block(wait_group_, 0, 0, 8, 8);   // dot1 (always on)
+    wait_dot2_ = create_block(wait_group_, 12, 0, 8, 8);
+    wait_dot3_ = create_block(wait_group_, 24, 0, 8, 8);
+    set_hidden(wait_group_, true);
 }
 
 void DisplayService::BuildWifiGlyph() {
@@ -588,6 +627,66 @@ void DisplayService::StopArrowBlink() {
     arrow_on_ = false;
 }
 
+void DisplayService::VoiceAnimThunk(lv_timer_t *timer) {
+    auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
+    if (self != nullptr) {
+        self->TickVoiceAnim();
+    }
+}
+
+void DisplayService::TickVoiceAnim() {
+    // Runs on the LVGL thread, so it keeps pulsing even while the main task is
+    // blocked waiting on the OpenAI worker.
+    if (voice_anim_ticks_left_ <= 0) {  // settle: everything visible, stop refreshing
+        if (voice_anim_is_mic_) {
+            set_hidden(mic_wave1_, false);
+            set_hidden(mic_wave2_, false);
+        } else {
+            set_hidden(wait_dot2_, false);
+            set_hidden(wait_dot3_, false);
+        }
+        if (voice_anim_timer_ != nullptr) {
+            lv_timer_delete(voice_anim_timer_);
+            voice_anim_timer_ = nullptr;
+        }
+        return;
+    }
+    --voice_anim_ticks_left_;
+    voice_anim_phase_ = (voice_anim_phase_ + 1) % 3;
+    if (voice_anim_is_mic_) {
+        set_hidden(mic_wave1_, voice_anim_phase_ < 1);
+        set_hidden(mic_wave2_, voice_anim_phase_ < 2);
+    } else {
+        set_hidden(wait_dot2_, voice_anim_phase_ < 1);
+        set_hidden(wait_dot3_, voice_anim_phase_ < 2);
+    }
+}
+
+void DisplayService::StartVoiceAnim(bool is_mic) {
+    voice_anim_is_mic_ = is_mic;
+    voice_anim_phase_ = 0;
+    voice_anim_ticks_left_ = 16;  // ~12s of pulsing, then settle (e-ink bounded)
+    if (is_mic) {
+        set_hidden(mic_wave1_, true);
+        set_hidden(mic_wave2_, true);
+    } else {
+        set_hidden(wait_dot2_, true);
+        set_hidden(wait_dot3_, true);
+    }
+    if (voice_anim_timer_ == nullptr) {
+        voice_anim_timer_ = lv_timer_create(&DisplayService::VoiceAnimThunk, 750, this);
+    }
+}
+
+void DisplayService::StopVoiceAnim() {
+    if (voice_anim_timer_ != nullptr) {
+        lv_timer_delete(voice_anim_timer_);
+        voice_anim_timer_ = nullptr;
+    }
+    voice_anim_ticks_left_ = 0;
+    voice_anim_phase_ = 0;
+}
+
 void DisplayService::ResetAuxLayers(bool speaking) {
     // Shared layer reset for every layout: park the auxiliary glyphs and stop the
     // speaker animation unless we are entering the speaking screen.
@@ -596,12 +695,15 @@ void DisplayService::ResetAuxLayers(bool speaking) {
     }
     StopBatteryFlash();
     StopArrowBlink();
+    StopVoiceAnim();
     speaking_active_ = speaking;
     set_hidden(speaker_group_, !speaking);
     set_hidden(wifi_group_, true);
     set_hidden(batt_big_group_, true);
     set_hidden(sleep_corner_group_, true);
     set_hidden(press_btn_group_, true);
+    set_hidden(mic_group_, true);
+    set_hidden(wait_group_, true);
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
@@ -724,7 +826,13 @@ void DisplayService::LayoutMessage() {
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_width(body_label_, 176);
     lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
+    // Center the body in the band BETWEEN the title chip and the footer, not in
+    // the whole screen: a tall 3-4 line message centered on the screen rides up
+    // and touches the title chip ("stuck to the title"). Shifting the centring
+    // anchor down by kMessageBodyDrop keeps short bodies balanced and tall ones
+    // clear of the title.
     lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
+    lv_obj_set_y(body_label_, kMessageBodyDrop);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
@@ -1020,8 +1128,15 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
 void DisplayService::ShowVoiceListening(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.listening_title, strings.listening_body, strings.voice_footer);
+        // No full refresh here: the full e-ink flash on BOOT-press looked like a
+        // reset. Partial refresh into the mic glyph is calmer.
+        LayoutGlyphMessage();
+        set_hidden(mic_group_, false);
+        lv_obj_set_pos(mic_group_, 86, 30);
+        lv_label_set_text(body_label_, strings.listening_body);
+        lv_label_set_text(footer_left_, strings.voice_footer);
+        lv_obj_update_layout(screen_);
+        StartVoiceAnim(true);  // pulse the mic sound-waves
         Lvgl_unlock();
     }
 }
@@ -1038,8 +1153,13 @@ void DisplayService::ShowVoiceCooking(Language language) {
 void DisplayService::ShowVoiceThinking(Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.thinking_title, strings.thinking_body, "OpenAI");
+        LayoutGlyphMessage();
+        set_hidden(wait_group_, false);
+        lv_obj_set_pos(wait_group_, 84, 56);
+        lv_label_set_text(body_label_, strings.thinking_body);
+        lv_label_set_text(footer_left_, "OpenAI");
+        lv_obj_update_layout(screen_);
+        StartVoiceAnim(false);  // pulse the "..." dots while OpenAI works
         Lvgl_unlock();
     }
 }
@@ -1110,11 +1230,17 @@ void DisplayService::ShowSleep(Language language) {
     }
 }
 
-void DisplayService::ShowError(const char *message, Language language) {
+void DisplayService::ShowError(const char *message, const char *code, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
     if (Lvgl_lock(-1)) {
         LayoutMessage();
-        SetText(strings.error_title, message, strings.error_footer);
+        char footer[24];
+        if (code != nullptr && code[0] != '\0') {
+            snprintf(footer, sizeof(footer), "cod. %s", code);  // user reports this back
+        } else {
+            snprintf(footer, sizeof(footer), "%s", strings.error_footer);
+        }
+        SetText(strings.error_title, message, footer);
         Lvgl_unlock();
     }
 }

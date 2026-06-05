@@ -17,6 +17,7 @@ class DisplayService;
 enum class AudioCue {
     Boot,
     OracleButton,
+    VoiceStart,
     VoiceSubmit,
     Shutdown,
 };
@@ -38,6 +39,17 @@ public:
     void StopPlayback();
     void StartVoiceRecording();
     const char *FinishVoiceRecording();
+    // Pre-erase the question spool during idle so the next recording starts
+    // instantly. Call at boot and after each completed query.
+    void RearmQuestionSpool();
+    // Play the generated oracle answer WAV sitting in the spool answer region
+    // (parses its header, reopens the codec at its sample rate, mono->stereo as
+    // needed, restores 16 kHz after). Drives the playback observer so the
+    // speaking glyph animates. Blocks until done. `wav_total_bytes` is the byte
+    // count actually written to the spool: OpenAI streams the WAV with an
+    // "unknown length" placeholder in its header, so the real length must come
+    // from the caller, not from the data-chunk size field.
+    esp_err_t PlayAnswerAudio(uint32_t wav_total_bytes);
     void RunMicTest(DisplayService &display, Language language);
 
     void SetPlaybackObserver(AudioStateHook hook, void *ctx);
@@ -54,7 +66,7 @@ private:
     const QueuedSound *SoundFor(AudioCue cue) const;
     void PlaybackTask();
     void VoiceRecordTask();
-    esp_err_t EnsureRecordBuffer();
+    esp_err_t EnsureRecordBuffer(size_t bytes);
     void ReleaseRecordBuffer();
     esp_err_t PrepareSpool();
     void PrepareChime();
@@ -66,7 +78,9 @@ private:
 
     bool available_ = false;
     uint8_t *record_buffer_ = nullptr;
-    size_t record_bytes_ = 0;
+    size_t record_bytes_ = 0;       // mic-test loopback buffer size
+    size_t record_buf_size_ = 0;    // size record_buffer_ is currently allocated at
+    bool question_spool_clean_ = false;  // true when the question spool is pre-erased
     uint8_t *feedback_buffer_ = nullptr;
     size_t feedback_bytes_ = 0;
     TaskHandle_t playback_task_ = nullptr;
