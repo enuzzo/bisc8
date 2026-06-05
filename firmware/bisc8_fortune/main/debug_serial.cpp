@@ -111,7 +111,7 @@ void command_task(void *) {
         } else if (strcmp(line, "SNAP") == 0) {
             dump_snapshot();
         } else if (strcmp(line, "HELP") == 0) {
-            DebugSerial::LogAlways("[SERIAL]", "commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, VOICE START, VOICE STOP, WIFI SETUP, WIFI RESET, CONFIG RESET, HELP");
+            DebugSerial::LogAlways("[SERIAL]", "commands: DEBUG 0, DEBUG 1, STATUS, SNAP, FORTUNE, MIC, VOICE START, VOICE STOP, WIFI SETUP, WIFI RESET, CONFIG RESET, SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK, HELP");
         } else if (g_command_handler != nullptr && g_command_handler(line)) {
             continue;
         } else {

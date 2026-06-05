@@ -43,6 +43,11 @@ constexpr LocalizedStrings kEnglish = {
     "Recording failed.",
     "Voice oracle is not configured yet.",
     "see serial",
+    "No Wi-Fi.\nThe oracle\nmeditates offline.",
+    "Low battery",
+    "Battery to the bone.\nEven foresight\ngets tired.",
+    "Empty",
+    "Zero answers loaded.\nAn oracle on\nan empty stomach.",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -82,6 +87,11 @@ constexpr LocalizedStrings kSpanish = {
     "La grabación falló.",
     "El oráculo de voz aún no está configurado.",
     "ver serial",
+    "Sin Wi-Fi.\nEl oráculo\nmedita offline.",
+    "Batería baja",
+    "Batería al hueso.\nHasta la videncia\nse cansa.",
+    "Vacío",
+    "Cero respuestas.\nVaya oráculo\nen ayunas.",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -121,6 +131,11 @@ constexpr LocalizedStrings kItalian = {
     "Registrazione fallita.",
     "L'oracolo vocale non è ancora configurato.",
     "vedi seriale",
+    "Niente Wi-Fi.\nL'oracolo\nmedita offline.",
+    "Batteria bassa",
+    "Batteria all'osso.\nAnche la preveggenza\nsi stanca.",
+    "Vuoto",
+    "Zero responsi caricati.\nChe oracolo\na digiuno.",
 };
 
 }  // namespace

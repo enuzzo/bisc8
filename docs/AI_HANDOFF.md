@@ -55,10 +55,11 @@ Important behavior:
 - `firmware/bisc8_fortune/main/connectivity_service.*`: Wi-Fi scan/reconnect, SoftAP setup mode, status state.
 - `firmware/bisc8_fortune/main/web_portal.*`: local setup portal HTML, API routes, settings save/reset.
 - `firmware/bisc8_fortune/main/captive_dns_service.*`: DNS responder for captive portal fallback.
-- `firmware/bisc8_fortune/main/display_service.*`: LVGL/e-paper screen rendering.
+- `firmware/bisc8_fortune/main/display_service.*`: LVGL/e-paper screen rendering, glyphs (speaker, Wi-Fi, battery) drawn from blocks, the speaking-state speaker animation, and the e-ink full/partial refresh policy in `lvgl_flush_cb`.
+- `firmware/bisc8_fortune/components/port_bsp/port_display.*`: low-level panel driver; `EPD_DisplayPart` / `EPD_DisplayFull` are the partial and full refresh primitives the policy chooses between.
 - `firmware/bisc8_fortune/main/localization.*`: display and web string tables for `en`, `es`, `it`.
 - `firmware/bisc8_fortune/main/fortune_service.*`: non-repeating random fortune selection.
-- `firmware/bisc8_fortune/main/audio_service.*`: codec init, audio cues, mic test, voice recording to flash spool.
+- `firmware/bisc8_fortune/main/audio_service.*`: codec init, audio cues, mic test, voice recording to flash spool, and playback/recording observer hooks that drive the speaking animation.
 - `firmware/bisc8_fortune/main/voice_oracle_service.*`: planned OpenAI voice-oracle contract; currently incomplete.
 - `firmware/bisc8_fortune/main/email_service.*`: planned relay handoff; currently incomplete.
 - `firmware/bisc8_fortune/main/generated`: generated firmware data for fortunes, logo, fonts, and sounds.
@@ -82,7 +83,11 @@ High-level boot flow in `app_main.cpp`:
 9. Otherwise scan for known Wi-Fi networks and connect only to visible saved SSIDs.
 10. If online, briefly show connected SSID and IP, then return to the intro screen.
 11. If no saved network connects, start SoftAP/captive portal.
-12. Initialize buttons and enter the event loop.
+12. Resting-screen override (when not in setup mode): show first-run empty if zero responsi are loaded, else show the low-battery screen if `BatteryLevel()` is at or below 12 percent. Because deep-sleep wake reboots the chip, this doubles as the low-battery auto-trigger on every wake.
+13. Register the audio playback/recording observers against the display hooks.
+14. Initialize buttons and enter the event loop.
+
+The serial `SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK` command posts a preview event so each state screen can be forced and snapshot-validated on the bench regardless of live battery/network state.
 
 Runtime button behavior:
 

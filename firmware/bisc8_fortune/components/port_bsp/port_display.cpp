@@ -272,6 +272,15 @@ void EPD_DisplayPart() {
     EPD_TurnOnDisplayPart();
 }
 
+void EPD_DisplayFull() {
+    // Same sequence the boot path uses to land on a clean, partial-ready panel:
+    // full waveform flash of the current buffer (the reveal beat), then set the
+    // partial base image and switch back to the partial LUT for tiny updates.
+    EPD_Init();                  // loads WF_Full LUT + reconfigures the panel
+    EPD_DisplayPartBaseImage();  // writes buffer to 0x24 and 0x26, full turn-on
+    EPD_Init_Partial();          // back to partial mode for subsequent updates
+}
+
 void EPD_DrawColorPixel(uint16_t x, uint16_t y,uint8_t color) {
     if (x >= EPD_WIDTH || y >= EPD_HEIGHT)
     {

@@ -23,6 +23,11 @@ void EPD_Init();    /* Initialize the e-paper display. */
 void EPD_Clear();   /* Clear the screen. */
 void EPD_Display(); /* Flush the frame buffer to the screen. */
 
+/* Full (flashing) refresh of the current frame buffer, then re-arm partial
+ * mode with that frame as the base image so later partial updates do not
+ * ghost. Use for dramatic reveals and to periodically clear ghosting. */
+void EPD_DisplayFull();
+
 /* Partial refresh. */
 void EPD_DisplayPartBaseImage();
 void EPD_Init_Partial();

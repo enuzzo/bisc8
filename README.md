@@ -15,7 +15,8 @@ For future AI agents and contributors, start with the extended project map in [`
 - PWR click: show localized Wi-Fi/status/setup instructions, including the connected SSID and device IP, or the `Bisc8-XXXX` setup hotspot and `http://192.168.4.1`.
 - PWR long press: show the Bisc8 power-off prompt, play the shutdown cue, then enter deep sleep wakeable by PWR.
 - Idle timeout: after 3 minutes with no button or serial events, enter deep sleep wakeable by BOOT or PWR.
-- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `HELP`.
+- Dedicated state screens in the System 6 1-bit language: no Wi-Fi (crossed-out Wi-Fi glyph), low battery (large battery glyph, auto-shown on boot/wake when charge is at or below 12 percent), first-run empty (shown when zero responsi are loaded), and a speaking screen whose speaker glyph animates while Bisc8 voices the answer.
+- Serial commands: `DEBUG 0`, `DEBUG 1`, `STATUS`, `SNAP`, `FORTUNE`, `MIC`, `VOICE START`, `VOICE STOP`, `WIFI SETUP`, `WIFI RESET`, `CONFIG RESET`, `SCREEN NOWIFI|LOWBATT|FIRSTRUN|SPEAK`, `HELP`. `SCREEN ...` forces a device screen so each state can be reached and snapshot-validated on the bench.
 - Configuration is stored in NVS: language, up to 8 Wi-Fi credentials, OpenAI settings, email recipient, and optional email relay settings.
 - On boot, Bisc8 scans for saved SSIDs, tries visible known networks for 5 seconds each, briefly shows the connected SSID and IP when online, and starts setup mode when none connects.
 - Setup mode starts a `Bisc8-XXXX` SoftAP and an HTTP setup portal at `http://192.168.4.1`.
@@ -51,6 +52,26 @@ Offline fallback fortunes remain available when Wi-Fi or OpenAI settings are mis
 Audio is not stored in NVS. The firmware reserves a raw flash `spool` partition for temporary WAV payloads so 15 second questions do not have to fit in RAM. Voice recording writes a 16 kHz mono WAV payload at `spool://question.wav` in one-second chunks.
 
 Current implementation status: recording, UI states, NVS OpenAI settings, and the response contract are in place. The actual OpenAI speech-to-text, Responses API, text-to-speech, generated-audio playback, and email relay transport are not implemented yet. `VoiceOracleService::AskFromRecordedAudio()` currently returns `ESP_ERR_NOT_FINISHED`.
+
+## Device Screens and E-ink Refresh
+
+All device screens share one System 6, pure 1-bit look. The chrome (striped title bar, close box, mascot glyph) and the auxiliary glyphs (right arrow, speaker, crossed-out Wi-Fi, battery) are drawn from solid rectangle blocks in `display_service.cpp`, so they stay crisp on the 200x200 panel with no anti-aliasing.
+
+Screens: boot, intro, status/Wi-Fi setup, pesca/thinking, responso, speaking, sleep/power-off, plus the dedicated states no Wi-Fi, low battery, and first-run empty. Copy for every state is localized (IT/EN/ES) in `localization.cpp` in the Netmilk voice, with no em-dashes or en-dashes.
+
+E-ink refresh policy (decided at the `display_service` / `port_display` boundary, in `lvgl_flush_cb`):
+
+- Partial refresh is the default for small changes (it is fast and low-flicker but it ghosts).
+- A FULL refresh is forced on dramatic reveals: the printed responso and the spoken responso. This is the deliberate e-ink flash beat.
+- A FULL refresh is also forced automatically after `kMaxPartialsBeforeFull` (8) partials so the panel never accumulates ghosting.
+- `EPD_DisplayFull()` (in `components/port_bsp/port_display.cpp`) mirrors the boot sequence: full-waveform flash of the current frame, then re-arm partial mode with that frame as the base image.
+- Enable verbose logs (`DEBUG 1`) to see each flush logged as `[EPD] flush full (reveal|anti-ghost)` or `[EPD] flush partial n=...`.
+
+Speaking-state speaker animation:
+
+- `AudioService` exposes `SetPlaybackObserver` and `SetRecordingObserver`. The playback observer drives the speaker glyph animation: while audio plays on the speaking screen, the sound-wave bars pulse; when playback ends, they settle. The recording observer is a clean seam for a future "ti ascolto" listening animation and is not wired to a UI animation yet.
+- `app_main` registers these observers against `DisplayService::OnPlaybackState` / `OnListeningState`. The animation is gated on the speaking screen, so cues on other screens never wake the panel.
+- The animation is bounded (about seven seconds of pulsing, then it settles to a single wave) so a resting speaking screen does not refresh the panel forever. The audio pipeline that voices the answer is intentionally not built here; only the UI state and the hooks are.
 
 ## Sound Assets
 
@@ -94,7 +115,7 @@ The tool scales the source to `64x64`, thresholds it to a clean 1-bit black/whit
 
 ## Display Fonts
 
-Bisc8 display fonts are generated from Montserrat Medium with full Latin-1 coverage (`0x20-0xFF`) so localized Italian, Spanish, French, Portuguese, and similar European-language text keeps required accents. Do not strip accents from display strings to fit ASCII.
+Bisc8 display fonts are generated from Pixelify Sans as crisp 1-bit pixel fonts with full Latin-1 coverage (`0x20-0xFF`) so localized Italian, Spanish, French, Portuguese, and similar European-language text keeps required accents, and the device matches the pixel font used on the web config. Do not strip accents from display strings to fit ASCII.
 
 Regenerate the LVGL font sources with:
 
@@ -167,8 +188,10 @@ Recommended text length is around 60-90 characters, with a hard practical maximu
 Capture the real e-paper framebuffer as a 1-bit PNG:
 
 ```sh
-python3 tools/capture_epaper_snapshot.py --port /dev/cu.usbmodem83201
+python3 tools/capture_epaper_snapshot.py --port /dev/cu.usbmodem14201
 ```
+
+Pass `--before-command "SCREEN NOWIFI"` (or `LOWBATT`, `FIRSTRUN`, `SPEAK`, `FORTUNE`) with `--before-delay` to force a screen before the snapshot. Capture the speaking screen after its animation settles, or retry, since concurrent panel refreshes can occasionally corrupt a streamed dump.
 
 Snapshots are written to:
 
@@ -185,5 +208,5 @@ screenshots/epaper/
 Latest local result:
 
 ```text
-59 passed
+70 passed
 ```

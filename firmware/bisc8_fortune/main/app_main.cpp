@@ -33,6 +33,21 @@ namespace {
 constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);
 constexpr uint32_t kMinimumBootSplashMs = 5000;
 constexpr uint32_t kOnlineStatusSplashMs = 2800;
+constexpr uint8_t kLowBatteryWarnPct = 12;
+
+// Audio -> display state trampolines: AudioService fires these from its
+// playback/record threads; DisplayService takes the LVGL lock internally.
+void OnAudioPlayback(void *ctx, bool active) {
+    static_cast<DisplayService *>(ctx)->OnPlaybackState(active);
+}
+void OnAudioRecording(void *ctx, bool active) {
+    static_cast<DisplayService *>(ctx)->OnListeningState(active);
+}
+
+bool battery_is_low() {
+    const uint8_t level = BatteryLevel();
+    return level != 255 && level <= kLowBatteryWarnPct;
+}
 QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
 bool g_board_ready = false;
@@ -96,6 +111,21 @@ bool handle_serial_command(const char *line) {
     }
     if (strcmp(line, "WIFI RESET") == 0 || strcmp(line, "CONFIG RESET") == 0) {
         return post_serial_event(AppEvent::FullConfigReset, "config reset");
+    }
+    if (strncmp(line, "SCREEN ", 7) == 0) {
+        const char *which = line + 7;
+        if (strcmp(which, "NOWIFI") == 0) {
+            return post_serial_event(AppEvent::PreviewNoWifi, "screen no-wifi");
+        }
+        if (strcmp(which, "LOWBATT") == 0) {
+            return post_serial_event(AppEvent::PreviewLowBattery, "screen low-battery");
+        }
+        if (strcmp(which, "FIRSTRUN") == 0) {
+            return post_serial_event(AppEvent::PreviewFirstRun, "screen first-run");
+        }
+        if (strcmp(which, "SPEAK") == 0) {
+            return post_serial_event(AppEvent::PreviewSpeaking, "screen speaking");
+        }
     }
     return false;
 }
@@ -166,6 +196,9 @@ extern "C" void app_main(void) {
     const TickType_t boot_started = xTaskGetTickCount();
     const Language startup_language = ParseLanguage(settings.language.c_str());
 
+    audio.SetPlaybackObserver(&OnAudioPlayback, &display);
+    audio.SetRecordingObserver(&OnAudioRecording, &display);
+
     err = audio.Initialize();
     g_audio_ready = (err == ESP_OK);
     if (!g_audio_ready) {
@@ -194,6 +227,18 @@ extern "C" void app_main(void) {
         display.ShowIntro(startup_language);
     } else if (g_audio_ready && !setup_mode_active) {
         display.ShowIntro(startup_language);
+    }
+
+    // Resting-screen overrides: nothing to read yet, or the battery is at the
+    // bone. Runs on every boot, including wake from deep sleep, so it doubles
+    // as the low-battery auto-trigger.
+    if (!setup_mode_active) {
+        if (g_fortune_count == 0) {
+            display.ShowFirstRun(startup_language);
+        } else if (battery_is_low()) {
+            DebugSerial::LogAlways("[BATT]", "low battery warning at boot level=%u", BatteryLevel());
+            display.ShowLowBattery(startup_language);
+        }
     }
 
     buttons.Initialize(g_event_queue);
@@ -297,6 +342,30 @@ extern "C" void app_main(void) {
                 g_state = "idle";
                 break;
             }
+
+            case AppEvent::PreviewNoWifi:
+                g_state = "no-wifi";
+                display.ShowNoWifi(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewLowBattery:
+                g_state = "low-battery";
+                display.ShowLowBattery(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewFirstRun:
+                g_state = "first-run";
+                display.ShowFirstRun(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewSpeaking:
+                g_state = "speaking";
+                display.ShowVoiceSpeaking("Si.\nMa non dirlo\na nessuno.", ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
 
             case AppEvent::Sleep:
                 g_state = "power-off";

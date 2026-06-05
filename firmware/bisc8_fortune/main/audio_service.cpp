@@ -120,13 +120,37 @@ bool AudioService::Available() const {
     return available_;
 }
 
+void AudioService::SetPlaybackObserver(AudioStateHook hook, void *ctx) {
+    playback_hook_ = hook;
+    playback_hook_ctx_ = ctx;
+}
+
+void AudioService::SetRecordingObserver(AudioStateHook hook, void *ctx) {
+    recording_hook_ = hook;
+    recording_hook_ctx_ = ctx;
+}
+
+void AudioService::NotifyPlayback(bool active) {
+    if (playback_hook_ != nullptr) {
+        playback_hook_(playback_hook_ctx_, active);
+    }
+}
+
+void AudioService::NotifyRecording(bool active) {
+    if (recording_hook_ != nullptr) {
+        recording_hook_(recording_hook_ctx_, active);
+    }
+}
+
 void AudioService::PlayChime() {
     StopPlayback();
     if (!available_ || feedback_buffer_ == nullptr) {
         DebugSerial::Log("[AUDIO]", "chime skipped; audio unavailable");
         return;
     }
+    NotifyPlayback(true);
     esp_err_t err = Codec_PlaybackData(feedback_buffer_, feedback_bytes_);
+    NotifyPlayback(false);
     DebugSerial::Log("[AUDIO]", "chime bytes=%u result=%s", static_cast<unsigned>(feedback_bytes_), esp_err_to_name(err));
 }
 
@@ -171,6 +195,7 @@ void AudioService::PlayCueAsync(AudioCue cue) {
         DebugSerial::LogAlways("[AUDIO]", "async cue task create failed");
         return;
     }
+    NotifyPlayback(true);
     DebugSerial::Log("[AUDIO]", "async cue=%s bytes=%u",
                      sound->asset->name,
                      static_cast<unsigned>(sound->asset->bytes));
@@ -271,6 +296,7 @@ void AudioService::PlaybackTask() {
     queued_sound_ = nullptr;
     playback_stop_requested_ = false;
     playback_task_ = nullptr;
+    NotifyPlayback(false);
 }
 
 void AudioService::StartVoiceRecording() {
@@ -314,6 +340,7 @@ void AudioService::StartVoiceRecording() {
         return;
     }
 
+    NotifyRecording(true);
     DebugSerial::LogAlways("[AUDIO]", "voice recording started limit_ms=%u path=%s",
                            static_cast<unsigned>(kVoiceRecordLimitMs),
                            kVoiceQuestionPath);
@@ -334,6 +361,7 @@ const char *AudioService::FinishVoiceRecording() {
         DebugSerial::LogAlways("[AUDIO]", "voice recording stop timed out");
         return nullptr;
     }
+    NotifyRecording(false);
     if (voice_err_ != ESP_OK || !voice_file_ready_) {
         DebugSerial::LogAlways("[AUDIO]", "voice recording failed: %s", esp_err_to_name(voice_err_));
         return nullptr;

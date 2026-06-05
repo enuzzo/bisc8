@@ -13,6 +13,12 @@ enum class AppEvent : uint8_t {
     FullConfigReset,
     ShowStatus,
     Sleep,
+    // Force a specific device screen (serial "SCREEN ..." command) so every
+    // state can be reached and snapshot-validated on the bench.
+    PreviewNoWifi,
+    PreviewLowBattery,
+    PreviewFirstRun,
+    PreviewSpeaking,
 };
 
 }  // namespace bisc8

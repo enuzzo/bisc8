@@ -45,6 +45,11 @@ struct LocalizedStrings {
     const char *recording_failed_body;
     const char *voice_oracle_unconfigured_body;
     const char *error_footer;
+    const char *no_wifi_body;
+    const char *low_battery_title;
+    const char *low_battery_body;
+    const char *first_run_title;
+    const char *first_run_body;
 };
 
 const char *DefaultLanguage();

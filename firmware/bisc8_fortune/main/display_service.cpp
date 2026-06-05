@@ -24,6 +24,19 @@ namespace {
 
 constexpr uint16_t kEpaperBlackThresholdRgb565 = 0xc618;
 
+// E-ink refresh policy, applied at the display_service / port_display boundary.
+// Partial refresh is the default (fast, low flicker) but it ghosts, so we force
+// a full refresh on dramatic reveals and after a small run of partials.
+constexpr int kMaxPartialsBeforeFull = 8;
+volatile bool g_force_full_refresh = false;  // set under the LVGL lock before a reveal
+int g_partials_since_full = 0;               // touched only on the LVGL flush thread
+
+// Request that the NEXT flush use a full (flashing) refresh. Call under the LVGL
+// lock right before changing the screen so the change is the one that flashes.
+void RequestFullRefresh() {
+    g_force_full_refresh = true;
+}
+
 void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p) {
     uint16_t *source = reinterpret_cast<uint16_t *>(color_p);
     EPD_Clear();
@@ -34,7 +47,19 @@ void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_p) 
             source++;
         }
     }
-    EPD_DisplayPart();
+
+    const bool forced = g_force_full_refresh;
+    g_force_full_refresh = false;
+    const bool anti_ghost = g_partials_since_full >= kMaxPartialsBeforeFull;
+    if (forced || anti_ghost) {
+        EPD_DisplayFull();
+        g_partials_since_full = 0;
+        DebugSerial::Log("[EPD]", "flush full (%s)", forced ? "reveal" : "anti-ghost");
+    } else {
+        EPD_DisplayPart();
+        g_partials_since_full++;
+        DebugSerial::Log("[EPD]", "flush partial n=%d", g_partials_since_full);
+    }
     lv_disp_flush_ready(disp);
 }
 
@@ -104,6 +129,14 @@ void set_hidden(lv_obj_t *obj, bool hidden) {
     }
 }
 
+void CopyLangCode(const char *code, char *dst, size_t dst_len) {
+    size_t i = 0;
+    for (; code != nullptr && code[i] != '\0' && i + 1 < dst_len; ++i) {
+        dst[i] = static_cast<char>(toupper((unsigned char)code[i]));
+    }
+    dst[i] = '\0';
+}
+
 const char *SetupDisplayAddress(const char *url, char *buffer, size_t buffer_len) {
     if (buffer == nullptr || buffer_len == 0) {
         return "";
@@ -147,6 +180,10 @@ void DisplayService::CreateScreen() {
         BuildSplash();
         BuildChrome();
         BuildArrow();
+        BuildSpeaker();
+        BuildWifiGlyph();
+        BuildLowBatteryGlyph();
+        BuildFooterBattery();
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
@@ -226,6 +263,132 @@ void DisplayService::BuildArrow() {
     set_hidden(arrow_group_, true);
 }
 
+void DisplayService::BuildSpeaker() {
+    // Right-facing speaker cone with three sound-wave bars that the animation
+    // toggles on and off. Pixel-art from solid blocks, matching the chrome.
+    speaker_group_ = lv_obj_create(screen_);
+    style_plain_obj(speaker_group_);
+    lv_obj_set_size(speaker_group_, 24, 22);
+
+    create_block(speaker_group_, 1, 8, 5, 7);    // back box
+    create_block(speaker_group_, 6, 7, 2, 9);    // cone, stacked + flaring right
+    create_block(speaker_group_, 8, 5, 2, 13);
+    create_block(speaker_group_, 10, 3, 2, 17);  // cone face
+
+    speaker_wave1_ = create_block(speaker_group_, 14, 8, 2, 7);
+    speaker_wave2_ = create_block(speaker_group_, 17, 5, 2, 13);
+    speaker_wave3_ = create_block(speaker_group_, 20, 3, 2, 17);
+    set_hidden(speaker_group_, true);
+}
+
+void DisplayService::BuildWifiGlyph() {
+    // Three nested arcs over a base dot, struck through by a diagonal slash:
+    // "no Wi-Fi". Arcs are drawn as downward-opening brackets.
+    wifi_group_ = lv_obj_create(screen_);
+    style_plain_obj(wifi_group_);
+    lv_obj_set_size(wifi_group_, 40, 28);
+
+    create_block(wifi_group_, 4, 2, 32, 3);      // outer arc top
+    create_block(wifi_group_, 4, 5, 3, 6);       // outer arc leg L
+    create_block(wifi_group_, 33, 5, 3, 6);      // outer arc leg R
+    create_block(wifi_group_, 10, 9, 20, 3);     // mid arc top
+    create_block(wifi_group_, 10, 12, 3, 5);     // mid arc leg L
+    create_block(wifi_group_, 27, 12, 3, 5);     // mid arc leg R
+    create_block(wifi_group_, 15, 16, 10, 3);    // inner arc top
+    create_block(wifi_group_, 15, 19, 3, 4);     // inner arc leg L
+    create_block(wifi_group_, 22, 19, 3, 4);     // inner arc leg R
+    create_block(wifi_group_, 18, 23, 4, 4);     // base dot
+
+    // diagonal slash, stair-stepped from top-left to bottom-right
+    for (int i = 0; i < 12; ++i) {
+        create_block(wifi_group_, 2 + i * 3, 1 + i * 2, 3, 3);
+    }
+    set_hidden(wifi_group_, true);
+}
+
+void DisplayService::BuildLowBatteryGlyph() {
+    // Large battery outline with a thin, nearly empty fill: "battery to the bone".
+    batt_big_group_ = lv_obj_create(screen_);
+    style_plain_obj(batt_big_group_);
+    lv_obj_set_size(batt_big_group_, 56, 28);
+
+    create_frame(batt_big_group_, 0, 1, 50, 26, 3);  // shell
+    create_block(batt_big_group_, 50, 9, 4, 10);     // terminal nub
+    create_block(batt_big_group_, 5, 6, 7, 16);      // low charge sliver
+    set_hidden(batt_big_group_, true);
+}
+
+void DisplayService::BuildFooterBattery() {
+    // Small battery icon for the footer; the fill bar width tracks the charge.
+    batt_icon_group_ = lv_obj_create(screen_);
+    style_plain_obj(batt_icon_group_);
+    lv_obj_set_size(batt_icon_group_, 19, 11);
+
+    create_frame(batt_icon_group_, 0, 1, 16, 9, 2);  // shell
+    create_block(batt_icon_group_, 16, 3, 2, 5);     // terminal nub
+    batt_icon_fill_ = create_block(batt_icon_group_, 2, 3, 12, 5);  // fill (resized live)
+    set_hidden(batt_icon_group_, true);
+}
+
+void DisplayService::SpeakTimerThunk(lv_timer_t *timer) {
+    auto *self = static_cast<DisplayService *>(lv_timer_get_user_data(timer));
+    if (self != nullptr) {
+        self->TickSpeaking();
+    }
+}
+
+void DisplayService::TickSpeaking() {
+    // Runs inside lv_timer_handler (LVGL thread, lock already held).
+    if (speak_ticks_left_ <= 0) {
+        // Settle to a calm single wave and stop refreshing.
+        set_hidden(speaker_wave1_, false);
+        set_hidden(speaker_wave2_, true);
+        set_hidden(speaker_wave3_, true);
+        if (speak_timer_ != nullptr) {
+            lv_timer_delete(speak_timer_);
+            speak_timer_ = nullptr;
+        }
+        return;
+    }
+    --speak_ticks_left_;
+    speak_phase_ = (speak_phase_ + 1) % 4;  // 0..3 sound-wave count
+    set_hidden(speaker_wave1_, speak_phase_ < 1);
+    set_hidden(speaker_wave2_, speak_phase_ < 2);
+    set_hidden(speaker_wave3_, speak_phase_ < 3);
+}
+
+void DisplayService::StartSpeakingAnimation() {
+    if (!speaking_active_) {
+        return;
+    }
+    speak_ticks_left_ = 12;  // ~7s of pulsing, then settle (bounded for battery)
+    speak_phase_ = 0;
+    if (speak_timer_ == nullptr) {
+        speak_timer_ = lv_timer_create(&DisplayService::SpeakTimerThunk, 600, this);
+    }
+}
+
+void DisplayService::StopSpeakingAnimation() {
+    if (speak_timer_ != nullptr) {
+        lv_timer_delete(speak_timer_);
+        speak_timer_ = nullptr;
+    }
+    speak_ticks_left_ = 0;
+    speak_phase_ = 0;
+}
+
+void DisplayService::ResetAuxLayers(bool speaking) {
+    // Shared layer reset for every layout: park the auxiliary glyphs and stop the
+    // speaker animation unless we are entering the speaking screen.
+    if (!speaking) {
+        StopSpeakingAnimation();
+    }
+    speaking_active_ = speaking;
+    set_hidden(speaker_group_, !speaking);
+    set_hidden(wifi_group_, true);
+    set_hidden(batt_big_group_, true);
+}
+
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
     lv_label_set_text(title_label_, title != nullptr ? title : "");
     lv_label_set_text(body_label_, body != nullptr ? body : "");
@@ -238,19 +401,36 @@ void DisplayService::SetBattery(uint8_t pct) {
 }
 
 void DisplayService::RenderBattery() {
-    if (footer_right_ == nullptr) {
+    if (footer_right_ != nullptr) {
+        if (battery_pct_ <= 100) {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%u%%", battery_pct_);
+            lv_label_set_text(footer_right_, buf);
+        } else {
+            lv_label_set_text(footer_right_, "");
+        }
+    }
+    if (batt_icon_group_ == nullptr) {
         return;
     }
     if (battery_pct_ <= 100) {
-        char buf[8];
-        snprintf(buf, sizeof(buf), "%u%%", battery_pct_);
-        lv_label_set_text(footer_right_, buf);
+        set_hidden(batt_icon_group_, false);
+        int fill = (battery_pct_ * 12 + 50) / 100;  // inner width is 12px
+        if (fill < 1) {
+            fill = 1;
+        } else if (fill > 12) {
+            fill = 12;
+        }
+        if (batt_icon_fill_ != nullptr) {
+            lv_obj_set_width(batt_icon_fill_, fill);
+        }
     } else {
-        lv_label_set_text(footer_right_, "");
+        set_hidden(batt_icon_group_, true);
     }
 }
 
 void DisplayService::LayoutBoot() {
+    ResetAuxLayers(false);
     set_hidden(splash_group_, false);
     set_hidden(chrome_group_, true);
     set_hidden(arrow_group_, true);
@@ -259,6 +439,7 @@ void DisplayService::LayoutBoot() {
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
+    set_hidden(batt_icon_group_, true);
 
     lv_image_set_scale(mascot_big_, 256);
     lv_obj_set_pos(mascot_big_, 68, 40);
@@ -278,6 +459,7 @@ void DisplayService::LayoutBoot() {
 }
 
 void DisplayService::LayoutIntro() {
+    ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, false);
@@ -286,6 +468,7 @@ void DisplayService::LayoutIntro() {
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
+    set_hidden(batt_icon_group_, true);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
@@ -300,6 +483,7 @@ void DisplayService::LayoutIntro() {
 }
 
 void DisplayService::LayoutMessage() {
+    ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, true);
@@ -320,15 +504,17 @@ void DisplayService::LayoutMessage() {
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
-    lv_obj_set_size(footer_left_, 118, 16);
+    lv_obj_set_size(footer_left_, 100, 16);
 
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_set_pos(footer_right_, 126, 182);
-    lv_obj_set_size(footer_right_, 66, 16);
+    lv_obj_set_pos(footer_right_, 110, 182);
+    lv_obj_set_size(footer_right_, 58, 16);
+    lv_obj_set_pos(batt_icon_group_, 172, 184);
     RenderBattery();
 }
 
 void DisplayService::LayoutResponso() {
+    ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, true);
@@ -345,15 +531,17 @@ void DisplayService::LayoutResponso() {
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
     lv_obj_set_pos(footer_left_, 8, 182);
-    lv_obj_set_size(footer_left_, 100, 16);
+    lv_obj_set_size(footer_left_, 96, 16);
 
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_set_pos(footer_right_, 108, 182);
-    lv_obj_set_size(footer_right_, 84, 16);
+    lv_obj_set_pos(footer_right_, 106, 182);
+    lv_obj_set_size(footer_right_, 62, 16);
+    lv_obj_set_pos(batt_icon_group_, 172, 184);
     RenderBattery();
 }
 
 void DisplayService::LayoutWifiSetup() {
+    ResetAuxLayers(false);
     set_hidden(splash_group_, true);
     set_hidden(chrome_group_, false);
     set_hidden(arrow_group_, true);
@@ -362,6 +550,7 @@ void DisplayService::LayoutWifiSetup() {
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
+    set_hidden(batt_icon_group_, true);
 
     style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 4, 40);
@@ -378,8 +567,65 @@ void DisplayService::LayoutWifiSetup() {
     lv_obj_set_size(footer_left_, 200, 16);
 }
 
+void DisplayService::LayoutSpeaking() {
+    ResetAuxLayers(true);  // reveals speaker_group_
+    set_hidden(splash_group_, true);
+    set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
+    set_hidden(mascot_big_, true);
+    set_hidden(title_label_, true);
+    set_hidden(body_label_, false);
+    set_hidden(footer_left_, false);
+    set_hidden(footer_right_, false);
+
+    lv_obj_set_pos(speaker_group_, 88, 30);
+
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
+    lv_obj_set_width(body_label_, 176);
+    lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
+    lv_obj_set_pos(body_label_, 0, 14);  // nudge below the speaker glyph
+
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
+    lv_obj_set_pos(footer_left_, 8, 182);
+    lv_obj_set_size(footer_left_, 100, 16);
+    style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
+    lv_obj_set_pos(footer_right_, 110, 182);
+    lv_obj_set_size(footer_right_, 58, 16);
+    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    RenderBattery();
+}
+
+void DisplayService::LayoutGlyphMessage() {
+    ResetAuxLayers(false);  // glyph un-hidden by the caller
+    set_hidden(splash_group_, true);
+    set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
+    set_hidden(mascot_big_, true);
+    set_hidden(title_label_, true);
+    set_hidden(body_label_, false);
+    set_hidden(footer_left_, false);
+    set_hidden(footer_right_, false);
+
+    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_align(body_label_, LV_ALIGN_CENTER);
+    lv_obj_set_width(body_label_, 188);
+    lv_obj_set_height(body_label_, LV_SIZE_CONTENT);
+    lv_obj_set_pos(body_label_, 0, 22);  // glyph sits above, message centered low
+
+    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
+    lv_obj_set_pos(footer_left_, 8, 182);
+    lv_obj_set_size(footer_left_, 100, 16);
+    style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
+    lv_obj_set_pos(footer_right_, 110, 182);
+    lv_obj_set_size(footer_right_, 58, 16);
+    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    RenderBattery();
+}
+
 void DisplayService::ShowBoot() {
     if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
         LayoutBoot();
         lv_label_set_text(title_label_, "Bisc8");
         lv_label_set_text(body_label_, "by Netmilk Studio");
@@ -481,6 +727,7 @@ void DisplayService::ShowFortune(const char *fortune, size_t index, size_t count
     char counter[24];
     snprintf(counter, sizeof(counter), "%u/%u", static_cast<unsigned>(index + 1), static_cast<unsigned>(count));
     if (Lvgl_lock(-1)) {
+        RequestFullRefresh();  // the responso reveal is the dramatic e-ink flash
         LayoutResponso();
         lv_label_set_text(body_label_, fortune != nullptr ? fortune : "");
         lv_label_set_text(footer_left_, counter);
@@ -518,9 +765,15 @@ void DisplayService::ShowVoiceThinking(Language language) {
 
 void DisplayService::ShowVoiceSpeaking(const char *screen_answer, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
+    char code[4];
+    CopyLangCode(strings.code, code, sizeof(code));
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.speaking_title, screen_answer == nullptr ? strings.speaking_body : screen_answer, strings.speaking_footer);
+        RequestFullRefresh();  // voice responso reveal, like the printed one
+        LayoutSpeaking();
+        lv_label_set_text(body_label_, screen_answer == nullptr ? strings.speaking_body : screen_answer);
+        lv_label_set_text(footer_left_, code);
+        lv_obj_update_layout(screen_);
+        StartSpeakingAnimation();  // pulses the speaker until audio playback ends
         Lvgl_unlock();
     }
 }
@@ -579,6 +832,76 @@ void DisplayService::ShowError(const char *message, Language language) {
         SetText(strings.error_title, message, strings.error_footer);
         Lvgl_unlock();
     }
+}
+
+void DisplayService::ShowNoWifi(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    char code[4];
+    CopyLangCode(strings.code, code, sizeof(code));
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutGlyphMessage();
+        set_hidden(wifi_group_, false);
+        lv_obj_set_pos(wifi_group_, 80, 34);
+        lv_label_set_text(body_label_, strings.no_wifi_body);
+        lv_label_set_text(footer_left_, code);
+        lv_obj_update_layout(screen_);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowLowBattery(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    char code[4];
+    CopyLangCode(strings.code, code, sizeof(code));
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutGlyphMessage();
+        set_hidden(batt_big_group_, false);
+        lv_obj_set_pos(batt_big_group_, 72, 34);
+        lv_label_set_text(body_label_, strings.low_battery_body);
+        lv_label_set_text(footer_left_, code);
+        lv_obj_update_layout(screen_);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowFirstRun(Language language) {
+    const LocalizedStrings &strings = StringsFor(language);
+    char code[4];
+    CopyLangCode(strings.code, code, sizeof(code));
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutMessage();
+        SetText(strings.first_run_title, strings.first_run_body, code);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::OnPlaybackState(bool active) {
+    // Called from the AudioService playback thread; gate on the speaking screen
+    // so cues on other screens never wake the panel.
+    if (Lvgl_lock(-1)) {
+        if (speaking_active_) {
+            if (active) {
+                StartSpeakingAnimation();
+            } else {
+                StopSpeakingAnimation();
+                set_hidden(speaker_wave1_, false);
+                set_hidden(speaker_wave2_, true);
+                set_hidden(speaker_wave3_, true);
+            }
+        }
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::OnListeningState(bool active) {
+    // Reserved seam for a future "ti ascolto" listening animation. The audio
+    // recording observer already drives this hook; the listening screen
+    // (ShowVoiceListening) renders a static state for now. Intentionally a
+    // no-op until the microphone-input UI is built.
+    (void)active;
 }
 
 }  // namespace bisc8

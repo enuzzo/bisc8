@@ -23,6 +23,12 @@ enum class AudioCue {
 
 class AudioService {
 public:
+    // Fired when audio playback or microphone capture starts (active=true) and
+    // stops (active=false). The display layer rides the playback hook to animate
+    // the "speaking" glyph; the recording hook is the clean seam for a future
+    // "ti ascolto" listening animation. ctx is passed back verbatim.
+    using AudioStateHook = void (*)(void *ctx, bool active);
+
     esp_err_t Initialize();
     bool Available() const;
     void PlayChime();
@@ -34,7 +40,13 @@ public:
     const char *FinishVoiceRecording();
     void RunMicTest(DisplayService &display, Language language);
 
+    void SetPlaybackObserver(AudioStateHook hook, void *ctx);
+    void SetRecordingObserver(AudioStateHook hook, void *ctx);
+
 private:
+    void NotifyPlayback(bool active);
+    void NotifyRecording(bool active);
+
     struct QueuedSound;
 
     static void PlaybackTaskEntry(void *arg);
@@ -46,6 +58,11 @@ private:
     void ReleaseRecordBuffer();
     esp_err_t PrepareSpool();
     void PrepareChime();
+
+    AudioStateHook playback_hook_ = nullptr;
+    void *playback_hook_ctx_ = nullptr;
+    AudioStateHook recording_hook_ = nullptr;
+    void *recording_hook_ctx_ = nullptr;
 
     bool available_ = false;
     uint8_t *record_buffer_ = nullptr;
