@@ -215,6 +215,10 @@ void DisplayService::CreateScreen() {
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
+        // Scale from the top-left so a scaled logo occupies [pos, pos+size]
+        // predictably (default pivot is the image centre, which makes a scaled
+        // logo grow off-centre and overlap the title above it).
+        lv_image_set_pivot(mascot_big_, 0, 0);
         lv_obj_remove_flag(mascot_big_, LV_OBJ_FLAG_SCROLLABLE);
 
         title_label_ = lv_label_create(screen_);
@@ -763,22 +767,23 @@ void DisplayService::LayoutLowPower() {
     set_hidden(batt_icon_group_, true);
     set_hidden(sleep_corner_group_, false);
 
-    style_label(title_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    // Product name as a real title (big), with breathing room above the logo.
+    style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_text_letter_space(title_label_, kEyebrowLetterSpace, LV_PART_MAIN);
-    lv_obj_set_pos(title_label_, 0, 14);
-    lv_obj_set_size(title_label_, 200, 20);
+    lv_obj_set_pos(title_label_, 0, 6);
+    lv_obj_set_size(title_label_, 200, 34);
 
-    lv_image_set_scale(mascot_big_, 384);  // ~96px, the logo "in grande"
-    lv_obj_set_pos(mascot_big_, 52, 44);    // lowered + horizontally centered
+    lv_image_set_scale(mascot_big_, 320);  // ~80px; top-left pivot -> (200-80)/2
+    lv_obj_set_pos(mascot_big_, 60, 46);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 144);
+    lv_obj_set_pos(body_label_, 0, 132);
     lv_obj_set_size(body_label_, 200, 28);
 
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 172);
-    lv_obj_set_size(footer_left_, 200, 22);
+    lv_obj_set_pos(footer_left_, 0, 164);
+    lv_obj_set_size(footer_left_, 200, 20);
 }
 
 void DisplayService::ShowBoot() {
