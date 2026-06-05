@@ -47,10 +47,12 @@ capture a single channel instead of averaging.
   header is repaired to a real length so desktop players open it.
 
 **>>> NEXT SESSION: run the voice sampling test to verify the fix <<<**
-1. Firmware is already built at `$HOME/bisc8-build`. Plug the device in, find the
-   port (`ls /dev/cu.usbmodem*` -- it re-enumerates on replug), then flash +
-   monitor: `idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p <PORT> flash monitor`
-   (set the env first; see Build/flash below).
+1. **Build on the machine you flash from** -- `$HOME/bisc8-build` is LOCAL (not
+   Dropbox-synced), so it won't exist on a different Mac; rebuild it. Set the env
+   (see Build/flash below), then build, then plug the device in, find the port
+   (`ls /dev/cu.usbmodem*` -- it re-enumerates on replug), and flash + monitor:
+   `idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build` then
+   `idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p <PORT> flash monitor`.
 2. Hold BOOT, speak a clear phrase, release. Read the `[VOICEDIAG]` line:
    - `clip=` should now be ~0% and `peakMono` well under 32000 (was the bug if high).
    - `rms_dBFS` healthy ≈ -20..-12. If `< -35` it's too quiet -> raise gain
@@ -184,9 +186,26 @@ TEXT field).
   (This is the ANSWER playback path, separate from the capture clipping fix.)
 - `screenshots/epaper/` is git-ignored (dev SNAPs).
 
-## Build / flash (this machine)
+## Build / flash (full incantation -- self-contained)
 
-arm64 py3.14 env, build OUTSIDE Dropbox. See memory `bisc8-build-flash-workflow`:
-`. tools/idf_env.sh` (with `BISC8_IDF_PYTHON_ENV_PATH` -> `idf5.5_py3.14_env`), then
-`idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build flash -p <port>`.
-SNAP: `tools/capture_epaper_snapshot.py --before-command "SCREEN ..."`.
+The toolchain (`.esp/`, `.espressif/`) is in the repo (Dropbox-synced), so this
+works on any **Apple-Silicon (arm64)** Mac. From the repo root:
+
+```sh
+export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"
+export BISC8_IDF_PYTHON_ENV_PATH="$PWD/.espressif/python_env/idf5.5_py3.14_env"
+. tools/idf_env.sh
+idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build
+ls /dev/cu.usbmodem*    # find the port (re-enumerates on replug)
+idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p <PORT> flash monitor
+```
+
+Critical gotchas:
+- **Build OUTSIDE Dropbox** (`-B "$HOME/bisc8-build"`, local SSD): the in-tree
+  `build/` crawls under the FUSE sync layer and is stale anyway. This dir is local,
+  so on a fresh machine the first build runs from scratch (a few minutes).
+- **Must use the arm64 env** (`idf5.5_py3.14_env`). The repo also ships an
+  x86_64 `idf5.5_py3.9_env` that crashes idf.py ("incompatible architecture ...
+  pydantic_core") -- the `BISC8_IDF_PYTHON_ENV_PATH` export above avoids it.
+- Host tests: `python3 -m pytest tests/` (any arm64 python3 with pytest).
+- SNAP a screen: `tools/capture_epaper_snapshot.py --before-command "SCREEN ..."`.
