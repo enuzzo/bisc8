@@ -51,7 +51,7 @@ def test_boot_logo_uses_generated_min_png_bitmap_asset():
     assert LOGO_GEN.exists()
     generator = LOGO_GEN.read_text(encoding="utf-8")
     assert "assets/logo/logo_min.png" in generator
-    assert "64" in generator
+    assert "96" in generator
     assert "ffmpeg" in generator
     assert "threshold" in generator
 
@@ -62,7 +62,7 @@ def test_boot_logo_uses_generated_min_png_bitmap_asset():
     assert "extern const lv_image_dsc_t kBisc8BootLogo;" in header
     assert "LV_COLOR_FORMAT_RGB565" in source
     assert "LV_IMAGE_HEADER_MAGIC" in source
-    assert "{LV_IMAGE_HEADER_MAGIC, LV_COLOR_FORMAT_RGB565, 0, 64, 64, 128, 0}" in source
+    assert "{LV_IMAGE_HEADER_MAGIC, LV_COLOR_FORMAT_RGB565, 0, 96, 96, 192, 0}" in source
     assert "generated/logo_assets.h" in display
     assert "generated/logo_assets.cpp" in cmake
 

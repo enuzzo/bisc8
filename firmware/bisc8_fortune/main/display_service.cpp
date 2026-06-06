@@ -810,7 +810,7 @@ void DisplayService::LayoutBoot() {
     set_hidden(batt_icon_group_, true);
 
     lv_image_set_scale(mascot_big_, 256);
-    lv_obj_set_pos(mascot_big_, 68, 40);
+    lv_obj_set_pos(mascot_big_, 52, 8);  // 96x96 boot logo, centred; grows up to the same y104 baseline
 
     style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(title_label_, 0, 110);
