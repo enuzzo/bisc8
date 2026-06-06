@@ -165,6 +165,35 @@ details summary{font-family:var(--title);font-size:13px;font-weight:400;cursor:p
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--ink);color:var(--paper);padding:9px 14px;font-family:var(--body);font-size:14px;display:none;z-index:70;}
 .toast.show{display:block;}
 .hidden{display:none;}
+/* ===== TYPOGRAPHY v3 — rem-based, pixel-crisp (Pixolde 1rem body), reference buttons, tint BARS not fills ===== */
+html{font-size:100%;}                       /* 1rem = 16px; pixel fonts crisp at this size */
+body{font-size:1rem;line-height:1.5;}
+.ttl{font-size:1.5rem;}                      /* window title (ChiKareGo2) */
+/* status cells: tint as a LEFT BAR, paper background (color stays an accent) */
+.status .cell{background:var(--paper);box-shadow:inset .4rem 0 0 var(--cell-bar);padding:.6rem .7rem .6rem 1rem;}
+.status .cell:nth-child(1){--cell-bar:var(--mint);}
+.status .cell:nth-child(2){--cell-bar:var(--sky);}
+.status .cell:nth-child(3){--cell-bar:var(--peach);}
+.status .cell:nth-child(4){--cell-bar:var(--lilac);}
+.status .k{font-size:.8125rem;letter-spacing:.06em;}
+.status .v{font-size:1.0625rem;margin-top:.15rem;}
+.group>.glabel{font-size:1rem;}
+label.fld{font-size:.875rem;letter-spacing:.06em;color:var(--ink);}
+.hint{font-size:1rem;line-height:1.5;color:#5a5249;}
+input,select{font-size:1rem;min-height:2.75rem;}
+/* reference button: rose fill, ink border, top bevel highlight + hard shadow, ChiKareGo2 */
+.btn{font-family:var(--title);font-size:1rem;letter-spacing:.5px;background:var(--rose);color:var(--ink);border:2px solid var(--ink);padding:.7rem 1.3rem;min-height:2.75rem;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
+.btn:hover{box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
+.btn.sec{background:#e6e3db;}
+.btn:active{transform:translate(2px,2px);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),1px 1px 0 var(--shadow);}
+.seg b{font-size:1rem;}
+.row{font-size:1rem;}
+.muted{font-size:.875rem;}
+.foot,.copy{font-size:.8125rem;}
+/* networks-found: a clear solid header bar (was tiny pinstripe text) */
+.scan .h{background:var(--sky);font-family:var(--title);font-size:.9375rem;letter-spacing:.06em;padding:.45rem .7rem;color:var(--ink);}
+.scan .h span{background:transparent;padding:0;}
+.scan button{font-size:1rem;min-height:2.75rem;}
 </style>
 </head>
 <body>
@@ -172,7 +201,7 @@ details summary{font-family:var(--title);font-size:13px;font-weight:400;cursor:p
   <div class="titlebar"><div class="close"></div><div class="ttl">Bisc8</div><div class="close close-r"></div></div>
   <div class="wrap">
 
-    <p data-i18n="tagline" style="text-align:center;font-family:'Pixolde',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:2px 0 14px;color:var(--ink);">briciomanzia tascabile</p>
+    <p data-i18n="tagline" style="text-align:center;font-family:'Pixolde',monospace;font-size:.9375rem;letter-spacing:.12em;text-transform:uppercase;margin:.25rem 0 1rem;color:var(--ink);">briciomanzia tascabile</p>
 
     <div class="status">
       <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
