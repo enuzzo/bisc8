@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/img/bisc8-logo.png" width="300" alt="Bisc8 — a cookie-headed wizard cradling a crystal ball with an 8 and a crescent-moon staff" />
+<img src="docs/img/bisc8-logo.png" width="300" alt="Bisc8: a cookie-headed wizard cradling a crystal ball with an 8 and a crescent-moon staff" />
 
 # Bisc8
 
@@ -11,19 +11,19 @@
 [![flash](https://img.shields.io/badge/flash%20it-in%20your%20browser-e8a6a1?style=for-the-badge)](https://enuzzo.github.io/bisc8/)
 
 > **A biscuit walks into your pocket and starts dispensing prophecies.**
-> Hold the button, ask it anything out loud, let go. It thinks. It speaks. It prints a verse on its little grey face — and emails you the séance if you ask nicely.
+> Hold the button, ask it anything out loud, let go. It thinks. It speaks. It prints a verse on its little grey face, and emails you the séance if you ask nicely.
 
 </div>
 
-Bisc8 is a black-and-white **briciomanzia** machine — *crumbomancy*, the noble art of divining fate from biscuit crumbs — crammed onto a Waveshare ESP32-C6 e-paper board roughly the size of the cookie it's cosplaying as. Press and hold the button, speak your question, release. A theatrical cookie-wizard transcribes you, consults a large language model and his own crumbs, answers out loud in a mystic-seer voice, etches a short lyrical reading onto the 1-bit panel, and — if you let it — emails you the whole performance with the audio attached.
+Bisc8 is a black-and-white **briciomanzia** machine (*crumbomancy*, the noble art of divining fate from biscuit crumbs), crammed onto a Waveshare ESP32-C6 e-paper board roughly the size of the cookie it's cosplaying as. Press and hold the button, speak your question, release. A theatrical cookie-wizard transcribes you, consults a large language model and his own crumbs, answers out loud in a mystic-seer voice, etches a short lyrical reading onto the 1-bit panel and, if you let it, emails you the whole performance with the audio attached.
 
-It is not a smart speaker. Smart speakers listen all day and sell what they hear. This one listens for fifteen seconds, answers in verse, then goes back to sleep and forgets you existed. In Italian, English, or Spanish — whichever tongue you ask in.
+It is not a smart speaker. Smart speakers listen all day and sell what they hear. This one listens for fifteen seconds, answers in verse, then goes back to sleep and forgets you existed. In Italian, English, or Spanish, whichever tongue you ask in.
 
 <div align="center">
 
 ### → [**Flash it from your browser. No toolchain, no terminal.**](https://enuzzo.github.io/bisc8/) ←
 
-**[enuzzo.github.io/bisc8](https://enuzzo.github.io/bisc8/)** — plug the biscuit in over USB-C, click one button, done.
+**[enuzzo.github.io/bisc8](https://enuzzo.github.io/bisc8/)**. Plug the biscuit in over USB-C, click one button, done.
 
 </div>
 
@@ -35,9 +35,9 @@ The whole UI lives in one pure 1-bit, Mac-System-6 look: pinstripe title bars, a
 
 <div align="center">
 
-<img src="docs/img/screen-status.png" width="180" alt="Status screen — a QR code that opens the setup portal" />
+<img src="docs/img/screen-status.png" width="180" alt="Status screen: a QR code that opens the setup portal" />
 &nbsp;&nbsp;
-<img src="docs/img/screen-speaking.png" width="180" alt="Reading screen — the oracle's spoken answer" />
+<img src="docs/img/screen-speaking.png" width="180" alt="Reading screen: the oracle's spoken answer" />
 &nbsp;&nbsp;
 <img src="docs/img/screen-lowpower.png" width="180" alt="Low-power resting screen" />
 &nbsp;&nbsp;
@@ -47,11 +47,11 @@ The whole UI lives in one pure 1-bit, Mac-System-6 look: pinstripe title bars, a
 
 </div>
 
-The status and setup screens carry a QR code that drops your phone straight onto the device hotspot and the portal at `http://192.168.4.1` — because captive-portal auto-popups can't be trusted, and a QR always can.
+The status and setup screens carry a QR code that drops your phone straight onto the device hotspot and the portal at `http://192.168.4.1`, because captive-portal auto-popups can't be trusted, and a QR always can.
 
 ## Why "Bisc8"?
 
-Part *biscotto* (it is, unmistakably, a cookie). Part **8** — the figure in the crystal ball, the magic-8-ball it clearly wants to be, the infinity it pretends to channel. Part *biscate*, the Portuguese for "odd little side gig", which is exactly what fortune-telling is. Put a wizard hat on a chocolate-chip cookie, hand it a séance and a Wi-Fi stack, and you get Bisc8. If that's not crumbomancy, nothing is.
+Part *biscotto* (it is, unmistakably, a cookie). Part **8**: the figure in the crystal ball, the magic-8-ball it clearly wants to be, the infinity it pretends to channel. Part *biscate*, the Portuguese for "odd little side gig", which is exactly what fortune-telling is. Put a wizard hat on a chocolate-chip cookie, hand it a séance and a Wi-Fi stack, and you get Bisc8. If that's not crumbomancy, nothing is.
 
 ## How the séance works
 
@@ -89,15 +89,15 @@ The whole point of the [**browser flasher**](https://enuzzo.github.io/bisc8/) is
 |------|------|------|
 | **Waveshare ESP32-C6 e-paper 1.54"** | RISC-V, 200×200 1-bit panel | The body *and* the face. Single-core, which has Opinions about timing (see the gotcha below). |
 | **ES8311 codec + mic** | 16 kHz mono in, 16 kHz out | The ears and the mouth. Hears your question, voices the verdict. |
-| **BOOT button** | — | The séance. Hold to ask the oracle; click for a quick offline fortune. |
-| **PWR button** | — | The mortal controls. Click for Wi-Fi/status, long-press to sleep, triple-click to wipe it back to factory. |
+| **BOOT button** | click/hold | The séance. Hold to ask the oracle; click for a quick offline fortune. |
+| **PWR button** | click/hold | The mortal controls. Click for Wi-Fi/status, long-press to sleep, triple-click to wipe it back to factory. |
 | **16 MB flash** | 6 MB app · 5 MB `assets` · raw `spool` | Room to think, room to remember, and a scratchpad for voice WAVs. |
 
-Idle for three minutes and Bisc8 drifts into deep sleep, wakeable by either button. A low battery (≤12%) shows a big battery glyph; at **≤10%** it writes a goodbye on screen and powers itself off completely — a cookie that knows when to stop, to spare the cell.
+Idle for three minutes and Bisc8 drifts into deep sleep, wakeable by either button. A low battery (≤12%) shows a big battery glyph; at **≤10%** it writes a goodbye on screen and powers itself off completely, a cookie that knows when to stop, to spare the cell.
 
 ## Build from source
 
-For the toolchain-curious. The ESP-IDF 5.5 toolchain and Python envs ship **in-repo** under `.espressif/` (x86_64 *and* arm64), so there's no `idf_tools.py install` ritual — point `BISC8_IDF_TOOLS_PATH` at it and let `tools/idf_env.sh` pick the env matching your host:
+For the toolchain-curious. The ESP-IDF 5.5 toolchain and Python envs ship **in-repo** under `.espressif/` (x86_64 *and* arm64), so there's no `idf_tools.py install` ritual. Point `BISC8_IDF_TOOLS_PATH` at it and let `tools/idf_env.sh` pick the env matching your host:
 
 ```sh
 export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"   # toolchain ships in-repo
@@ -106,7 +106,7 @@ idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" build
 idf.py -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p /dev/cu.usbmodemXXXX flash
 ```
 
-Build to a **local** dir outside the Dropbox-synced tree — the in-tree `build/` crawls under the FUSE sync layer like everything else does.
+Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` crawls under the FUSE sync layer like everything else does.
 
 > **The one gotcha that will bite you:** never refresh the e-ink while the mic is capturing. On the single-core C6, an e-paper refresh starves the I2S DMA and your recording stutters into gibberish. The whole display/audio architecture is built around that one rule. Respect it, and the biscuit behaves.
 
@@ -116,9 +116,9 @@ Run the host tests:
 python -m pytest tests/        # 96 passing
 ```
 
-## Design — "Bisc8 OS"
+## Design: "Bisc8 OS"
 
-Bisc8 wears a **leisurely retro desktop OS** skin in the spirit of [POOLSUITE.NET](https://poolsuite.net) and Mac System 7/8 — pastel desktop, pinstripe title bars, square close boxes, windows, a dock — wrapped around the biscuit identity it already had: a cookie-wizard mascot, hard 2px ink borders, hard offset shadows, sharp corners. Pastel where it's playful, pure 1-bit where it's a device.
+Bisc8 wears a **leisurely retro desktop OS** skin in the spirit of [POOLSUITE.NET](https://poolsuite.net) and Mac System 7/8 (pastel desktop, pinstripe title bars, square close boxes, windows, a dock) wrapped around the biscuit identity it already had: a cookie-wizard mascot, hard 2px ink borders, hard offset shadows, sharp corners. Pastel where it's playful, pure 1-bit where it's a device.
 
 **Is it vibe coded?** Yes. **Is it random?** Absolutely not. Every tint, every shadow offset, every line-height is hand-tuned for feel. Production-grade aesthetics, prototype-grade warranty.
 
@@ -131,14 +131,14 @@ Typography does the heavy lifting:
 | **ITC Garamond** | long-form copy | <https://globalfonts.pro/font/itc-garamond> |
 | **Pixelify Sans** | on-device e-paper + email wordmark | <https://fonts.google.com/specimen/Pixelify+Sans> |
 
-The first three are the **web** type system (the flasher + the captive portal). On-device — and in the email wordmark — the e-paper uses **Pixelify Sans**, baked into crisp 1-bit fonts with full Latin-1 coverage, so Italian, Spanish, and French accents survive at 200×200. We never strip an accent to fit ASCII; the oracle has standards.
+The first three are the **web** type system (the flasher + the captive portal). On-device (and in the email wordmark) the e-paper uses **Pixelify Sans**, baked into crisp 1-bit fonts with full Latin-1 coverage, so Italian, Spanish, and French accents survive at 200×200. We never strip an accent to fit ASCII; the oracle has standards.
 
 ## License & credits
 
-Built by [@enuzzo](https://github.com/enuzzo) at **Netmilk Studio**. Fonts credited to their authors above. Use it, fork it, put a wizard hat on it — keep the notice, no warranty, no hard feelings.
+Built by [@enuzzo](https://github.com/enuzzo) at **Netmilk Studio**. Fonts credited to their authors above. Use it, fork it, put a wizard hat on it. Keep the notice, no warranty, no hard feelings.
 
 <div align="center">
 
-<sub><b>Bisc8</b> — briciomanzia tascabile · <i>pocket crumbomancy</i></sub>
+<sub><b>Bisc8</b> · briciomanzia tascabile · <i>pocket crumbomancy</i></sub>
 
 </div>

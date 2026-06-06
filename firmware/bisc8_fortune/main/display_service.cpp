@@ -264,7 +264,6 @@ void DisplayService::CreateScreen() {
         LayoutBoot();
         lv_label_set_text(title_label_, "Bisc8");
         lv_label_set_text(body_label_, "by Netmilk Studio");
-        lv_label_set_text(footer_left_, "premi PWR");
         lv_obj_update_layout(screen_);
 
         lv_screen_load(screen_);
@@ -805,25 +804,23 @@ void DisplayService::LayoutBoot() {
     set_hidden(mascot_big_, false);
     set_hidden(title_label_, false);
     set_hidden(body_label_, false);
-    set_hidden(footer_left_, false);
+    set_hidden(footer_left_, true);   // no "press PWR" on the boot splash: it's already booting
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
 
-    lv_image_set_scale(mascot_big_, 256);
-    lv_obj_set_pos(mascot_big_, 52, 8);  // 96x96 boot logo, centred; grows up to the same y104 baseline
+    // Boot logo as big as it goes (128px), with a little padding top and a gap
+    // before the name; then "Bisc8" + the studio credit sit lower down.
+    lv_image_set_scale(mascot_big_, 256);  // 128px asset at 1:1
+    lv_obj_set_pos(mascot_big_, 36, 6);    // centred, ~6px top padding
 
     style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(title_label_, 0, 110);
-    lv_obj_set_size(title_label_, 200, 34);
+    lv_obj_set_pos(title_label_, 0, 140);
+    lv_obj_set_size(title_label_, 200, 32);
 
     style_label(body_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 142);
+    lv_obj_set_pos(body_label_, 0, 174);
     lv_obj_set_size(body_label_, 200, 18);
-
-    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 164);
-    lv_obj_set_size(footer_left_, 200, 18);
 }
 
 void DisplayService::LayoutIntro() {
@@ -1014,7 +1011,7 @@ void DisplayService::LayoutLowPower() {
     // Title detached a touch from the top, with a small gap before the logo.
     apply_title_chip(title_label_, &bisc8_font_title, 10);
 
-    lv_image_set_scale(mascot_big_, 208);  // 96px asset * 208/256 = ~78px; top-left pivot -> (200-78)/2
+    lv_image_set_scale(mascot_big_, 156);  // 128px asset * 156/256 = ~78px; top-left pivot -> (200-78)/2
     lv_obj_set_pos(mascot_big_, 61, 50);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
@@ -1034,7 +1031,6 @@ void DisplayService::ShowBoot() {
         LayoutBoot();
         lv_label_set_text(title_label_, "Bisc8");
         lv_label_set_text(body_label_, "by Netmilk Studio");
-        lv_label_set_text(footer_left_, "premi PWR");
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }

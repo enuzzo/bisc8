@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "assets/logo/logo_min.png"
 DEFAULT_OUT_DIR = ROOT / "firmware/bisc8_fortune/main/generated"
-SIZE = 96
+SIZE = 128
 THRESHOLD = 210
 WHITE_RGB565 = (0xFF, 0xFF)
 BLACK_RGB565 = (0x00, 0x00)
