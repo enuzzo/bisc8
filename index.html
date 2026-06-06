@@ -129,9 +129,9 @@ a{color:var(--ink);}
 .close:active{background:var(--ink);}
 /* title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
 .ttl{
-  background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);
-  padding:.05rem .6rem;max-width:72%;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--paper);border:.125rem solid var(--ink);border-top:0;border-bottom:0;
+  padding:0 .7rem;max-width:72%;align-self:stretch;
+  display:inline-flex;align-items:center;white-space:nowrap;overflow:hidden;
   font-family:var(--title);font-size:1.1rem;line-height:1.4;
 }
 
@@ -406,7 +406,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   display:flex;align-items:center;justify-content:center;
 }
 .modal-bar .close{left:.5rem;top:.5rem;}
-.modal-ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.05rem .6rem;font-family:var(--title);font-size:1.1rem;line-height:1.4;}
+.modal-ttl{background:var(--paper);border:.125rem solid var(--ink);border-top:0;border-bottom:0;padding:0 .7rem;align-self:stretch;display:inline-flex;align-items:center;font-family:var(--title);font-size:1.1rem;line-height:1.4;}
 .modal-body{padding:1.5rem 1.5rem 1.6rem;font-family:var(--body);font-size:1.1rem;line-height:1.6;color:var(--ink);}
 .modal-head{display:flex;align-items:center;gap:.85rem;margin-bottom:1.1rem;}
 .modal-icon{
