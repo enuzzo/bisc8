@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bisc8 — flash the pocket oracle</title>
+<meta name="description" content="Bisc8 — a pocket oracle that reads your fate in the crumbs. Flash the firmware to your ESP32-C6 right from your browser.">
+
+<!-- esp-web-tools -->
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+<style>
+/* ============================================================
+   FONTS — DESIGN SYSTEM v2
+   TITLES / wordmark / labels / buttons / nav = ChiKareGo2 (pixel),
+     always falling back to Pixolde (ChiKareGo2 lacks ù ú ü ' …).
+   SHORT body / values / hints / pills / dock labels = Pixolde.
+   ITC Garamond 400 = ONLY genuinely long body copy (the pitch paragraph).
+   ============================================================ */
+@font-face{font-family:'ChiKareGo2';src:url('fonts/ChiKareGo2.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('fonts/Pixolde.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('fonts/Pixolde-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('fonts/ITCGaramondStd-Bk.woff2') format('woff2');font-weight:400;font-display:swap;}
+
+/* ============================================================
+   PALETTE — multi-pastel, harmonized (DESIGN v2)
+   ============================================================ */
+:root{
+  --desk:#f0d9d2;      /* peachy-rose desktop */
+  --desk-2:#f3d2bb;    /* desktop gradient stop */
+  --paper:#fbf6ef;     /* cream panels */
+  --cream:#f4ecdf;     /* inset / secondary panel */
+  --ink:#23211c;       /* text / borders */
+  --rose:#f0b8bb;      /* primary action, active segment */
+  --mint:#bfe0cf;      /* online / success / secondary */
+  --butter:#f4e4a0;    /* flash / lightning / highlights */
+  --lilac:#cdc6ec;     /* lingua / links / info */
+  --peach:#f6cfa6;     /* section labels / tabs / badges */
+  --sky:#bcd9e6;       /* powder-blue extra accent */
+  --mute:#6b6055;      /* muted ink for keys/captions */
+  --shadow:rgba(35,33,28,.30);
+
+  --title:'ChiKareGo2','Pixolde',monospace;
+  --body:'Pixolde',monospace;
+  --longbody:'ITC Garamond',Georgia,serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(125% 90% at 16% 0%, var(--desk-2) 0%, transparent 56%),
+    linear-gradient(155deg, var(--desk) 0%, #f0c8c0 46%, var(--desk-2) 100%);
+  background-attachment:fixed;
+  font-family:var(--body);
+  color:var(--ink);
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  padding:0 0 120px;
+}
+img{display:block;}
+
+/* ============================================================
+   TOP MENU STRIP — System-7 menu bar with faux date/time
+   ============================================================ */
+.menubar{
+  position:sticky;top:0;z-index:50;height:30px;
+  background:var(--paper);
+  border-bottom:2px solid var(--ink);
+  box-shadow:0 2px 0 var(--shadow);
+  display:flex;align-items:center;
+  padding:0 10px;
+  font-family:var(--title);
+  font-size:16px;letter-spacing:1px;
+}
+.menubar .os{font-weight:400;padding:0 12px 0 4px;text-transform:uppercase;}
+.menubar .mi{padding:0 11px;line-height:30px;height:30px;cursor:default;text-transform:uppercase;}
+.menubar .mi:hover,.menubar .os:hover{background:var(--ink);color:var(--paper);}
+.menubar [data-pop]{cursor:pointer;}
+.foot a{color:var(--ink);}
+/* menu popup dialog */
+.modal-ov{position:fixed;inset:0;background:rgba(35,33,28,.45);display:grid;place-items:center;z-index:100;padding:20px;}
+.modal-ov[hidden]{display:none;}
+.modal{width:min(380px,100%);background:var(--paper);border:2px solid var(--ink);box-shadow:6px 6px 0 var(--shadow);}
+.modal-bar{position:relative;height:28px;border-bottom:2px solid var(--ink);background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);display:flex;align-items:center;justify-content:center;}
+.modal-bar .close{position:absolute;left:8px;top:7px;width:13px;height:13px;border:2px solid var(--ink);background:var(--paper);cursor:pointer;}
+.modal-bar .close:active{background:var(--ink);}
+.modal-ttl{background:var(--paper);padding:0 12px;font-family:var(--title);font-size:15px;}
+.modal-body{padding:18px;font-family:var(--body);font-size:15px;line-height:1.6;color:var(--ink);}
+.modal-body .lead{font-family:var(--title);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:9px;color:#9a7b75;}
+.menubar .clock{margin-left:auto;font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:1px;padding-right:4px;text-transform:uppercase;}
+
+/* ============================================================
+   DESKTOP CANVAS
+   ============================================================ */
+.desktop{
+  max-width:980px;margin:0 auto;
+  padding:38px 26px 0;
+  display:flex;flex-direction:column;gap:34px;align-items:center;
+}
+
+/* ============================================================
+   WINDOW CHROME — System-7 pinstripe title bar + square close box
+   (NO mascot/logo glyph in the title bar — text title only)
+   ============================================================ */
+.win{
+  width:100%;
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:7px 7px 0 var(--shadow);
+}
+.titlebar{
+  position:relative;height:30px;
+  border-bottom:2px solid var(--ink);
+  background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+  display:flex;align-items:center;justify-content:center;
+}
+.close{
+  position:absolute;left:8px;top:7px;width:14px;height:14px;
+  border:2px solid var(--ink);background:var(--paper);cursor:pointer;padding:0;
+}
+.close:active{background:var(--ink);}
+.ttl{
+  background:var(--paper);padding:0 14px;
+  font-family:var(--title);font-weight:400;font-size:16px;letter-spacing:1px;
+}
+
+/* ============================================================
+   HERO WINDOW
+   ============================================================ */
+.hero .body{padding:30px 28px 34px;text-align:center;}
+.hero .badge{
+  display:inline-block;font-family:var(--body);font-weight:400;font-size:11px;
+  letter-spacing:3px;text-transform:uppercase;color:var(--ink);
+  border:2px solid var(--ink);background:var(--peach);padding:3px 12px;margin-bottom:22px;
+  box-shadow:2px 2px 0 var(--shadow);
+}
+.crumb{
+  width:150px;height:150px;margin:0 auto 10px;
+  border:2px solid var(--ink);background:var(--cream);
+  box-shadow:6px 6px 0 var(--shadow);display:grid;place-items:center;
+}
+.crumb img{width:118px;height:118px;image-rendering:pixelated;image-rendering:crisp-edges;}
+.wordmark{
+  font-family:var(--title);font-weight:400;
+  font-size:92px;line-height:.92;letter-spacing:2px;
+  margin:18px 0 6px;text-transform:none;
+}
+.pitch{
+  font-family:var(--longbody);font-weight:400;font-size:21px;line-height:1.5;
+  color:#3c352d;max-width:440px;margin:8px auto 26px;
+}
+
+/* primary + secondary big buttons */
+.cta{display:flex;flex-direction:column;gap:14px;align-items:stretch;max-width:380px;margin:0 auto;}
+.btn-big{
+  font-family:var(--title);font-weight:400;font-size:21px;letter-spacing:1px;
+  background:var(--rose);color:var(--ink);border:2px solid var(--ink);
+  padding:15px 20px;min-height:56px;box-shadow:5px 5px 0 var(--shadow);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  text-decoration:none;text-transform:uppercase;
+}
+.btn-big:hover{background:#f3c6c8;}
+.btn-big:active{transform:translate(5px,5px);box-shadow:none;}
+.btn-big .bolt{color:var(--ink);background:var(--butter);border:2px solid var(--ink);
+  width:30px;height:30px;display:grid;place-items:center;font-size:17px;line-height:1;}
+.btn-big.sec{
+  background:var(--cream);color:var(--ink);box-shadow:5px 5px 0 var(--shadow);
+  font-size:17px;min-height:50px;padding:13px 20px;
+}
+.btn-big.sec:hover{background:#ece2d2;}
+/* esp-web-install-button takes our slotted button as-is */
+esp-web-install-button{display:block;}
+esp-web-install-button[install-unsupported] .unsupported{display:block;}
+esp-web-install-button .unsupported{display:none;}
+.unsupported{
+  font-family:var(--body);font-size:13px;line-height:1.45;color:#7a4b46;
+  border:2px solid var(--ink);background:var(--butter);
+  padding:10px 12px;text-align:left;
+}
+
+/* ============================================================
+   DEVICE SCREENSHOTS — crisp pixel art
+   ============================================================ */
+.screens{
+  display:flex;flex-wrap:wrap;gap:22px;justify-content:center;
+  margin:32px 0 4px;
+}
+.screen{text-align:center;}
+.screen .frame{
+  width:200px;height:200px;
+  border:2px solid var(--ink);background:#ffffff;
+  box-shadow:5px 5px 0 var(--shadow);
+  display:grid;place-items:center;overflow:hidden;
+}
+.screen .frame img{
+  width:200px;height:200px;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+}
+.screen .cap{
+  margin-top:9px;font-family:var(--body);font-weight:700;font-size:12px;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);
+}
+
+/* ============================================================
+   FLASH WINDOW
+   ============================================================ */
+.flash .body{padding:28px 28px 32px;}
+.flash h2{
+  font-family:var(--title);font-weight:400;font-size:30px;letter-spacing:1px;
+  text-align:center;margin:0 0 6px;text-transform:uppercase;
+}
+.flash .sub{
+  font-family:var(--body);font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  text-align:center;color:var(--mute);margin:0 0 24px;
+}
+/* numbered steps */
+.steps{list-style:none;counter-reset:step;margin:0 0 26px;padding:0;
+  display:grid;gap:14px;}
+.steps li{
+  position:relative;counter-increment:step;
+  border:2px solid var(--ink);background:var(--cream);
+  padding:14px 16px 14px 60px;box-shadow:3px 3px 0 var(--shadow);
+}
+.steps li::before{
+  content:counter(step);
+  position:absolute;left:-2px;top:-2px;bottom:-2px;width:46px;
+  display:grid;place-items:center;
+  font-family:var(--title);font-weight:400;font-size:24px;
+  border-right:2px solid var(--ink);color:var(--ink);
+}
+.steps li:nth-child(1)::before{background:var(--mint);}
+.steps li:nth-child(2)::before{background:var(--butter);}
+.steps li:nth-child(3)::before{background:var(--lilac);}
+.steps .st{font-family:var(--title);font-weight:400;font-size:18px;letter-spacing:.5px;text-transform:uppercase;}
+.steps .sd{font-family:var(--body);font-weight:400;font-size:14px;line-height:1.5;color:#3c352d;margin-top:3px;}
+
+.flash-cta{display:flex;flex-direction:column;gap:14px;align-items:stretch;max-width:380px;margin:0 auto;}
+
+/* ============================================================
+   DOCK — framed pixel icons with Pixolde labels
+   ============================================================ */
+.dock{
+  display:inline-flex;
+  border:2px solid var(--ink);background:var(--paper);
+  box-shadow:5px 5px 0 var(--shadow);
+}
+.dock a{
+  width:90px;padding:13px 6px 9px;text-align:center;cursor:pointer;
+  border-left:2px solid var(--ink);text-decoration:none;color:var(--ink);
+}
+.dock a:first-child{border-left:0;}
+.dock a:hover{background:var(--cream);}
+.dock .glyph{
+  width:40px;height:40px;margin:0 auto 7px;border:2px solid var(--ink);
+  display:grid;place-items:center;font-size:20px;
+  font-family:var(--title);font-weight:400;overflow:hidden;
+}
+.dock a:nth-child(1) .glyph{background:var(--rose);}
+.dock a:nth-child(2) .glyph{background:var(--butter);}
+.dock a:nth-child(3) .glyph{background:var(--sky);}
+.dock a:nth-child(4) .glyph{background:var(--mint);}
+.dock .glyph img{width:30px;height:30px;image-rendering:pixelated;image-rendering:crisp-edges;}
+.dock .lbl{font-family:var(--body);font-weight:400;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.foot{
+  width:100%;text-align:center;margin:4px auto 0;
+  font-family:var(--body);font-weight:400;font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:#7a4b46;line-height:1.8;
+}
+.foot b{font-weight:700;color:var(--ink);}
+.foot a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;}
+
+/* ============================================================
+   FOCUS / A11Y
+   ============================================================ */
+.btn-big:focus-visible,.close:focus-visible,.dock a:focus-visible,.menubar .mi:focus-visible{
+  outline:2px solid var(--ink);outline-offset:3px;
+}
+@media (max-width:560px){
+  .wordmark{font-size:68px;}
+  .screen,.screen .frame{width:160px;}
+  .screen .frame{height:160px;}
+  .screen .frame img{width:160px;height:160px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP MENU STRIP -->
+<div class="menubar">
+  <span class="os" data-pop="about" role="button" tabindex="0">Bisc8 OS</span>
+  <span class="mi" data-pop="about" role="button" tabindex="0">File</span>
+  <span class="mi" data-pop="oracle" role="button" tabindex="0">Oracle</span>
+  <span class="mi" data-pop="help" role="button" tabindex="0">Help</span>
+  <span class="clock" id="clock">Sat 6 Jun&nbsp;&nbsp;14:32</span>
+</div>
+
+<div class="desktop">
+
+  <!-- ============ HERO WINDOW ============ -->
+  <section class="win hero" aria-labelledby="wordmark">
+    <div class="titlebar"><button class="close" type="button" aria-label="Close"></button><div class="ttl">flash.bisc8.os</div></div>
+    <div class="body">
+      <span class="badge">crumbomancy · v1</span>
+      <div class="crumb"><img src="img/mascot.png" alt="Bisc8 — a smiling pixel biscuit with a bow"></div>
+      <h1 class="wordmark" id="wordmark">Bisc8</h1>
+      <p class="pitch">A pocket oracle that reads your fate in the crumbs. Hold the button, ask aloud, and a tiny black-and-white biscuit answers — then quietly emails the verdict to you.</p>
+
+      <div class="cta">
+        <esp-web-install-button manifest="manifest.json">
+          <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+          <span slot="unsupported" class="unsupported">Your browser can’t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
+          <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
+        </esp-web-install-button>
+        <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DEVICE SCREENSHOTS ============ -->
+  <div class="screens" role="group" aria-label="Bisc8 screens">
+    <figure class="screen" style="margin:0">
+      <div class="frame"><img src="img/screen-status.png" alt="Bisc8 status screen"></div>
+      <figcaption class="cap">Status</figcaption>
+    </figure>
+    <figure class="screen" style="margin:0">
+      <div class="frame"><img src="img/screen-lowpower.png" alt="Bisc8 low-power screen"></div>
+      <figcaption class="cap">Low power</figcaption>
+    </figure>
+    <figure class="screen" style="margin:0">
+      <div class="frame"><img src="img/screen-setup.png" alt="Bisc8 Wi-Fi setup screen"></div>
+      <figcaption class="cap">Setup</figcaption>
+    </figure>
+  </div>
+
+  <!-- ============ FLASH WINDOW ============ -->
+  <section class="win flash" aria-labelledby="flash-h">
+    <div class="titlebar"><button class="close" type="button" aria-label="Close"></button><div class="ttl">Installer</div></div>
+    <div class="body">
+      <h2 id="flash-h">Flash the firmware</h2>
+      <p class="sub">three steps · no toolchain · right in the browser</p>
+
+      <ol class="steps">
+        <li>
+          <div class="st">Plug in</div>
+          <div class="sd">Use desktop Chrome or Edge and connect the Bisc8 to your computer over USB-C.</div>
+        </li>
+        <li>
+          <div class="st">Click Flash</div>
+          <div class="sd">Hit Flash Bisc8, pick the serial port in the dialog, and let it erase and install. It takes about a minute.</div>
+        </li>
+        <li>
+          <div class="st">Configure</div>
+          <div class="sd">When it reboots, join the Bisc8 Wi-Fi network and set up your network, language, and oracle in the captive portal.</div>
+        </li>
+      </ol>
+
+      <div class="flash-cta">
+        <esp-web-install-button manifest="manifest.json">
+          <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+          <span slot="unsupported" class="unsupported">Your browser can’t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
+          <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
+        </esp-web-install-button>
+        <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DOCK ============ -->
+  <nav class="dock" aria-label="Bisc8 dock">
+    <a href="#wordmark"><div class="glyph"><img src="img/mascot.png" alt=""></div><div class="lbl">Oracle</div></a>
+    <a href="#flash-h"><div class="glyph" aria-hidden="true">⚡</div><div class="lbl">Flash</div></a>
+    <a href="firmware/bisc8-firmware.zip" download><div class="glyph" aria-hidden="true">▤</div><div class="lbl">Zip</div></a>
+    <a href="https://github.com/enuzzo/bisc8"><div class="glyph" aria-hidden="true">★</div><div class="lbl">Source</div></a>
+  </nav>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="foot">
+    Type set in <b>ChiKareGo2</b> · <b>Pixolde</b> · <b>ITC Garamond</b><br>
+    Bisc8 OS — briciomanzia tascabile<br>
+    &copy; <b>enuzzo</b> · <b>Netmilk Studio</b> · <a href="https://github.com/enuzzo/bisc8">github.com/enuzzo/bisc8</a>
+  </footer>
+
+</div>
+
+<div class="modal-ov" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-t">
+    <div class="modal-bar"><div class="close" id="modal-x" role="button" tabindex="0" aria-label="close"></div><span class="modal-ttl" id="modal-t">Bisc8</span></div>
+    <div class="modal-body" id="modal-b"></div>
+  </div>
+</div>
+
+<script>
+/* faux desktop clock in the menu strip */
+(function(){
+  var el=document.getElementById('clock');
+  if(!el)return;
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tick(){
+    var d=new Date();
+    var hh=String(d.getHours()).padStart(2,'0');
+    var mm=String(d.getMinutes()).padStart(2,'0');
+    el.textContent=days[d.getDay()]+' '+d.getDate()+' '+mons[d.getMonth()]+'  '+hh+':'+mm;
+  }
+  tick();setInterval(tick,15000);
+})();
+/* menu-strip popups: Oracle reads the crumbs, Help explains, File/Bisc8 OS = about */
+(function(){
+  var modal=document.getElementById('modal'),
+      mt=document.getElementById('modal-t'), mb=document.getElementById('modal-b');
+  var crumbs=[
+    "The crumbs scatter east. Say yes before noon.",
+    "A buttery omen — what you delayed will rise.",
+    "Two cookies, one fate. Share neither.",
+    "The tin is emptier than you think. Refill before Friday.",
+    "Dunk, and the answer softens. Wait, and it crumbles.",
+    "Sugar settles where it's needed. Trust the sweeter path.",
+    "A crack runs through the glaze; the break is the doorway.",
+    "Eat the corner first. The middle keeps its secret."
+  ];
+  var POP={
+    about:{t:'Bisc8 OS', h:'about', b:'A pocket crumbomancy machine — ESP32-C6 &middot; 1.54&quot; e-paper &middot; OpenAI voice oracle.<br><br>Bisc8 OS v1, made by <b>enuzzo</b> + <b>Netmilk Studio</b>.'},
+    help:{t:'Help', h:'how it works', b:'Hold <b>BOOT</b>, ask aloud, release. Bisc8 transcribes your question, consults the oracle, and reads the crumbs back — on the e-paper, out loud, and (if you like) by email.<br><br>Flash it above, then join the <b>Bisc8-XXXX</b> Wi-Fi and set your network, language &amp; OpenAI key in the captive portal.'}
+  };
+  function open(k){
+    var inner;
+    if(k==='oracle'){ mt.textContent='Oracle';
+      inner='<span class="lead">reading the crumbs</span>'+crumbs[Math.floor(Math.random()*crumbs.length)]; }
+    else { var p=POP[k]||POP.about; mt.textContent=p.t;
+      inner='<span class="lead">'+p.h+'</span>'+p.b; }
+    mb.innerHTML=inner; modal.hidden=false;
+  }
+  function close(){ modal.hidden=true; }
+  document.querySelectorAll('[data-pop]').forEach(function(el){
+    el.addEventListener('click',function(){open(el.dataset.pop);});
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open(el.dataset.pop);}});
+  });
+  document.getElementById('modal-x').addEventListener('click',close);
+  modal.addEventListener('click',function(e){if(e.target===modal)close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+})();
+</script>
+
+</body>
+</html>

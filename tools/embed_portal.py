@@ -16,7 +16,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 MAIN = ROOT / "firmware/bisc8_fortune/main"
 TEMPLATE = MAIN / "web_portal.html"
 CPP = MAIN / "web_portal.cpp"
-FONT = ROOT / "assets/fonts/pixelify-latin.woff2"
+FONT = ROOT / "docs/fonts/ChiKareGo2.woff2"      # __FONT_B64__  -> family 'ChiKareGo2' (titles/labels)
+PIXOLDE = ROOT / "docs/fonts/Pixolde.woff2"      # __PIXOLDE_B64__ -> family 'Pixolde' (body + accent fallback)
 MASCOT = ROOT / "assets/logo/logo_min.png"
 PREVIEW = pathlib.Path("/tmp/portal_preview.html")
 
@@ -30,9 +31,12 @@ def b64(path: pathlib.Path) -> str:
 
 def main() -> None:
     html = TEMPLATE.read_text(encoding="utf-8")
-    html = html.replace("__FONT_B64__", b64(FONT)).replace("__MASCOT_B64__", b64(MASCOT))
+    html = (html.replace("__FONT_B64__", b64(FONT))
+                .replace("__PIXOLDE_B64__", b64(PIXOLDE))
+                .replace("__MASCOT_B64__", b64(MASCOT)))
 
-    assert "__FONT_B64__" not in html and "__MASCOT_B64__" not in html, "token left unfilled"
+    for tok in ("__FONT_B64__", "__PIXOLDE_B64__", "__MASCOT_B64__"):
+        assert tok not in html, f"token left unfilled: {tok}"
     assert END not in html, "content collides with the raw-string delimiter"
 
     PREVIEW.write_text(html, encoding="utf-8")
