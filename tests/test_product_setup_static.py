@@ -825,7 +825,8 @@ def test_public_flash_page_uses_web_serial_manifest_without_secrets():
     for forbidden in ("sk-", "smtp_password", "relay_token"):
         assert forbidden not in page
         assert forbidden not in manifest
-    assert "GitHub Pages flasher" in readme
+    # The README must prominently point at the public browser flasher (Pages site).
+    assert "enuzzo.github.io/bisc8" in readme
 
 
 def test_public_flash_prepare_rejects_symlink_escape_and_prints_hashes():
