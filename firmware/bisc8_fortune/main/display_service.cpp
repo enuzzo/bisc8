@@ -297,19 +297,15 @@ void DisplayService::BuildChrome() {
     create_white(chrome_group_, 7, 5, 12, 12);
     create_frame(chrome_group_, 7, 5, 12, 12, 2);
 
-    create_white(chrome_group_, 60, 0, 80, 20);
-
-    mascot_glyph_ = lv_image_create(chrome_group_);
-    lv_image_set_src(mascot_glyph_, &kBisc8BootLogo);
-    lv_image_set_pivot(mascot_glyph_, 0, 0);
-    lv_image_set_scale(mascot_glyph_, 64);  // 25% of 64px -> 16px
-    lv_obj_set_pos(mascot_glyph_, 68, 2);
-    lv_obj_remove_flag(mascot_glyph_, LV_OBJ_FLAG_SCROLLABLE);
+    // Centered window title. The tiny mascot glyph that used to sit here was
+    // illegible at 16px, so it's gone -- just the name on a white chip.
+    create_white(chrome_group_, 66, 0, 68, 20);
 
     lv_obj_t *name = lv_label_create(chrome_group_);
-    style_label(name, &bisc8_font_small, LV_TEXT_ALIGN_LEFT);
-    lv_label_set_text(name, "bisc8");
-    lv_obj_set_pos(name, 88, 3);
+    style_label(name, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_text(name, "Bisc8");
+    lv_obj_set_pos(name, 66, 3);
+    lv_obj_set_width(name, 68);
 }
 
 void DisplayService::BuildArrow() {
