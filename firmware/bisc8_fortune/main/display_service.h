@@ -67,7 +67,6 @@ private:
     void LayoutIntro();                // chrome + instruction + arrow toward BOOT
     void LayoutMessage();              // chrome + small-caps title + centered body
     void LayoutResponso();             // chrome + big body + count footer
-    void LayoutWifiSetup();            // chrome + network line + big IP + hint
     void LayoutSpeaking();             // chrome + animated speaker glyph + answer
     void LayoutGlyphMessage();         // chrome + centered glyph + message body
     void LayoutLowPower();             // big logo + "Zzz..." + tap-to-wake line

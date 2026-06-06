@@ -229,6 +229,9 @@ bool handle_serial_command(const char *line) {
         if (strcmp(which, "THINKING") == 0) {
             return post_serial_event(AppEvent::PreviewThinking, "screen thinking");
         }
+        if (strcmp(which, "WIFISETUP") == 0) {
+            return post_serial_event(AppEvent::PreviewWifiSetup, "screen wifi-setup");
+        }
     }
     return false;
 }
@@ -523,6 +526,12 @@ extern "C" void app_main(void) {
             case AppEvent::PreviewLowPower:
                 g_state = "low-power";
                 display.ShowLowPower(ParseLanguage(settings.language.c_str()));
+                g_state = "idle";
+                break;
+
+            case AppEvent::PreviewWifiSetup:
+                g_state = "wifi-setup";
+                display.ShowWifiSetup("Bisc8-XXXX", "192.168.4.1", ParseLanguage(settings.language.c_str()));
                 g_state = "idle";
                 break;
 

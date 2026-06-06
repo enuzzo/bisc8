@@ -24,6 +24,7 @@ enum class AppEvent : uint8_t {
     PreviewError,
     PreviewListening,
     PreviewThinking,
+    PreviewWifiSetup,
 };
 
 }  // namespace bisc8

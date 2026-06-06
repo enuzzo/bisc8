@@ -937,30 +937,6 @@ void DisplayService::LayoutResponso() {
     RenderBattery();
 }
 
-void DisplayService::LayoutWifiSetup() {
-    ResetAuxLayers(false);
-    set_hidden(splash_group_, true);
-    set_hidden(chrome_group_, false);
-    set_hidden(arrow_group_, true);
-    set_hidden(mascot_big_, true);
-    set_hidden(title_label_, false);
-    set_hidden(body_label_, false);
-    set_hidden(footer_left_, false);
-    set_hidden(footer_right_, true);
-    set_hidden(batt_icon_group_, true);
-
-    apply_title_chip(title_label_, &bisc8_font_small, 24);
-
-    style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 4, 50);
-    lv_obj_set_size(body_label_, 192, 128);
-
-    style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 180);
-    lv_obj_set_size(footer_left_, 200, 18);
-}
-
 void DisplayService::LayoutSpeaking() {
     ResetAuxLayers(true);  // reveals speaker_group_
     set_hidden(splash_group_, true);
@@ -1151,23 +1127,24 @@ void DisplayService::ShowWifiConnecting(const char *ssid, int seconds_left, Lang
 
 void DisplayService::ShowWifiSetup(const char *ssid, const char *url, Language language) {
     const LocalizedStrings &strings = StringsFor(language);
+    const char *net = (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid;
     char address[32];
     SetupDisplayAddress(url, address, sizeof(address));
-    // Two readable steps in the main body, each datum on its own whole line so a
-    // network name never breaks mid-word: "connect to / Bisc8-XXXX" then "open /
-    // 192.168.4.1". The footer carries an accessory orienting hint, not the IP.
-    char net[64];
-    char open_line[48];
-    snprintf(net, sizeof(net), strings.wifi_setup_body, (ssid == nullptr || ssid[0] == '\0') ? "Bisc8-XXXX" : ssid);
-    snprintf(open_line, sizeof(open_line), strings.wifi_setup_footer, address);
-    char body[160];
-    snprintf(body, sizeof(body), "%s\n\n%s", net, open_line);
     if (Lvgl_lock(-1)) {
-        LayoutWifiSetup();
+        // Same clean QR layout as the connected status screen, for consistency.
+        // The QR joins the OPEN setup AP: scan -> the phone connects to <ssid> and
+        // the captive portal opens. The SSID + address below are the manual path.
+        // Full refresh so the QR stays crisp/scannable.
+        RequestFullRefresh();
+        LayoutStatusQr();
         char title_upper[48];
-        lv_label_set_text(title_label_, UpperAscii(strings.wifi_setup_title, title_upper, sizeof(title_upper)));
-        lv_label_set_text(body_label_, body);
-        lv_label_set_text(footer_left_, strings.wifi_setup_hint);
+        lv_label_set_text(title_label_,
+                          UpperAscii(strings.wifi_setup_title, title_upper, sizeof(title_upper)));
+        lv_label_set_text(status_net_label_, net);
+        lv_label_set_text(status_ip_label_, address);
+        char join[96];
+        snprintf(join, sizeof(join), "WIFI:T:nopass;S:%s;;", net);
+        lv_qrcode_update(status_qr_, join, strlen(join));
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
     }
