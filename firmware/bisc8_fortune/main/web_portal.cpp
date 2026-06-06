@@ -194,13 +194,13 @@ body{font-size:1.1rem;line-height:1.55;letter-spacing:normal;}
 .close,.close-r{top:.55rem;}
 /* status block: more air, color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
 .status{margin-bottom:1.5rem;}
-.status .cell{background:var(--paper);box-shadow:inset .85rem 0 0 var(--cell-bar);padding:.4rem .85rem .45rem 1.4rem;}
+.status .cell{background:var(--paper);box-shadow:inset .85rem 0 0 var(--cell-bar);padding:.28rem .85rem .3rem 1.4rem;max-height:60px;overflow:hidden;}
 .status .cell:nth-child(1){background:var(--paper);--cell-bar:var(--mint);}
 .status .cell:nth-child(2){background:var(--paper);--cell-bar:var(--sky);}
 .status .cell:nth-child(3){background:var(--paper);--cell-bar:var(--peach);}
 .status .cell:nth-child(4){background:var(--paper);--cell-bar:var(--lilac);}
-.status .k{font-size:1.35rem;letter-spacing:normal;text-transform:none;}
-.status .v{font-size:1.2rem;letter-spacing:normal;margin-top:.05rem;}
+.status .k{font-size:1.35rem;line-height:1.05;letter-spacing:normal;text-transform:none;}
+.status .v{font-size:1.5rem;line-height:1.05;letter-spacing:normal;margin-top:.02rem;}
 /* groups: more internal air + more space between sections */
 .group{padding:1.6rem 1.2rem 1.4rem;margin:0 0 1.6rem;}
 .group>.glabel{top:-.85rem;font-size:1.2rem;letter-spacing:normal;text-transform:none;padding:.1rem .6rem;}
