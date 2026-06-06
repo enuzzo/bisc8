@@ -174,7 +174,7 @@ $wave = '<span style="display:inline-block;vertical-align:middle;margin-right:6p
 foreach ($attachments as $att) {
     $chipsHtml .= '<span style="display:inline-block;font-family:ui-monospace,\'Courier New\',monospace;'
         . 'font-size:12px;border:2px solid #000;box-shadow:2px 2px 0 #000;padding:4px 9px;margin:0 8px 8px 0;'
-        . 'color:#000;background:#fff;">' . $wave . $esc($att['filename']) . '</span>';
+        . 'color:#000;background:#f4e4a0;">' . $wave . $esc($att['filename']) . '</span>';
 }
 $qLabel = $esc($S['q_label']);
 $aLabel = $esc($S['a_label']);
@@ -197,13 +197,13 @@ $html = <<<HTML
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>body{margin:0;padding:0;background:#cfc9bd;-webkit-text-size-adjust:100%;}</style>
+<style>body{margin:0;padding:0;background:#f0d9d2;-webkit-text-size-adjust:100%;}</style>
 </head>
-<body style="margin:0;padding:0;background:#cfc9bd;">
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;color:#cfc9bd;font-size:1px;line-height:1px;">{$preheader}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#cfc9bd;">
+<body style="margin:0;padding:0;background:#f0d9d2;">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;color:#f0d9d2;font-size:1px;line-height:1px;">{$preheader}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0d9d2;">
 <tr><td align="center" style="padding:26px 14px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background:#fff;border:2px solid #000;box-shadow:6px 6px 0 rgba(0,0,0,.35);">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background:#fbf6ef;border:2px solid #000;box-shadow:6px 6px 0 rgba(0,0,0,.35);">
 
 <tr><td style="background:#000;padding:14px 18px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -212,10 +212,12 @@ $html = <<<HTML
   </tr></table>
 </td></tr>
 
+<tr><td style="height:4px;background:#f4e4a0;font-size:0;line-height:0;">&nbsp;</td></tr>
+
 <tr><td style="padding:22px 20px 6px;">
   <div style="font-family:{$MNF};font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#000;margin:0 0 6px;">{$qLabel}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #000;margin:0 0 20px;"><tr>
-    <td style="font-family:{$MNF};font-size:15px;line-height:1.55;color:#000;padding:12px 14px;">{$qHtml}</td>
+    <td style="font-family:{$MNF};font-size:15px;line-height:1.55;color:#000;background:#fff;padding:12px 14px;">{$qHtml}</td>
   </tr></table>
 
   <div style="font-family:{$MNF};font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#000;margin:0 0 6px;">{$aLabel}</div>
