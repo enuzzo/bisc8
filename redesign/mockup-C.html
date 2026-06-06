@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bisc8 OS — Direction C · System 7 Platinum + Pastel</title>
+<style>
+/* ============================================================
+   BISC8 OS — DIRECTION C: SYSTEM 7 PLATINUM + PASTEL
+   Faithful Mac OS 8 "platinum" chrome on a pastel desktop.
+   Monochrome backbone, ONE candy accent (rose).
+   ============================================================ */
+
+@font-face{font-family:'ChiKareGo2';src:url('../fonts/ChiKareGo2.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Bk.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Ult.woff2') format('woff2');font-weight:800;font-display:swap;}
+
+:root{
+  /* --- backbone --- */
+  --ink:#1a1714;          /* near-black text/borders */
+  --ink-soft:#5b554d;     /* secondary text */
+  --paper:#fffdf8;        /* cream panel */
+  --paper-2:#f4f0e6;      /* sunken cream */
+
+  /* --- pastel desktop --- */
+  --desk:#e9d4d0;         /* dusty rose desktop */
+  --desk-2:#ddc4c4;       /* desktop pinstripe shade */
+
+  /* --- platinum (cool greys) --- */
+  --plat:#d9d6cf;         /* platinum face */
+  --plat-lo:#b7b2a8;      /* platinum shadow edge */
+  --plat-hi:#fbfaf6;      /* platinum light edge */
+  --plat-bar:#cfcabf;     /* title-bar fill behind pinstripe */
+
+  /* --- the ONE candy accent --- */
+  --candy:#e86a7c;        /* rose candy */
+  --candy-lo:#c14d5f;     /* candy shadow */
+  --candy-hi:#f6a6b1;     /* candy light edge */
+  --candy-ink:#fffdf8;    /* text on candy */
+
+  --line:#1a1714;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{
+  /* pastel desktop with a faint 50% pinstripe weave, System-7 style */
+  background:
+    repeating-linear-gradient(0deg, var(--desk-2) 0 1px, transparent 1px 4px),
+    var(--desk);
+  font-family:'ChiKareGo2',ui-sans-serif,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  image-rendering:pixelated;
+  min-height:100vh;
+  padding:0;
+}
+
+/* ============================================================
+   TOP MENU STRIP (System 7 menu bar)
+   ============================================================ */
+.menubar{
+  position:sticky;top:0;z-index:50;
+  height:24px;display:flex;align-items:center;gap:0;
+  background:var(--plat);
+  border-bottom:1px solid var(--ink);
+  box-shadow:inset 0 1px 0 var(--plat-hi), inset 0 -1px 0 var(--plat-lo);
+  padding:0 8px;
+  font-size:16px;letter-spacing:.5px;
+}
+.menubar .apple{font-family:'Pixolde';font-weight:700;font-size:14px;padding:0 8px 0 2px;}
+.menubar .mi{padding:0 11px;cursor:default;}
+.menubar .mi:hover{background:var(--ink);color:var(--paper);}
+.menubar .spacer{flex:1;}
+.menubar .clock{font-family:'Pixolde';font-weight:400;font-size:13px;padding:0 6px;letter-spacing:1px;}
+.menubar .batt{font-family:'Pixolde';font-size:12px;padding:0 6px;letter-spacing:1px;}
+
+/* ============================================================
+   DESKTOP CANVAS
+   ============================================================ */
+.desktop{
+  position:relative;
+  max-width:1100px;
+  margin:0 auto;
+  padding:34px 28px 150px;
+  display:flex;
+  gap:34px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+/* a little desktop "icon" pinned top-right, sells the OS */
+.deskicon{position:absolute;right:30px;top:24px;width:74px;text-align:center;}
+.deskicon .gi{width:46px;height:46px;margin:0 auto;background:var(--paper);border:1px solid var(--ink);
+  box-shadow:2px 2px 0 rgba(26,23,20,.35);display:grid;place-items:center;}
+.deskicon .gi .mascot{width:34px;height:34px;}
+.deskicon .lab{font-family:'ChiKareGo2';font-size:15px;margin-top:5px;
+  background:var(--candy);color:var(--candy-ink);display:inline-block;padding:0 4px;border:1px solid var(--ink);}
+
+/* ============================================================
+   WINDOW (System 7/8 chrome)
+   ============================================================ */
+.win{
+  background:var(--plat);
+  border:1px solid var(--ink);
+  box-shadow:
+    inset 0 1px 0 var(--plat-hi),
+    inset -1px 0 0 var(--plat-lo),
+    inset 0 -1px 0 var(--plat-lo),
+    7px 8px 0 rgba(26,23,20,.30);
+}
+
+/* --- title bar: pinstripe + close box + title + zoom box --- */
+.titlebar{
+  position:relative;
+  height:24px;
+  display:flex;align-items:center;justify-content:center;
+  border-bottom:1px solid var(--ink);
+  background:
+    repeating-linear-gradient(0deg,
+      var(--ink) 0 1px,
+      var(--plat-bar) 1px 3px);
+  box-shadow:inset 0 1px 0 var(--plat-hi);
+}
+.titlebar.inactive{background:var(--plat);} /* unfocused window = no stripes */
+/* the platinum "grab" bevel that the stripes sit on */
+.titlebar::before{content:"";position:absolute;left:0;right:0;top:0;bottom:0;
+  box-shadow:inset 0 0 0 1px rgba(251,250,246,.4);pointer-events:none;}
+.tb-close,.tb-zoom{
+  position:absolute;top:5px;width:13px;height:13px;
+  background:var(--plat);
+  border:1px solid var(--ink);
+  box-shadow:inset 1px 1px 0 var(--plat-hi), inset -1px -1px 0 var(--plat-lo);
+}
+.tb-close{left:8px;}
+.tb-zoom{right:8px;}
+.tb-close::after{content:"";position:absolute;inset:3px;border:1px solid var(--ink);display:none;}
+.tb-close:hover::after{display:block;}
+.tb-title{
+  position:relative;z-index:2;
+  font-family:'ITC Garamond';font-weight:800;
+  font-size:20px;line-height:1;letter-spacing:.3px;
+  background:var(--plat);
+  padding:2px 14px;
+  border-left:1px solid var(--plat-lo);border-right:1px solid var(--plat-lo);
+  display:flex;align-items:center;gap:8px;
+  box-shadow:inset 0 1px 0 var(--plat-hi);
+}
+.tb-title .mascot{width:18px;height:18px;}
+
+/* --- window body --- */
+.win-body{padding:16px 16px 18px;background:var(--paper);
+  border:1px solid var(--plat-lo);margin:3px;
+  box-shadow:inset 1px 1px 0 var(--plat-hi);}
+
+/* PORTAL WINDOW sizing — narrow like the real 390px device portal */
+.win.portal{width:390px;}
+
+.mascot{background:url('../img/mascot.png') center/contain no-repeat;display:inline-block;}
+
+/* --- tagline --- */
+.tagline{
+  text-align:center;
+  font-family:'Pixolde';font-weight:400;
+  font-size:12px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--candy-lo);
+  margin:2px 0 16px;
+}
+
+/* ============================================================
+   2x2 STATUS GRID  (sunken platinum well, monochrome cells)
+   ============================================================ */
+.status{
+  display:grid;grid-template-columns:1fr 1fr;
+  border:1px solid var(--ink);
+  background:var(--paper);
+  margin-bottom:18px;
+  box-shadow:inset 1px 1px 0 var(--plat-lo), 2px 2px 0 rgba(26,23,20,.18);
+}
+.status .cell{padding:8px 10px;border-top:1px solid var(--ink);border-left:1px solid var(--ink);}
+.status .cell:nth-child(1),.status .cell:nth-child(2){border-top:none;}
+.status .cell:nth-child(odd){border-left:none;}
+.status .k{font-family:'ChiKareGo2';font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-soft);}
+.status .v{font-family:'Pixolde';font-weight:400;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.dot-on{display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--candy);border:1px solid var(--candy-lo);
+  margin-right:6px;vertical-align:1px;
+  box-shadow:0 0 0 2px rgba(232,106,124,.25);}
+
+/* ============================================================
+   GROUP  (notched uppercase label)  — kept from real portal
+   ============================================================ */
+.group{position:relative;border:1px solid var(--ink);padding:18px 13px 14px;margin:0 0 16px;background:var(--paper);
+  box-shadow:inset 1px 1px 0 var(--plat-hi), 2px 2px 0 rgba(26,23,20,.16);}
+.group>.glabel{position:absolute;top:-9px;left:11px;background:var(--paper);padding:0 7px;
+  font-family:'ITC Garamond';font-weight:800;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink);}
+.hint{font-family:'ChiKareGo2';font-size:14px;line-height:1.45;margin:0 0 12px;color:var(--ink-soft);}
+
+/* ============================================================
+   INPUTS  (sunken platinum field)
+   ============================================================ */
+label.fld{display:block;font-family:'ChiKareGo2';font-size:13px;letter-spacing:1px;text-transform:uppercase;margin:0 0 5px;color:var(--ink-soft);}
+input,select{
+  font-family:'ChiKareGo2';width:100%;min-height:44px;
+  border:1px solid var(--ink);background:var(--paper);color:var(--ink);
+  padding:9px 11px;font-size:17px;border-radius:0;
+  box-shadow:inset 1px 1px 0 var(--plat-lo), inset -1px -1px 0 var(--plat-hi);
+}
+input::placeholder{color:#a39c90;}
+input:focus,select:focus{outline:none;border-color:var(--candy-lo);
+  box-shadow:inset 1px 1px 0 var(--plat-lo), 0 0 0 2px var(--candy);}
+.field{margin-bottom:12px;}
+.pwd{position:relative;display:block;}
+.pwd>input{padding-right:50px;}
+.pwd .eye{position:absolute;right:1px;top:1px;bottom:1px;width:44px;border:0;border-left:1px solid var(--ink);
+  background:var(--plat);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0;
+  box-shadow:inset 1px 1px 0 var(--plat-hi), inset -1px -1px 0 var(--plat-lo);}
+.pwd .eye.on{background:var(--candy);color:var(--candy-ink);box-shadow:inset 1px 1px 0 var(--candy-hi), inset -1px -1px 0 var(--candy-lo);}
+
+/* ============================================================
+   BUTTONS  (chunky platinum bevel; primary = candy)
+   ============================================================ */
+.actions{display:flex;flex-wrap:wrap;gap:11px;align-items:center;margin-top:6px;}
+.btn{
+  font-family:'ChiKareGo2';font-size:17px;min-height:44px;
+  background:var(--plat);color:var(--ink);
+  border:1px solid var(--ink);padding:0 18px;cursor:pointer;
+  box-shadow:inset 1px 1px 0 var(--plat-hi), inset -2px -2px 0 var(--plat-lo), 2px 2px 0 rgba(26,23,20,.28);
+}
+.btn:active{box-shadow:inset -1px -1px 0 var(--plat-hi), inset 2px 2px 0 var(--plat-lo);transform:translate(1px,1px);}
+.btn.primary{
+  background:var(--candy);color:var(--candy-ink);border-color:var(--candy-lo);
+  box-shadow:inset 1px 1px 0 var(--candy-hi), inset -2px -2px 0 var(--candy-lo), 2px 2px 0 rgba(193,77,95,.45);
+  /* System-7 default-button: double ring */
+}
+.btn.primary:active{box-shadow:inset -1px -1px 0 var(--candy-hi), inset 2px 2px 0 var(--candy-lo);}
+.btn:focus-visible,.seg b:focus-visible,.eye:focus-visible{outline:2px solid var(--candy-lo);outline-offset:2px;}
+
+/* ============================================================
+   SEGMENTED CONTROL (platinum tabs; selected = candy)
+   ============================================================ */
+.seg{display:inline-flex;border:1px solid var(--ink);background:var(--plat);
+  box-shadow:inset 1px 1px 0 var(--plat-hi), 2px 2px 0 rgba(26,23,20,.2);}
+.seg b{font-family:'ChiKareGo2';font-weight:400;padding:0 18px;min-height:44px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:17px;min-width:54px;text-align:center;user-select:none;letter-spacing:1px;}
+.seg b+b{border-left:1px solid var(--ink);}
+.seg b.on{background:var(--candy);color:var(--candy-ink);
+  box-shadow:inset 1px 1px 0 var(--candy-hi), inset -1px -1px 0 var(--candy-lo);}
+
+/* divider row */
+.foot-line{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-top:12px;margin-top:4px;border-top:1px dotted var(--ink);font-size:14px;color:var(--ink-soft);}
+.pill{border:1px solid var(--ink);padding:3px 9px;font-family:'Pixolde';font-size:13px;letter-spacing:1px;
+  background:var(--paper-2);box-shadow:inset 1px 1px 0 var(--plat-lo);}
+
+/* ============================================================
+   DISTRIBUTION SITE HERO CARD (second window)
+   ============================================================ */
+.win.hero{width:380px;}
+.hero .win-body{padding:24px 22px 22px;text-align:center;}
+.hero .crumb{display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:4px;}
+.hero .crumb .mascot{width:96px;height:96px;
+  border:1px solid var(--ink);background:var(--paper);padding:8px;
+  box-shadow:3px 3px 0 rgba(26,23,20,.25);}
+.hero h1{
+  font-family:'ITC Garamond';font-weight:800;
+  font-size:74px;line-height:.92;letter-spacing:1px;
+  margin:16px 0 2px;color:var(--ink);
+}
+.hero .pitch{font-family:'ChiKareGo2';font-size:16px;line-height:1.5;color:var(--ink-soft);
+  margin:0 auto 6px;max-width:300px;}
+.hero .sub{font-family:'Pixolde';font-weight:400;font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--candy-lo);margin:0 0 20px;}
+.hero .hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.hero .btn{font-size:18px;padding:0 22px;min-height:48px;}
+.hero .btn.primary{font-family:'Pixolde';font-weight:700;letter-spacing:.5px;}
+.hero .ver{margin-top:16px;font-family:'Pixolde';font-size:12px;letter-spacing:1.5px;color:var(--ink-soft);}
+
+/* a slim "installer" framed strip to feel like a real download window */
+.hero .ditto{margin-top:18px;border:1px solid var(--ink);background:var(--paper-2);
+  box-shadow:inset 1px 1px 0 var(--plat-lo);padding:9px 11px;display:flex;align-items:center;gap:10px;text-align:left;}
+.hero .ditto .bar{flex:1;height:12px;border:1px solid var(--ink);background:var(--paper);position:relative;overflow:hidden;}
+.hero .ditto .bar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:62%;
+  background:repeating-linear-gradient(135deg,var(--candy) 0 5px,var(--candy-hi) 5px 10px);}
+.hero .ditto .pct{font-family:'Pixolde';font-size:12px;letter-spacing:1px;color:var(--ink-soft);}
+
+/* note banner between the two windows */
+.judge-note{flex-basis:100%;text-align:center;margin:6px 0 -8px;
+  font-family:'Pixolde';font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft);}
+
+/* ============================================================
+   DOCK  (System-style labeled pixel icons, bottom)
+   ============================================================ */
+.dock{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:60;
+  display:flex;gap:10px;align-items:flex-end;
+  background:var(--plat);
+  border:1px solid var(--ink);
+  padding:8px 12px;
+  box-shadow:inset 0 1px 0 var(--plat-hi), inset 0 -2px 0 var(--plat-lo), 4px 5px 0 rgba(26,23,20,.3);
+}
+.dock .item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default;width:60px;}
+.dock .ic{width:42px;height:42px;background:var(--paper);border:1px solid var(--ink);display:grid;place-items:center;
+  box-shadow:inset 1px 1px 0 var(--plat-hi), inset -1px -1px 0 var(--plat-lo), 2px 2px 0 rgba(26,23,20,.22);
+  font-family:'Pixolde';font-weight:700;font-size:18px;color:var(--ink);}
+.dock .ic.accent{background:var(--candy);color:var(--candy-ink);border-color:var(--candy-lo);
+  box-shadow:inset 1px 1px 0 var(--candy-hi), inset -1px -1px 0 var(--candy-lo), 2px 2px 0 rgba(193,77,95,.4);}
+.dock .ic .mascot{width:30px;height:30px;}
+.dock .lab{font-family:'ChiKareGo2';font-size:12px;letter-spacing:.5px;color:var(--ink);text-align:center;}
+.dock .item:hover .ic{transform:translateY(-3px);}
+
+@media (max-width:560px){
+  .hero h1{font-size:58px;}
+  .deskicon{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOP MENU STRIP ============ -->
+<div class="menubar">
+  <span class="apple"></span>
+  <span class="mi" style="font-family:'Pixolde';font-weight:700;font-size:13px;">Bisc8</span>
+  <span class="mi">File</span>
+  <span class="mi">Modifica</span>
+  <span class="mi">Oracolo</span>
+  <span class="mi">Aiuto</span>
+  <span class="spacer"></span>
+  <span class="batt">◗ 87%</span>
+  <span class="clock">ven 6 giu&nbsp;&nbsp;14:08</span>
+</div>
+
+<!-- ============ DESKTOP ============ -->
+<div class="desktop">
+
+  <!-- desktop icon -->
+  <div class="deskicon">
+    <div class="gi"><span class="mascot"></span></div>
+    <div class="lab">Bisc8 HD</div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- (1) CAPTIVE-PORTAL WINDOW                              -->
+  <!-- ====================================================== -->
+  <div class="win portal">
+    <div class="titlebar">
+      <div class="tb-close" title="Close"></div>
+      <div class="tb-title"><span class="mascot"></span>Bisc8 — Config</div>
+      <div class="tb-zoom" title="Zoom"></div>
+    </div>
+    <div class="win-body">
+
+      <p class="tagline">briciomanzia tascabile</p>
+
+      <!-- 2x2 STATUS -->
+      <div class="status">
+        <div class="cell"><div class="k">Stato</div><div class="v"><span class="dot-on"></span>connesso</div></div>
+        <div class="cell"><div class="k">Rete</div><div class="v">forno-di-casa</div></div>
+        <div class="cell"><div class="k">Indirizzo</div><div class="v">192.168.4.1</div></div>
+        <div class="cell"><div class="k">Lingua</div><div class="v">IT</div></div>
+      </div>
+
+      <!-- ORACOLO GROUP -->
+      <div class="group">
+        <span class="glabel">Oracolo</span>
+        <p class="hint">La chiave vive solo qui. Non la sbandieriamo a nessuno.</p>
+        <div class="field">
+          <label class="fld">Modello oracolo</label>
+          <input type="text" value="gpt-4o-mini">
+        </div>
+        <div class="field">
+          <label class="fld">Chiave API</label>
+          <span class="pwd">
+            <input type="password" value="sk-cookie-crumb-9f2a">
+            <button class="eye on" type="button" aria-pressed="true" aria-label="hide">
+              <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true">
+                <path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="8" r="3.1" fill="currentColor"/>
+              </svg>
+            </button>
+          </span>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button">Salva Oracolo</button>
+          <button class="btn" type="button">Cerca reti</button>
+        </div>
+      </div>
+
+      <!-- LINGUA SEGMENTED -->
+      <div class="group">
+        <span class="glabel">Lingua</span>
+        <p class="hint">In che lingua vaticina l'oracolo. I responsi cambiano con lei.</p>
+        <div class="seg">
+          <b class="on">IT</b><b>EN</b><b>ES</b>
+        </div>
+      </div>
+
+      <div class="foot-line">
+        <span>Firmware</span>
+        <span class="pill">r2941</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="judge-note">— due superfici, una scrivania —</div>
+
+  <!-- ====================================================== -->
+  <!-- (2) DISTRIBUTION-SITE HERO CARD                        -->
+  <!-- ====================================================== -->
+  <div class="win hero">
+    <div class="titlebar">
+      <div class="tb-close" title="Close"></div>
+      <div class="tb-title"><span class="mascot"></span>Flash Station</div>
+      <div class="tb-zoom" title="Zoom"></div>
+    </div>
+    <div class="win-body">
+      <div class="crumb"><span class="mascot"></span></div>
+      <h1>Bisc8</h1>
+      <p class="pitch">Un oracolo da taschino che legge le briciole. Tieni il bottone, fai la domanda, ascolta il responso.</p>
+      <p class="sub">pocket crumbomancy</p>
+      <div class="hero-actions">
+        <button class="btn primary" type="button">⚡ Flash Bisc8</button>
+        <button class="btn" type="button">Download .zip</button>
+      </div>
+
+      <div class="ditto">
+        <span class="mascot" style="width:22px;height:22px;flex:none;"></span>
+        <div class="bar"></div>
+        <span class="pct">62%</span>
+      </div>
+
+      <p class="ver">esp32-c6 · firmware r2941 · web serial</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ DOCK ============ -->
+<div class="dock">
+  <div class="item"><div class="ic"><span class="mascot"></span></div><div class="lab">Oracolo</div></div>
+  <div class="item"><div class="ic">⌘</div><div class="lab">Config</div></div>
+  <div class="item"><div class="ic accent">⚡</div><div class="lab">Flash</div></div>
+  <div class="item"><div class="ic">✉</div><div class="lab">Email</div></div>
+  <div class="item"><div class="ic">◎</div><div class="lab">Wi-Fi</div></div>
+</div>
+
+</body>
+</html>

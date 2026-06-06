@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bisc8 OS · Direction A · Poolsuite Leisure</title>
+<style>
+/* ============================================================
+   FONTS — local woff2, the very faces poolsuite.net uses
+   ============================================================ */
+@font-face{font-family:'ChiKareGo2';src:url('../fonts/ChiKareGo2.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Bk.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Ult.woff2') format('woff2');font-weight:800;font-display:swap;}
+
+/* ============================================================
+   PALETTE — pastel canvas, cream panels, near-black ink,
+   TWO accent pastels (rose + peach). Monochrome backbone.
+   ============================================================ */
+:root{
+  --ink:#1a1714;          /* near-black warm ink — all text/borders */
+  --paper:#fffdf7;        /* cream panel */
+  --cream:#f6efe0;        /* secondary panel / inset */
+  --rose:#e8a6a1;         /* accent 1 — dusty rose */
+  --rose-soft:#f4cfca;    /* rose tint for fills */
+  --peach:#f3c9a0;        /* accent 2 — peach */
+  --peach-soft:#fbe4cc;   /* peach tint for fills */
+  --desk-a:#e9b9b2;       /* desktop gradient stop A (dusty rose) */
+  --desk-b:#f3d2bb;       /* desktop gradient stop B (peach) */
+  --shadow:rgba(26,23,20,.30);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(120% 90% at 18% 0%, var(--desk-b) 0%, transparent 55%),
+    linear-gradient(155deg, var(--desk-a) 0%, #f0c6bd 42%, var(--desk-b) 100%);
+  font-family:'ChiKareGo2',ui-sans-serif,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  padding:0 0 96px;
+}
+.mascot{background:url('../img/mascot.png') center/contain no-repeat;display:inline-block;image-rendering:pixelated;filter:grayscale(1) contrast(1.05);}
+
+/* ============================================================
+   TOP MENU STRIP — System-7 menu bar with date/time
+   ============================================================ */
+.menubar{
+  position:sticky;top:0;z-index:50;
+  height:30px;
+  background:var(--paper);
+  border-bottom:2px solid var(--ink);
+  box-shadow:0 2px 0 var(--shadow);
+  display:flex;align-items:center;gap:0;
+  padding:0 10px;
+  font-size:15px;letter-spacing:.5px;
+}
+.menubar .logo{font-family:'Pixolde';font-weight:700;font-size:15px;padding:0 12px 0 4px;display:flex;align-items:center;gap:7px;}
+.menubar .logo .mascot{width:16px;height:16px;}
+.menubar .mi{padding:0 11px;line-height:30px;height:30px;cursor:default;}
+.menubar .mi:hover{background:var(--ink);color:var(--paper);}
+.menubar .clock{margin-left:auto;font-family:'Pixolde';font-weight:400;font-size:14px;letter-spacing:1px;padding-right:4px;}
+
+/* desktop canvas: two surfaces side by side, wrapping */
+.desktop{
+  max-width:1180px;margin:0 auto;
+  padding:34px 26px 0;
+  display:flex;flex-wrap:wrap;gap:34px;
+  align-items:flex-start;justify-content:center;
+}
+
+/* ============================================================
+   WINDOW CHROME — System-7 pinstripe title bar + close box
+   ============================================================ */
+.win{
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:7px 7px 0 var(--shadow);
+}
+.titlebar{
+  position:relative;height:30px;
+  border-bottom:2px solid var(--ink);
+  /* horizontal pinstripe lines = System 7/8 active title bar */
+  background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+  display:flex;align-items:center;justify-content:center;
+}
+.close{
+  position:absolute;left:8px;top:7px;width:14px;height:14px;
+  border:2px solid var(--ink);background:var(--paper);cursor:pointer;
+}
+.close:active{background:var(--ink);}
+.ttl{
+  background:var(--paper);padding:0 14px;
+  font-family:'Pixolde';font-weight:700;font-size:15px;letter-spacing:.5px;
+  display:flex;align-items:center;gap:8px;
+}
+.ttl .mascot{width:17px;height:17px;}
+
+/* ============================================================
+   SURFACE 1 — THE CAPTIVE PORTAL WINDOW
+   ============================================================ */
+.portal{width:392px;flex:none;}
+.portal .wrap{padding:15px 14px 18px;}
+
+.tagline{
+  text-align:center;font-family:'Pixolde';font-weight:400;
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  margin:1px 0 15px;color:var(--ink);
+}
+
+/* 2x2 status grid */
+.status{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);margin-bottom:16px;background:var(--cream);}
+.status .cell{padding:8px 10px;border-top:2px solid var(--ink);border-left:2px solid var(--ink);}
+.status .cell:nth-child(1),.status .cell:nth-child(2){border-top:none;}
+.status .cell:nth-child(odd){border-left:none;}
+.status .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6b6055;}
+.status .v{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.dot-on{display:inline-block;width:8px;height:8px;background:#3f9d6e;border:1px solid var(--ink);margin-right:6px;vertical-align:1px;}
+
+/* bordered group with notched uppercase label */
+.group{position:relative;border:2px solid var(--ink);padding:18px 13px 14px;margin:0 0 16px;background:var(--paper);}
+.group>.glabel{
+  position:absolute;top:-11px;left:11px;background:var(--rose-soft);
+  border:2px solid var(--ink);padding:1px 8px;font-family:'Pixolde';font-weight:700;
+  font-size:12px;letter-spacing:2px;text-transform:uppercase;
+}
+.hint{font-size:14px;line-height:1.45;margin:0 0 12px;color:#4a423a;}
+
+/* inputs */
+label.fld{display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 5px;color:#6b6055;}
+input{font-family:inherit;width:100%;min-height:44px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);padding:9px 11px;font-size:16px;border-radius:0;}
+input::placeholder{color:#a39686;}
+input:focus{outline:none;background:var(--paper);box-shadow:3px 3px 0 var(--rose);}
+.field{margin-bottom:12px;}
+.pwd{position:relative;display:block;}
+.pwd>input{padding-right:50px;}
+.pwd .eye{position:absolute;right:2px;top:2px;bottom:2px;width:44px;border:0;border-left:2px solid var(--ink);background:var(--cream);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0;}
+.pwd .eye.on{background:var(--ink);color:var(--paper);}
+
+/* buttons */
+.actions{display:flex;flex-wrap:wrap;gap:11px;align-items:center;margin-top:6px;}
+.btn{font-family:'Pixolde';font-weight:700;font-size:14px;letter-spacing:.5px;background:var(--ink);color:var(--paper);border:2px solid var(--ink);padding:11px 18px;min-height:44px;box-shadow:3px 3px 0 var(--rose);cursor:pointer;}
+.btn:hover{box-shadow:3px 3px 0 var(--peach);}
+.btn:active{transform:translate(3px,3px);box-shadow:none;}
+.btn.sec{background:var(--paper);color:var(--ink);box-shadow:3px 3px 0 var(--shadow);}
+.btn.sec:hover{background:var(--cream);box-shadow:3px 3px 0 var(--rose);}
+.btn:focus-visible,.seg b:focus-visible,.eye:focus-visible,.close:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
+
+/* segmented control */
+.seg{display:inline-flex;border:2px solid var(--ink);background:var(--paper);}
+.seg b{font-family:'Pixolde';font-weight:700;padding:11px 18px;cursor:pointer;font-size:14px;min-width:48px;text-align:center;user-select:none;}
+.seg b+b{border-left:2px solid var(--ink);}
+.seg b.on{background:var(--rose);color:var(--ink);}
+
+/* firmware row + pill */
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:2px dotted var(--ink);font-size:15px;}
+.pill{border:2px solid var(--ink);padding:3px 9px;box-shadow:2px 2px 0 var(--shadow);font-size:13px;font-family:'Pixolde';background:var(--cream);}
+
+/* ============================================================
+   SURFACE 2 — DISTRIBUTION-SITE HERO CARD
+   ============================================================ */
+.hero{width:392px;flex:none;display:flex;flex-direction:column;gap:24px;}
+.hero .body{padding:26px 24px 28px;text-align:center;}
+.hero .badge{
+  display:inline-block;font-family:'Pixolde';font-weight:400;font-size:11px;
+  letter-spacing:3px;text-transform:uppercase;color:var(--ink);
+  border:2px solid var(--ink);background:var(--peach-soft);padding:3px 12px;margin-bottom:18px;
+}
+.hero .crumb{
+  width:108px;height:108px;margin:0 auto 6px;
+  border:2px solid var(--ink);background:var(--cream);
+  box-shadow:5px 5px 0 var(--shadow);display:grid;place-items:center;
+}
+.hero .crumb .mascot{width:84px;height:84px;}
+.hero h1{
+  font-family:'ITC Garamond';font-weight:800;
+  font-size:78px;line-height:.9;letter-spacing:-1px;
+  margin:14px 0 4px;
+}
+.hero .pitch{font-size:16px;line-height:1.5;color:#4a423a;max-width:300px;margin:6px auto 22px;}
+.hero .cta{display:flex;flex-direction:column;gap:13px;align-items:stretch;}
+.btn-big{
+  font-family:'Pixolde';font-weight:700;font-size:18px;letter-spacing:.5px;
+  background:var(--ink);color:var(--paper);border:2px solid var(--ink);
+  padding:16px 20px;min-height:56px;box-shadow:5px 5px 0 var(--rose);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-big:hover{box-shadow:5px 5px 0 var(--peach);}
+.btn-big:active{transform:translate(5px,5px);box-shadow:none;}
+.btn-big.sec{background:var(--paper);color:var(--ink);box-shadow:5px 5px 0 var(--shadow);font-size:15px;min-height:48px;padding:12px 20px;}
+.btn-big.sec:hover{background:var(--cream);box-shadow:5px 5px 0 var(--rose);}
+
+/* a tiny System-7 dock of labelled pixel icons */
+.dock{
+  align-self:center;display:inline-flex;gap:0;
+  border:2px solid var(--ink);background:var(--paper);
+  box-shadow:5px 5px 0 var(--shadow);
+}
+.dock .ico{
+  width:74px;padding:11px 6px 8px;text-align:center;cursor:pointer;
+  border-left:2px solid var(--ink);
+}
+.dock .ico:first-child{border-left:0;}
+.dock .ico:hover{background:var(--cream);}
+.dock .glyph{
+  width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--ink);
+  background:var(--cream);display:grid;place-items:center;font-size:18px;
+  font-family:'Pixolde';font-weight:700;
+}
+.dock .ico:nth-child(1) .glyph{background:var(--rose-soft);}
+.dock .ico:nth-child(3) .glyph{background:var(--peach-soft);}
+.dock .ico .mascot{width:24px;height:24px;}
+.dock .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+
+/* poolsuite-style note under the spread */
+.caption{
+  width:100%;text-align:center;margin:6px auto 0;
+  font-family:'Pixolde';font-weight:400;font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:#7a4b46;
+}
+.caption b{font-weight:700;color:var(--ink);}
+</style>
+</head>
+<body>
+
+<!-- TOP MENU STRIP -->
+<div class="menubar">
+  <span class="logo"><span class="mascot"></span>Bisc8 OS</span>
+  <span class="mi">File</span>
+  <span class="mi">Oracolo</span>
+  <span class="mi">Aiuto</span>
+  <span class="clock">Sab 6 Giu&nbsp;&nbsp;14:32</span>
+</div>
+
+<div class="desktop">
+
+  <!-- ============ SURFACE 1: CAPTIVE PORTAL WINDOW ============ -->
+  <div class="win portal">
+    <div class="titlebar"><div class="close"></div><div class="ttl"><span class="mascot"></span>Bisc8 — Setup</div></div>
+    <div class="wrap">
+
+      <p class="tagline">briciomanzia tascabile</p>
+
+      <!-- 2x2 STATUS GRID -->
+      <div class="status">
+        <div class="cell"><div class="k">Stato</div><div class="v"><span class="dot-on"></span>online</div></div>
+        <div class="cell"><div class="k">Rete</div><div class="v">Forno_5G</div></div>
+        <div class="cell"><div class="k">Indirizzo</div><div class="v">192.168.4.1</div></div>
+        <div class="cell"><div class="k">Lingua</div><div class="v">IT</div></div>
+      </div>
+
+      <!-- GROUP: ORACOLO -->
+      <div class="group">
+        <span class="glabel">Oracolo</span>
+        <p class="hint">La chiave vive solo qui. Non la sbandieriamo a nessuno.</p>
+        <div class="field">
+          <label class="fld">Chiave API</label>
+          <span class="pwd">
+            <input type="password" value="sk-crumb-7f3a9b" aria-label="Chiave API">
+            <button class="eye on" type="button" aria-pressed="true" aria-label="nascondi">
+              <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg>
+            </button>
+          </span>
+        </div>
+        <div class="field">
+          <label class="fld">Modello oracolo</label>
+          <input type="text" value="gpt-4o-mini" aria-label="Modello oracolo">
+        </div>
+        <div class="actions">
+          <button class="btn" type="button">Salva Oracolo</button>
+          <button class="btn sec" type="button">Cerca reti</button>
+        </div>
+      </div>
+
+      <!-- GROUP: LINGUA (segmented control) -->
+      <div class="group">
+        <span class="glabel">Lingua</span>
+        <p class="hint">In che lingua vaticina l'oracolo. I responsi cambiano con lei.</p>
+        <div class="seg" role="group" aria-label="Lingua">
+          <b class="on" tabindex="0" role="button" aria-pressed="true">IT</b>
+          <b tabindex="0" role="button" aria-pressed="false">EN</b>
+          <b tabindex="0" role="button" aria-pressed="false">ES</b>
+        </div>
+      </div>
+
+      <!-- firmware row -->
+      <div class="row"><span>Firmware</span><span class="pill">r2026.06</span></div>
+
+    </div>
+  </div>
+
+  <!-- ============ SURFACE 2: DISTRIBUTION HERO CARD ============ -->
+  <div class="hero">
+    <div class="win">
+      <div class="titlebar"><div class="close"></div><div class="ttl"><span class="mascot"></span>Bisc8 — flash.bisc8.os</div></div>
+      <div class="body">
+        <span class="badge">crumbomancy · v1</span>
+        <div class="crumb"><span class="mascot"></span></div>
+        <h1>Bisc8</h1>
+        <p class="pitch">Un oracolo da tasca a forma di biscotto. Tieni premuto, fai la tua domanda, leggi le briciole.</p>
+        <div class="cta">
+          <button class="btn-big" type="button">⚡ Flash Bisc8</button>
+          <button class="btn-big sec" type="button">Scarica .zip</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- tiny System-7 dock -->
+    <div class="dock">
+      <div class="ico"><div class="glyph"><span class="mascot"></span></div><div class="lbl">Oracolo</div></div>
+      <div class="ico"><div class="glyph">⚡</div><div class="lbl">Flash</div></div>
+      <div class="ico"><div class="glyph">▤</div><div class="lbl">Docs</div></div>
+    </div>
+  </div>
+
+  <p class="caption">Bisc8 OS · direzione A — <b>Poolsuite Leisure</b> · ITC Garamond + ChiKareGo2 + Pixolde</p>
+
+</div>
+
+</body>
+</html>

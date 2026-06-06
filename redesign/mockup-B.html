@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bisc8 OS — Biscuit Bakery (Direction B)</title>
+<style>
+/* ============================================================
+   BISC8 OS — Direction B: BISCUIT BAKERY
+   Warm biscuit beige desk, cream panels, near-black ink,
+   ONE jam-strawberry accent used as a glaze. Pixel-forward.
+   Fonts: ChiKareGo2 (UI), Pixolde (accents/numerals), ITC Garamond (display).
+   ============================================================ */
+
+@font-face{font-family:'ChiKareGo2';src:url('../fonts/ChiKareGo2.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'Pixolde';src:url('../fonts/Pixolde-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Bk.woff2') format('woff2');font-weight:400;font-display:swap;}
+@font-face{font-family:'ITC Garamond';src:url('../fonts/ITCGaramondStd-Ult.woff2') format('woff2');font-weight:800;font-display:swap;}
+
+:root{
+  /* monochrome backbone */
+  --ink:#1a1714;            /* near-black warm ink — softer than pure #000, still AAA on cream */
+  --ink-soft:#5d564d;       /* secondary ink for hints */
+  --paper:#fffdf7;          /* cream panel */
+  --paper-2:#f6f1e4;        /* recessed cream (inset wells) */
+  --desk:#cfc9bd;           /* the warm biscuit beige desk (kept from current) */
+  --desk-2:#c4bdaf;         /* desk weave shade */
+  /* the ONE pastel glaze */
+  --jam:#e8889a;            /* strawberry-jam pink — the single accent */
+  --jam-deep:#c85f73;       /* jam edge / pressed */
+  --jam-wash:#fbe3e8;       /* faintest jam tint for selected fills */
+  --online:#6f9e7a;         /* a quiet mint, used ONLY as the live status dot */
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  /* biscuit-weave desk: the existing 3px conic, warmed */
+  background:repeating-conic-gradient(var(--desk) 0% 25%,var(--desk-2) 0% 50%) 0 0/3px 3px;
+  font-family:'ChiKareGo2',ui-sans-serif,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:none;
+  font-smooth:never;
+  image-rendering:pixelated;
+  min-height:100vh;
+  padding:0 0 64px;
+}
+
+/* ---------- top menu strip (System 7) ---------- */
+.menubar{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:0;
+  height:24px;
+  background:var(--paper);
+  border-bottom:2px solid var(--ink);
+  padding:0 10px;
+  font-size:14px;
+}
+.menubar .apple{font-family:'Pixolde',sans-serif;font-weight:700;padding:0 12px 0 2px;}
+.menubar .mi{padding:0 11px;letter-spacing:.5px;}
+.menubar .mi.active{background:var(--ink);color:var(--paper);}
+.menubar .clock{margin-left:auto;font-family:'Pixolde',sans-serif;font-weight:700;letter-spacing:1px;padding-left:12px;}
+
+/* ---------- desktop layout ---------- */
+.desktop{
+  max-width:1060px;margin:0 auto;
+  padding:34px 24px 24px;
+  display:grid;
+  grid-template-columns:392px 1fr;
+  gap:34px;
+  align-items:start;
+}
+@media(max-width:880px){.desktop{grid-template-columns:1fr;justify-items:center;}}
+
+/* a floating desktop label, ITC Garamond display */
+.deskmark{
+  position:absolute;left:50%;transform:translateX(-50%);
+  top:30px;text-align:center;pointer-events:none;
+}
+
+/* ============================================================
+   WINDOW CHROME  (System 7/8 evolution of the portal .app)
+   ============================================================ */
+.win{
+  width:392px;
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:6px 6px 0 rgba(26,23,20,.32);
+}
+
+/* pinstripe title bar with close box + title plate (from real .titlebar) */
+.titlebar{
+  position:relative;height:30px;
+  border-bottom:2px solid var(--ink);
+  /* the real pinstripe: 1px ink line every 3px */
+  background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+  display:flex;align-items:center;justify-content:center;
+}
+.close{
+  position:absolute;left:8px;top:7px;width:14px;height:14px;
+  border:2px solid var(--ink);background:var(--paper);
+  box-shadow:inset 0 0 0 2px var(--paper),inset 0 0 0 3px var(--ink);
+  cursor:pointer;
+}
+.zoom{ /* second system box, right side — pure chrome flavor */
+  position:absolute;right:8px;top:7px;width:14px;height:14px;
+  border:2px solid var(--ink);background:var(--paper);
+}
+.zoom::before{content:"";position:absolute;inset:2px 2px auto 2px;height:2px;background:var(--ink);}
+.ttl{
+  background:var(--paper);padding:0 14px;
+  display:flex;align-items:center;gap:8px;
+  font-family:'ITC Garamond',Georgia,serif;font-weight:800;
+  font-size:21px;line-height:1;letter-spacing:.3px;
+  border:2px solid var(--ink);border-bottom:none;margin-bottom:-2px;height:30px;
+}
+.ttl .mascot{width:18px;height:18px;display:inline-block;
+  background:url(../img/mascot.png) center/contain no-repeat;}
+
+.wrap{padding:15px 14px 17px;}
+
+/* tagline — Pixolde, the brand drumbeat, with a jam underline */
+.tagline{
+  text-align:center;font-family:'Pixolde',sans-serif;font-weight:700;
+  font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--ink-soft);margin:2px 0 15px;
+}
+.tagline span{border-bottom:2px solid var(--jam);padding-bottom:3px;}
+
+/* ---------- STATUS 2x2 grid (real .status) ---------- */
+.status{
+  display:grid;grid-template-columns:1fr 1fr;
+  border:2px solid var(--ink);margin-bottom:16px;background:var(--paper-2);
+}
+.status .cell{padding:8px 10px;border-top:2px solid var(--ink);border-left:2px solid var(--ink);}
+.status .cell:nth-child(1),.status .cell:nth-child(2){border-top:none;}
+.status .cell:nth-child(odd){border-left:none;}
+.status .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);}
+.status .v{font-size:16px;line-height:1.15;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.status .v .num{font-family:'Pixolde',sans-serif;font-weight:700;font-size:14px;letter-spacing:.5px;}
+.dot-on{display:inline-block;width:9px;height:9px;background:var(--online);
+  border:2px solid var(--ink);margin-right:6px;vertical-align:1px;}
+
+/* ---------- GROUP with notched uppercase label (real .group) ---------- */
+.group{position:relative;border:2px solid var(--ink);padding:18px 13px 14px;margin:0 0 16px;background:var(--paper);}
+.group>.glabel{
+  position:absolute;top:-11px;left:11px;background:var(--paper);
+  padding:0 7px;font-size:13px;letter-spacing:2px;text-transform:uppercase;
+}
+/* the active group gets a hairline jam tab over the notch */
+.group.accent>.glabel{color:var(--jam-deep);}
+.group.accent>.glabel::after{content:"";position:absolute;left:7px;right:7px;bottom:-3px;height:2px;background:var(--jam);}
+.hint{font-size:14px;line-height:1.45;margin:0 0 12px;color:var(--ink-soft);}
+
+/* ---------- inputs (real input + .pwd eye toggle) ---------- */
+.field{margin-bottom:12px;}
+label.fld{display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 5px;}
+input{
+  font-family:'ChiKareGo2',sans-serif;width:100%;min-height:44px;
+  border:2px solid var(--ink);background:var(--paper-2);color:var(--ink);
+  padding:10px 11px;font-size:16px;border-radius:0;
+}
+input::placeholder{color:#9c9486;}
+input:focus{outline:none;background:var(--paper);box-shadow:3px 3px 0 var(--jam);}
+.pwd{position:relative;display:block;}
+.pwd>input{padding-right:50px;}
+.pwd .eye{
+  position:absolute;right:2px;top:2px;bottom:2px;width:44px;
+  border:0;border-left:2px solid var(--ink);background:var(--paper);
+  color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0;
+}
+.pwd .eye.on{background:var(--jam);color:var(--ink);}
+
+/* ---------- buttons (real .btn primary + .sec) ---------- */
+.actions{display:flex;flex-wrap:wrap;gap:11px;align-items:center;margin-top:4px;}
+.btn{
+  font-family:'ChiKareGo2',sans-serif;font-size:16px;
+  background:var(--ink);color:var(--paper);
+  border:2px solid var(--ink);padding:11px 18px;min-height:44px;
+  box-shadow:3px 3px 0 var(--ink);cursor:pointer;letter-spacing:.5px;
+}
+.btn:hover{background:#2c2823;}
+.btn:active{transform:translate(3px,3px);box-shadow:none;}
+/* PRIMARY save = the jam glaze, the one place color leads */
+.btn.primary{background:var(--jam);color:var(--ink);box-shadow:3px 3px 0 var(--jam-deep);}
+.btn.primary:hover{background:#ef93a4;}
+.btn.primary:active{box-shadow:none;}
+.btn.sec{background:var(--paper);color:var(--ink);}
+.btn.sec:hover{background:var(--paper-2);}
+.btn:focus-visible,.seg b:focus-visible,.eye:focus-visible,.close:focus-visible{
+  outline:2px solid var(--jam-deep);outline-offset:3px;
+}
+
+/* ---------- segmented control (real .seg) ---------- */
+.seg{display:inline-flex;border:2px solid var(--ink);background:var(--paper);}
+.seg b{
+  font-weight:400;font-family:'ChiKareGo2',sans-serif;
+  padding:11px 18px;cursor:pointer;font-size:16px;min-width:50px;min-height:44px;
+  text-align:center;user-select:none;display:flex;align-items:center;justify-content:center;
+}
+.seg b+b{border-left:2px solid var(--ink);}
+.seg b.on{background:var(--jam);color:var(--ink);}
+
+/* firmware row + pill */
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 0;border-top:2px dotted var(--ink);font-size:15px;}
+.pill{border:2px solid var(--ink);padding:4px 10px;box-shadow:2px 2px 0 var(--ink);
+  font-size:13px;font-family:'Pixolde',monospace;font-weight:700;letter-spacing:1px;background:var(--paper-2);}
+
+/* ============================================================
+   DISTRIBUTION-SITE hero card
+   ============================================================ */
+.site{display:flex;flex-direction:column;gap:24px;max-width:560px;width:100%;}
+
+.hero{
+  position:relative;background:var(--paper);
+  border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(26,23,20,.32);
+  padding:0;
+}
+.hero .titlebar .ttl{font-size:18px;}
+.hero-body{padding:30px 30px 32px;display:grid;grid-template-columns:128px 1fr;gap:26px;align-items:center;}
+@media(max-width:520px){.hero-body{grid-template-columns:1fr;justify-items:center;text-align:center;}}
+
+/* mascot in a framed swatch with a jam corner-fold */
+.mascotcard{
+  position:relative;width:128px;height:128px;flex:none;
+  border:2px solid var(--ink);background:var(--paper-2);
+  display:grid;place-items:center;box-shadow:4px 4px 0 var(--ink);
+}
+.mascotcard img{width:96px;height:96px;image-rendering:pixelated;}
+.mascotcard::after{ /* dog-ear jam fold, top-right */
+  content:"";position:absolute;top:0;right:0;
+  border-width:0 16px 16px 0;border-style:solid;
+  border-color:var(--ink) var(--ink) var(--jam) var(--jam);
+}
+
+.hero h1{
+  font-family:'ITC Garamond',Georgia,serif;font-weight:800;
+  font-size:74px;line-height:.82;margin:0 0 8px;letter-spacing:.5px;
+}
+.hero h1 .dot{color:var(--jam-deep);}
+.pitch{font-size:16px;line-height:1.5;color:var(--ink-soft);margin:0 0 18px;max-width:34ch;}
+.pitch b{color:var(--ink);font-family:'Pixolde',sans-serif;font-weight:700;
+  font-size:13px;letter-spacing:1px;text-transform:uppercase;}
+
+.cta{display:flex;flex-wrap:wrap;gap:13px;align-items:center;}
+.btn.flash{
+  font-size:18px;padding:13px 22px;min-height:50px;
+  background:var(--jam);color:var(--ink);box-shadow:4px 4px 0 var(--jam-deep);
+  display:inline-flex;align-items:center;gap:9px;
+}
+.btn.flash:hover{background:#ef93a4;}
+.btn.flash:active{transform:translate(4px,4px);box-shadow:none;}
+.btn.flash .bolt{font-family:'Pixolde',sans-serif;font-weight:700;}
+.btn.dl{font-size:16px;padding:13px 18px;min-height:50px;}
+
+.compat{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);margin:14px 0 0;}
+.compat .b{color:var(--ink);}
+
+/* ---------- DOCK (System-flavoured, labeled pixel icons) ---------- */
+.dock{
+  display:flex;gap:0;border:2px solid var(--ink);background:var(--paper);
+  box-shadow:4px 4px 0 rgba(26,23,20,.32);width:fit-content;
+}
+.dock .ic{
+  width:78px;padding:11px 6px 8px;text-align:center;cursor:pointer;
+  border-right:2px solid var(--ink);
+}
+.dock .ic:last-child{border-right:none;}
+.dock .ic:hover{background:var(--paper-2);}
+.dock .ic.on{background:var(--jam-wash);}
+.dock .glyph{
+  width:34px;height:34px;margin:0 auto 6px;border:2px solid var(--ink);background:var(--paper-2);
+  display:grid;place-items:center;font-family:'Pixolde',sans-serif;font-weight:700;font-size:17px;
+}
+.dock .ic.on .glyph{background:var(--jam);}
+.dock .lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+
+/* section captions in ITC Garamond so the serif/pixel pairing reads */
+.cap{font-family:'ITC Garamond',Georgia,serif;font-weight:800;font-size:30px;
+  margin:0 0 4px;line-height:1;}
+.cap-sub{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft);margin:0 0 16px;
+  font-family:'Pixolde',sans-serif;font-weight:700;}
+.col-head{margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- TOP MENU STRIP (System 7) -->
+<div class="menubar">
+  <span class="apple">❖</span>
+  <span class="mi active">Bisc8</span>
+  <span class="mi">Forno</span>
+  <span class="mi">Oracolo</span>
+  <span class="mi">Aiuto</span>
+  <span class="clock">06 GIU · 14:08</span>
+</div>
+
+<div class="desktop">
+
+  <!-- ===== LEFT: the CAPTIVE PORTAL as a Bisc8 OS window ===== -->
+  <div>
+    <div class="col-head">
+      <div class="cap">Configurazione</div>
+      <div class="cap-sub">il portale, servito dal biscotto</div>
+    </div>
+
+    <div class="win">
+      <div class="titlebar">
+        <div class="close" title="Chiudi"></div>
+        <div class="ttl"><span class="mascot"></span>Bisc8</div>
+        <div class="zoom" title="Zoom"></div>
+      </div>
+      <div class="wrap">
+
+        <p class="tagline"><span>briciomanzia tascabile</span></p>
+
+        <!-- STATUS 2x2 -->
+        <div class="status">
+          <div class="cell"><div class="k">Stato</div><div class="v"><span class="dot-on"></span>connesso</div></div>
+          <div class="cell"><div class="k">Rete</div><div class="v">Forno_5G</div></div>
+          <div class="cell"><div class="k">Indirizzo</div><div class="v"><span class="num">192.168.4.1</span></div></div>
+          <div class="cell"><div class="k">Lingua</div><div class="v"><span class="num">IT</span></div></div>
+        </div>
+
+        <!-- ORACOLO group (the accent group) -->
+        <div class="group accent">
+          <span class="glabel">Oracolo</span>
+          <p class="hint">La chiave vive solo qui. Non la sbandieriamo a nessuno.</p>
+          <div class="field">
+            <label class="fld">Modello oracolo</label>
+            <input value="gpt-4o-mini" spellcheck="false">
+          </div>
+          <div class="field">
+            <label class="fld">Chiave API</label>
+            <span class="pwd">
+              <input type="password" value="sk-bisc8-crumb-9f2a" spellcheck="false">
+              <button class="eye on" type="button" aria-pressed="true" aria-label="nascondi">
+                <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true">
+                  <path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="8" r="3.1" fill="currentColor"/>
+                </svg>
+              </button>
+            </span>
+          </div>
+          <div class="actions">
+            <button class="btn primary" type="button">Salva Oracolo</button>
+            <button class="btn sec" type="button">Cerca reti</button>
+          </div>
+        </div>
+
+        <!-- LINGUA group with IT/EN/ES segmented control -->
+        <div class="group">
+          <span class="glabel">Lingua</span>
+          <p class="hint">In che lingua vaticina l'oracolo. I responsi cambiano con lei.</p>
+          <div class="seg" id="langSeg">
+            <b class="on" data-lang="it">IT</b><b data-lang="en">EN</b><b data-lang="es">ES</b>
+          </div>
+        </div>
+
+        <!-- firmware row -->
+        <div class="row"><span>Firmware</span><span class="pill">r4127</span></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT: the DISTRIBUTION SITE hero + dock ===== -->
+  <div class="site">
+    <div class="col-head">
+      <div class="cap">Distribuzione</div>
+      <div class="cap-sub">flash dal browser, niente driver</div>
+    </div>
+
+    <div class="hero">
+      <div class="titlebar">
+        <div class="close"></div>
+        <div class="ttl"><span class="mascot"></span>bisc8.cookie</div>
+        <div class="zoom"></div>
+      </div>
+      <div class="hero-body">
+        <div class="mascotcard"><img src="../img/mascot.png" alt="Bisc8 mascot"></div>
+        <div>
+          <h1>Bisc8<span class="dot">.</span></h1>
+          <p class="pitch">L'oracolo da taschino che legge le briciole. <b>Tieni · chiedi · ascolta.</b></p>
+          <div class="cta">
+            <button class="btn flash"><span class="bolt">⚡</span> Flash Bisc8</button>
+            <button class="btn dl">Download .zip</button>
+          </div>
+          <p class="compat">ESP32-C6 · <span class="b">Web Serial</span> · Chrome / Edge</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCK -->
+    <div>
+      <div class="dock">
+        <div class="ic on"><div class="glyph">⌂</div><div class="lbl">Forno</div></div>
+        <div class="ic"><div class="glyph">✦</div><div class="lbl">Oracolo</div></div>
+        <div class="ic"><div class="glyph">✉</div><div class="lbl">Email</div></div>
+        <div class="ic"><div class="glyph">⚙</div><div class="lbl">Setup</div></div>
+        <div class="ic"><div class="glyph">?</div><div class="lbl">Aiuto</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// segmented control + eye toggle live, so the mockup demos the accent states
+document.querySelectorAll('#langSeg b').forEach(function(b){
+  b.tabIndex=0;b.setAttribute('role','button');
+  b.addEventListener('click',function(){
+    document.querySelectorAll('#langSeg b').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+  });
+});
+document.querySelectorAll('.eye').forEach(function(b){
+  b.addEventListener('click',function(){
+    var inp=b.parentElement.querySelector('input');
+    var show=inp.type==='password';
+    inp.type=show?'text':'password';
+    b.classList.toggle('on',!show);
+  });
+});
+document.querySelectorAll('.dock .ic').forEach(function(ic){
+  ic.addEventListener('click',function(){
+    document.querySelectorAll('.dock .ic').forEach(function(x){x.classList.remove('on');});
+    ic.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>
