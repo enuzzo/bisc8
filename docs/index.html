@@ -323,6 +323,13 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
 /* 2x2 grid; each cell = label | value separated by a vertical bar, with a left tint bar */
 .specs{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;margin:0 0 1.3rem;}
 @media (max-width:36rem){.specs{grid-template-columns:1fr;}}
+/* THE BOARD — hardware section: 4:3 photo beside the specs */
+.board .body{padding:2.4rem 2.4rem 2.6rem;display:grid;gap:2rem;align-items:center;grid-template-columns:1fr;}
+@media (min-width:48rem){.board .body{grid-template-columns:minmax(15rem,23rem) 1fr;gap:2.6rem;}}
+.board-shot{border:.125rem solid var(--ink);background:var(--cream);box-shadow:.375rem .375rem 0 var(--shadow);aspect-ratio:4 / 3;overflow:hidden;}
+.board-shot img{width:100%;height:100%;object-fit:cover;display:block;}
+.board-copy{min-width:0;}
+.board .specs.board-specs{grid-template-columns:1fr;}
 .spec{
   display:flex;align-items:stretch;min-height:3.25rem;
   border:.125rem solid var(--ink);background:var(--paper);
@@ -332,6 +339,8 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
 .spec:nth-child(2){--spec-bar:var(--sky);}
 .spec:nth-child(3){--spec-bar:var(--peach);}
 .spec:nth-child(4){--spec-bar:var(--lilac);}
+.spec:nth-child(5){--spec-bar:var(--butter);}
+.spec:nth-child(6){--spec-bar:var(--rose);}
 .spec .k{font-family:var(--title);font-size:1.1rem;letter-spacing:normal;text-transform:none;color:var(--ink);display:flex;align-items:center;padding:.55rem .8rem .55rem 1rem;border-right:.125rem solid var(--ink);min-width:6rem;}
 .spec .v{font-family:var(--body);font-size:1.2rem;color:var(--ink);display:flex;align-items:center;padding:.55rem .9rem;}
 .maker{font-family:var(--body);font-size:1.1rem;color:var(--mute);line-height:1.6;}
@@ -548,6 +557,30 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
             <div class="frame"><img src="img/screen-setup.png" alt="Bisc8 Wi-Fi setup screen"></div>
             <figcaption class="cap">Setup</figcaption>
           </figure>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ROW 2.5 — THE BOARD (full width) ============ -->
+  <div class="grid">
+    <section class="win board reveal" style="animation-delay:.16s" aria-labelledby="board-h">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">The board</div></div>
+      <div class="body">
+        <div class="board-shot"><img src="img/board.png" alt="Waveshare ESP32-C6 1.54-inch e-paper development board"></div>
+        <div class="board-copy">
+          <p class="window-eyebrow" id="board-h">a cookie-sized computer</p>
+          <h2>It runs on a Waveshare ESP32-C6</h2>
+          <p class="lede">A whole little AIoT board the size of the biscuit it pretends to be — Wi-Fi, an e-ink face, ears and a voice, all on one cookie. About <b>&euro;15&ndash;20</b> if you want to bake your own.</p>
+          <div class="specs board-specs">
+            <div class="spec"><span class="k">Chip</span><span class="v">ESP32-C6 &middot; RISC-V &middot; Wi-Fi&nbsp;6 + BLE&nbsp;5</span></div>
+            <div class="spec"><span class="k">Face</span><span class="v">1.54&Prime; e-paper &middot; 200&times;200 &middot; 1-bit</span></div>
+            <div class="spec"><span class="k">Voice</span><span class="v">audio codec + mic &middot; record &amp; speak</span></div>
+            <div class="spec"><span class="k">Power</span><span class="v">USB-C &middot; Li-battery recharge</span></div>
+            <div class="spec"><span class="k">Memory</span><span class="v">16&nbsp;MB flash</span></div>
+            <div class="spec"><span class="k">Buttons</span><span class="v">PWR + BOOT, side-mounted</span></div>
+          </div>
+          <p class="maker">Ultra-low-power, sunlight-readable e-ink &mdash; built for things that nap for days. <a href="https://www.aliexpress.com/w/wholesale-Waveshare-ESP32%2525252dC6-1,54-.html">Find the board on AliExpress &rarr;</a></p>
         </div>
       </div>
     </section>
