@@ -386,11 +386,11 @@ void DisplayService::BuildStatusQr() {
     // QR code (black on white) that opens http://<ip>. It is self-explanatory,
     // so no label/button is needed. The white screen around it is the quiet zone.
     status_qr_ = lv_qrcode_create(status_group_);
-    lv_qrcode_set_size(status_qr_, 100);
+    lv_qrcode_set_size(status_qr_, 92);
     lv_qrcode_set_dark_color(status_qr_, lv_color_hex(0x000000));
     lv_qrcode_set_light_color(status_qr_, lv_color_hex(0xffffff));
     lv_obj_remove_flag(status_qr_, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_pos(status_qr_, 50, 50);   // centered: (200-100)/2
+    lv_obj_set_pos(status_qr_, 54, 60);   // centered (200-92)/2, dropped for air below the title
 
     // SSID (one line, ellipsized) + IP beneath the QR.
     status_net_label_ = lv_label_create(status_group_);
