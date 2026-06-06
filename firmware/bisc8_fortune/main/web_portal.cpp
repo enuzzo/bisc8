@@ -165,38 +165,54 @@ details summary{font-family:var(--title);font-size:13px;font-weight:400;cursor:p
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--ink);color:var(--paper);padding:9px 14px;font-family:var(--body);font-size:14px;display:none;z-index:70;}
 .toast.show{display:block;}
 .hidden{display:none;}
-/* ===== TYPOGRAPHY v4 — bigger sizes, natural case, NO letter-spacing (no tracking in this project) ===== */
+/* ===== TYPOGRAPHY v5 — bigger & airier: harmonized scale + more spacing, NO letter-spacing ===== */
 html{font-size:100%;}
-body{font-size:1rem;line-height:1.5;letter-spacing:normal;}
+body{font-size:1.0625rem;line-height:1.55;letter-spacing:normal;}
+/* slightly wider column so the bigger type has room to breathe */
+.app,.rebar{max-width:26rem;}
+.wrap{padding:1.35rem 1.15rem 1.65rem;}
 /* window title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
-.titlebar{height:2rem;}
-.ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.05rem .55rem;font-family:var(--title);font-size:.9375rem;line-height:1.4;letter-spacing:normal;display:inline-flex;align-items:center;}
-.close,.close-r{top:.5rem;}
-/* status cells: color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
-.status .cell{background:var(--paper);box-shadow:inset .375rem 0 0 var(--cell-bar);padding:.55rem .7rem .6rem 1rem;}
+.titlebar{height:2.1rem;}
+.ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.1rem .6rem;font-family:var(--title);font-size:1.05rem;line-height:1.4;letter-spacing:normal;display:inline-flex;align-items:center;}
+.close,.close-r{top:.55rem;}
+/* status block: more air, color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
+.status{margin-bottom:1.5rem;}
+.status .cell{background:var(--paper);box-shadow:inset .375rem 0 0 var(--cell-bar);padding:.7rem .85rem .75rem 1.1rem;}
 .status .cell:nth-child(1){background:var(--paper);--cell-bar:var(--mint);}
 .status .cell:nth-child(2){background:var(--paper);--cell-bar:var(--sky);}
 .status .cell:nth-child(3){background:var(--paper);--cell-bar:var(--peach);}
 .status .cell:nth-child(4){background:var(--paper);--cell-bar:var(--lilac);}
-.status .k{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
-.status .v{font-size:1.2rem;letter-spacing:normal;margin-top:.1rem;}
-.group>.glabel{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
-label.fld{font-size:1rem;letter-spacing:normal;text-transform:none;color:var(--ink);}
-.hint{font-size:1.2rem;line-height:1.1;letter-spacing:normal;color:#5a5249;}
-input,select{font-size:1.1rem;letter-spacing:normal;min-height:2.75rem;}
+.status .k{font-size:1.05rem;letter-spacing:normal;text-transform:none;}
+.status .v{font-size:1.3rem;letter-spacing:normal;margin-top:.15rem;}
+/* groups: more internal air + more space between sections */
+.group{padding:1.6rem 1.2rem 1.4rem;margin:0 0 1.6rem;}
+.group>.glabel{top:-.85rem;font-size:1.2rem;letter-spacing:normal;text-transform:none;padding:.1rem .6rem;}
+label.fld{font-size:1.05rem;letter-spacing:normal;text-transform:none;color:var(--ink);margin:0 0 .55rem;}
+.field{margin-bottom:1.1rem;}
+.hint{font-size:1.3rem;line-height:1.42;letter-spacing:normal;margin:0 0 1.2rem;color:#5a5249;}
+.hint.below{margin:1.05rem 0 0;}
+input,select{font-size:1.2rem;letter-spacing:normal;min-height:2.9rem;padding:.62rem .8rem;}
 /* reference button: rose fill, ink border, top bevel + hard shadow, ChiKareGo2 */
-.btn{font-family:var(--title);font-size:1.1rem;letter-spacing:normal;background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);padding:.7rem 1.3rem;min-height:2.75rem;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
+.btn{font-family:var(--title);font-size:1.2rem;letter-spacing:normal;background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);padding:.78rem 1.45rem;min-height:2.9rem;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
 .btn:hover{box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
 .btn.sec{background:#e6e3db;}
 .btn:active{transform:translate(2px,2px);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),1px 1px 0 var(--shadow);}
-.seg b{font-size:1.1rem;letter-spacing:normal;}
-.row{font-size:1.1rem;letter-spacing:normal;}
-.muted{font-size:.95rem;letter-spacing:normal;}
-.foot,.copy{font-size:.95rem;letter-spacing:normal;}
+.actions{gap:.85rem;margin-top:.55rem;}
+.seg b{font-size:1.2rem;letter-spacing:normal;padding:.72rem 1.25rem;}
+.row{font-size:1.2rem;letter-spacing:normal;padding:.85rem 0;}
+.muted{font-size:1.05rem;letter-spacing:normal;}
+.pill{font-size:1.05rem;padding:.25rem .65rem;}
+.foot,.copy{font-size:1.05rem;line-height:1.5;letter-spacing:normal;}
+details summary{font-size:1.05rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
 /* networks-found: a clear solid header bar */
-.scan .h{background:var(--sky);font-family:var(--title);font-size:1.05rem;letter-spacing:normal;text-transform:none;padding:.45rem .7rem;color:var(--ink);}
+.scan{margin:0 0 1.05rem;max-height:9.5rem;}
+.scan .h{background:var(--sky);font-family:var(--title);font-size:1.15rem;letter-spacing:normal;text-transform:none;padding:.55rem .85rem;color:var(--ink);}
 .scan .h span{background:transparent;padding:0;}
-.scan button{font-size:1.05rem;letter-spacing:normal;min-height:2.75rem;}
+.scan button{font-size:1.15rem;letter-spacing:normal;min-height:2.9rem;padding:.72rem .85rem;}
+/* diacritics sample */
+.diac{margin-top:1.1rem;padding-top:.85rem;}
+.diac .k{font-size:.95rem;letter-spacing:normal;}
+.diac p{font-size:1.25rem;line-height:1.5;}
 </style>
 </head>
 <body>

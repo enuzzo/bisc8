@@ -1,5 +1,91 @@
 # Handoff (next session)
 
+## Latest session: "Bisc8 OS" revamp shipped — public Pages site + portal typography v5 + model swap (2026-06-06)
+
+A pure design/distribution session. The product is functionally complete; this was
+aesthetics + getting it shippable to the public.
+
+### Shipped (done)
+- **Repo is PUBLIC + GitHub Pages is LIVE** → **https://enuzzo.github.io/bisc8/**
+  (source `main` / `/docs`, first build OK). Done via `gh repo edit --visibility
+  public --accept-visibility-change-consequences` and `gh api -X POST
+  /repos/enuzzo/bisc8/pages -f 'source[branch]=main' -f 'source[path]=/docs'`.
+- **Internal notes moved `docs/ → notes/`** (AI_HANDOFF, HANDOFF_NEXT, PROJECT_STATUS,
+  hardware/, redesign/, gpt-suggestions/). `docs/` now contains ONLY the published
+  site (index.html, manifest.json, .nojekyll, fonts/, img/, firmware/). Verified on
+  the live site: `/AI_HANDOFF.md` etc. return **404** (not published). `.nojekyll`
+  can't exclude files, so moving them out was the only way.
+- **Pre-public secret scan: CLEAN.** No live `sk-` keys, tokens, real emails, or the
+  home Wi-Fi SSID anywhere in tracked files, git history, or the public `.bin`
+  (only placeholders `sk-example`, `tu@esempio.it`). Home SSID was earlier redacted
+  from `docs/img/screen-status.png`.
+- **Models — `gpt-4o` removed everywhere** (deprecated for audio, per user, confirmed
+  by voice): STT `whisper-1`, text `gpt-5.4-mini`, TTS `tts-1-hd`. Changed in
+  `app_config.cpp` `DefaultOpenAiSettings()` AND the portal placeholders
+  (`web_portal.html` → regenerated `web_portal.cpp`) AND the README flow diagram.
+  (Voice stays `coral`.) Only remaining "gpt-4o" string is a comment documenting the
+  deprecation.
+- **Distribution site `docs/index.html`** (Poolsuite + Mac System 7/8 + biscuit
+  identity): 4 device screens moved up under the hero (Status/Reading/Low power/Setup),
+  full-width Installer window with stroked step-number tiles + a 100%-width FLASH BISC8
+  button, About as a 2-column spec grid (title | value bar). esp-web-tools flasher
+  wired to `docs/manifest.json` (ESP32-C6, offsets 0/0x8000/0x10000) + the 3 bins.
+- **Captive portal typography v5** (`web_portal.html`, the `TYPOGRAPHY v5` block):
+  bigger + airier, harmonized rem scale. Key change: hint `line-height 1.1 → 1.42`
+  and `font-size 1.2 → 1.3rem` (the cramped 2-line hints the user flagged), wider
+  column (`.app` `390px → 26rem`), more group/section/field spacing, all body text
+  bumped. **Regenerated `web_portal.cpp` via `tools/embed_portal.py`.**
+  ⚠️ **Portal changes need a reflash to show on-device** (HTML is embedded in firmware).
+- **Tests realigned to the redesign** and green (**94 passing**): `LayoutWifiSetup →
+  LayoutStatusQr`, status body `"%s\n%s"`, QR-based Wi-Fi setup, showcase-README
+  phrase list, `notes/AI_HANDOFF.md` path, "GitHub Pages flasher" copy.
+- **Type system**: ChiKareGo2 (titles/labels/buttons), Pixolde (body/hints + diacritic
+  fallback — covers `ù ú ü ' ñ ç ¿¡` which ChiKareGo2 lacks), ITC Garamond (long-form
+  copy on the site), Pixelify Sans (on-device e-paper + email wordmark). Rule kept:
+  titles = ChiKareGo2, never Garamond, never all-uppercase; Garamond only for copy
+  >3-4 lines.
+
+### Still to do — DEEP VISUAL ASSESSMENT + FONT HARMONIZATION (the user's explicit next ask)
+The v5 portal pass was a quick global bump. A proper pass remains:
+- **Define ONE shared rem type scale** (e.g. a documented ladder: chip / section-label
+  / field-label / body-hint / value / input / button / footnote) and apply it
+  consistently across BOTH the captive portal AND `docs/index.html`. Right now sizes
+  are tuned per-surface by feel, not from a single scale.
+- **Audit every text element** for size/weight/line-height coherence; remove leftover
+  one-off px values; make sure the visual hierarchy reads the same on both surfaces.
+- **Test the captive portal on a REAL phone** (360–430px), not just the desktop
+  preview — the device serves it to a phone browser. Watch for overflow with the new
+  bigger type.
+- **On-device e-paper screens** (Pixelify Sans @ 200×200, 1-bit): verify legibility of
+  the revamped status/QR/voice screens after a reflash.
+
+### Concrete nits found during this session (queue for the deep pass)
+- **Portal Voice field placeholder says `alloy`** but the real default voice is
+  `coral` (`app_config.cpp`). Align the placeholder.
+- **Portal: the muted hint beside the "Scan" button** ("the networks nearby, nothing
+  more.") wraps awkwardly next to the button — move it below or shorten.
+- **⚠️ ITC Garamond licensing**: it's a COMMERCIAL font, now served publicly via Pages
+  (`docs/fonts/ITCGaramondStd-*.woff2`) and present in git history. Mitigate by
+  swapping the site's long-form serif to **EB Garamond (OFL, free, near-identical)**,
+  or confirm a valid license. The full 100-file source kit `assets/fonts/itc-garamond/`
+  was deliberately NOT committed (stays local/untracked).
+- **`public/flash/`** is a stale duplicate of the `docs/` flasher (not served by Pages,
+  no secrets). Either remove it and repoint `test_public_flash_page_*` at `docs/`, or
+  keep it as the build scaffold. Decide.
+- **Site footer date** renders e.g. "SAT 6 JUN 2303" — confirm it's intentional
+  retro-future flavor vs a JS year bug.
+- **Tagline case**: confirm the portal IT tagline is "Briciomanzia Tascabile"
+  (first-letter caps, no letter-spacing, 1.3rem ChiKareGo2) across i18n.
+
+### Where things live / handy commands
+- Portal preview (fonts inlined): `tools/embed_portal.py` writes `/tmp/portal_preview.html`.
+  ALWAYS run `embed_portal.py` after editing `web_portal.html` or the device serves stale HTML.
+- Tests: `.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests/` (94).
+- Live site: https://enuzzo.github.io/bisc8/ · Pages build status:
+  `gh api /repos/enuzzo/bisc8/pages/builds/latest`.
+
+---
+
 ## Latest session: dropout fix verified + lyrical/theatrical oracle + styled localized email (2026-06-05 eve)
 
 Ran the voice-sampling test from the previous session **on hardware** and went well
