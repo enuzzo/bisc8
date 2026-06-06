@@ -125,9 +125,9 @@ esp_err_t SaveWifi(nvs_handle_t handle, const DeviceSettings &settings) {
 
 OpenAiSettings DefaultOpenAiSettings() {
     OpenAiSettings settings;
-    settings.transcription_model = "gpt-4o-mini-transcribe";
-    settings.response_model = "gpt-4o-mini";
-    settings.speech_model = "gpt-4o-mini-tts";
+    settings.transcription_model = "whisper-1";    // gpt-4o-* audio deprecated; non-4o STT
+    settings.response_model = "gpt-5.4-mini";       // text generation
+    settings.speech_model = "tts-1-hd";             // best non-4o voice quality
     settings.voice = "coral";
     settings.reasoning_effort = "";  // off by default; set per reasoning-capable model in the portal
     return settings;

@@ -165,37 +165,38 @@ details summary{font-family:var(--title);font-size:13px;font-weight:400;cursor:p
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--ink);color:var(--paper);padding:9px 14px;font-family:var(--body);font-size:14px;display:none;z-index:70;}
 .toast.show{display:block;}
 .hidden{display:none;}
-/* ===== TYPOGRAPHY v3 — rem-based, pixel-crisp (Pixolde 1rem body), reference buttons, tint BARS not fills ===== */
-html{font-size:100%;}                       /* 1rem = 16px; pixel fonts crisp at this size */
-body{font-size:1rem;line-height:1.5;}
-.ttl{font-size:1.5rem;}                      /* window title (ChiKareGo2) */
-/* status cells: tint as a LEFT BAR, paper background (color stays an accent) */
-.status .cell{background:var(--paper);box-shadow:inset .4rem 0 0 var(--cell-bar);padding:.6rem .7rem .6rem 1rem;}
-.status .cell:nth-child(1){--cell-bar:var(--mint);}
-.status .cell:nth-child(2){--cell-bar:var(--sky);}
-.status .cell:nth-child(3){--cell-bar:var(--peach);}
-.status .cell:nth-child(4){--cell-bar:var(--lilac);}
-.status .k{font-size:.8125rem;letter-spacing:.06em;}
-.status .v{font-size:1.0625rem;margin-top:.15rem;}
-.group>.glabel{font-size:1rem;}
-label.fld{font-size:.875rem;letter-spacing:.06em;color:var(--ink);}
-.hint{font-size:1rem;line-height:1.5;color:#5a5249;}
-input,select{font-size:1rem;min-height:2.75rem;}
-/* reference button: rose fill, ink border, top bevel highlight + hard shadow, ChiKareGo2 */
-.btn{font-family:var(--title);font-size:1rem;letter-spacing:.5px;background:var(--rose);color:var(--ink);border:2px solid var(--ink);padding:.7rem 1.3rem;min-height:2.75rem;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
+/* ===== TYPOGRAPHY v4 — bigger sizes, natural case, NO letter-spacing (no tracking in this project) ===== */
+html{font-size:100%;}
+body{font-size:1rem;line-height:1.5;letter-spacing:normal;}
+/* window title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
+.titlebar{height:2rem;}
+.ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.05rem .55rem;font-family:var(--title);font-size:.9375rem;line-height:1.4;letter-spacing:normal;display:inline-flex;align-items:center;}
+.close,.close-r{top:.5rem;}
+/* status cells: color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
+.status .cell{background:var(--paper);box-shadow:inset .375rem 0 0 var(--cell-bar);padding:.55rem .7rem .6rem 1rem;}
+.status .cell:nth-child(1){background:var(--paper);--cell-bar:var(--mint);}
+.status .cell:nth-child(2){background:var(--paper);--cell-bar:var(--sky);}
+.status .cell:nth-child(3){background:var(--paper);--cell-bar:var(--peach);}
+.status .cell:nth-child(4){background:var(--paper);--cell-bar:var(--lilac);}
+.status .k{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
+.status .v{font-size:1.2rem;letter-spacing:normal;margin-top:.1rem;}
+.group>.glabel{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
+label.fld{font-size:1rem;letter-spacing:normal;text-transform:none;color:var(--ink);}
+.hint{font-size:1.2rem;line-height:1.1;letter-spacing:normal;color:#5a5249;}
+input,select{font-size:1.1rem;letter-spacing:normal;min-height:2.75rem;}
+/* reference button: rose fill, ink border, top bevel + hard shadow, ChiKareGo2 */
+.btn{font-family:var(--title);font-size:1.1rem;letter-spacing:normal;background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);padding:.7rem 1.3rem;min-height:2.75rem;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
 .btn:hover{box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 var(--shadow);}
 .btn.sec{background:#e6e3db;}
 .btn:active{transform:translate(2px,2px);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),1px 1px 0 var(--shadow);}
-.seg b{font-size:1rem;}
-.row{font-size:1rem;}
-.muted{font-size:.875rem;}
-.foot,.copy{font-size:.8125rem;}
-/* networks-found: a clear solid header bar (was tiny pinstripe text) */
-.scan .h{background:var(--sky);font-family:var(--title);font-size:.9375rem;letter-spacing:.06em;padding:.45rem .7rem;color:var(--ink);}
+.seg b{font-size:1.1rem;letter-spacing:normal;}
+.row{font-size:1.1rem;letter-spacing:normal;}
+.muted{font-size:.95rem;letter-spacing:normal;}
+.foot,.copy{font-size:.95rem;letter-spacing:normal;}
+/* networks-found: a clear solid header bar */
+.scan .h{background:var(--sky);font-family:var(--title);font-size:1.05rem;letter-spacing:normal;text-transform:none;padding:.45rem .7rem;color:var(--ink);}
 .scan .h span{background:transparent;padding:0;}
-.scan button{font-size:1rem;min-height:2.75rem;}
-/* titles keep their natural case (Wi-Fi / Stato / Lingua…) — the font is characterful enough; no ALL-CAPS */
-.status .k,.group>.glabel,label.fld,.scan .h{text-transform:none;letter-spacing:.01em;}
+.scan button{font-size:1.05rem;letter-spacing:normal;min-height:2.75rem;}
 </style>
 </head>
 <body>
@@ -203,7 +204,7 @@ input,select{font-size:1rem;min-height:2.75rem;}
   <div class="titlebar"><div class="close"></div><div class="ttl">Bisc8</div><div class="close close-r"></div></div>
   <div class="wrap">
 
-    <p data-i18n="tagline" style="text-align:center;font-family:'Pixolde',monospace;font-size:.9375rem;letter-spacing:.12em;text-transform:uppercase;margin:.25rem 0 1rem;color:var(--ink);">briciomanzia tascabile</p>
+    <p data-i18n="tagline" style="text-align:center;font-family:var(--title);font-size:1.3rem;letter-spacing:normal;text-transform:capitalize;margin:.5rem 0 1.1rem;color:var(--ink);">briciomanzia tascabile</p>
 
     <div class="status">
       <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
@@ -249,11 +250,11 @@ input,select{font-size:1rem;min-height:2.75rem;}
       <form data-api="/api/openai">
         <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" aria-pressed="false" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="gpt-4o-mini-transcribe"></div>
-          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-4o-mini"></div>
+          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="whisper-1"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-5.4-mini"></div>
         </div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-4o-mini-tts"></div>
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="tts-1-hd"></div>
           <div class="field"><label class="fld" data-i18n="voice">Voce</label><input name="voice" placeholder="alloy"></div>
         </div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>

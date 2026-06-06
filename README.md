@@ -55,7 +55,7 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
    🎙  hold BOOT, speak
         │
         ▼
-   [ STT ]  gpt-4o-mini-transcribe   → your words
+   [ STT ]  whisper-1   → your words
         │
         ▼
    [ BRAIN ]  chat-completions       → a lyrical answer, in the language you spoke
