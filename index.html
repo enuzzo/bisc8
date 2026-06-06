@@ -257,11 +257,12 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   color:var(--mute);margin:0 0 1.1rem;text-align:center;
 }
 .screens{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;justify-items:center;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;justify-items:center;
 }
+@media (max-width:48rem){.screens{grid-template-columns:repeat(2,1fr);}}
 .screen{text-align:center;width:100%;}
 .screen .frame{
-  width:100%;max-width:9rem;aspect-ratio:1/1;margin:0 auto;
+  width:100%;max-width:12rem;aspect-ratio:1/1;margin:0 auto;
   border:.125rem solid var(--ink);background:#ffffff;
   box-shadow:.3125rem .3125rem 0 var(--shadow);
   display:grid;place-items:center;overflow:hidden;
@@ -271,7 +272,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   image-rendering:pixelated;image-rendering:crisp-edges;
 }
 .screen .cap{
-  margin-top:.55rem;font-family:var(--body);font-weight:700;font-size:.75rem;
+  margin-top:.6rem;font-family:var(--body);font-weight:700;font-size:.9rem;
   letter-spacing:normal;text-transform:uppercase;color:var(--mute);
 }
 
@@ -284,7 +285,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   margin:0 0 .3rem;text-transform:none;
 }
 .flash .sub{
-  font-family:var(--body);font-size:.8125rem;letter-spacing:normal;text-transform:uppercase;
+  font-family:var(--body);font-size:1rem;letter-spacing:normal;text-transform:uppercase;
   color:var(--mute);margin:0 0 1.4rem;
 }
 .steps{list-style:none;counter-reset:step;margin:0 0 1.5rem;padding:0;display:grid;gap:.875rem;}
@@ -298,17 +299,19 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   content:counter(step);
   position:absolute;left:-.125rem;top:-.125rem;bottom:-.125rem;width:2.875rem;
   display:grid;place-items:center;
-  font-family:var(--title);font-size:1.5rem;
-  border-right:.125rem solid var(--ink);color:var(--ink);
+  font-family:var(--title);font-size:1.6rem;
+  border:.125rem solid var(--ink);color:var(--ink);  /* number in its own black-stroke tile */
 }
 .steps li:nth-child(1)::before{background:var(--mint);}
 .steps li:nth-child(2)::before{background:var(--butter);}
 .steps li:nth-child(3)::before{background:var(--lilac);}
-.steps .st{font-family:var(--title);font-size:1.125rem;letter-spacing:normal;}
-.steps .sd{font-family:var(--body);font-size:.875rem;line-height:1.5;color:#3c352d;margin-top:.2rem;}
+.steps .st{font-family:var(--title);font-size:1.25rem;letter-spacing:normal;}
+.steps .sd{font-family:var(--body);font-size:1rem;line-height:1.5;color:#3c352d;margin-top:.25rem;}
 
+/* installer CTAs: both full-width; FLASH is the prominent primary */
 .flash-cta{display:flex;flex-direction:column;gap:.875rem;align-items:stretch;}
-.flash-cta .btn-big{justify-content:center;}
+.flash-cta esp-web-install-button{display:block;width:100%;}
+.flash-cta esp-web-install-button .btn-big,.flash-cta>.btn-big{width:100%;justify-content:center;}
 
 /* ============================================================
    ABOUT WINDOW — product card
@@ -319,18 +322,20 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   font-family:var(--longbody);font-weight:400;font-size:1.25rem;line-height:1.5;
   color:#3c352d;margin:0 0 1.2rem;
 }
-.specs{display:grid;gap:.625rem;margin:0 0 1.2rem;}
+/* 2x2 grid; each cell = label | value separated by a vertical bar, with a left tint bar */
+.specs{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;margin:0 0 1.3rem;}
+@media (max-width:36rem){.specs{grid-template-columns:1fr;}}
 .spec{
-  display:flex;align-items:center;gap:.75rem;
+  display:flex;align-items:stretch;min-height:3.25rem;
   border:.125rem solid var(--ink);background:var(--paper);
-  padding:.6rem .75rem;box-shadow:inset .375rem 0 0 var(--spec-bar);
+  box-shadow:inset .375rem 0 0 var(--spec-bar);
 }
 .spec:nth-child(1){--spec-bar:var(--mint);}
 .spec:nth-child(2){--spec-bar:var(--sky);}
 .spec:nth-child(3){--spec-bar:var(--peach);}
 .spec:nth-child(4){--spec-bar:var(--lilac);}
-.spec .k{font-family:var(--title);font-size:.8125rem;letter-spacing:normal;text-transform:uppercase;color:var(--mute);min-width:6rem;}
-.spec .v{font-family:var(--body);font-size:1rem;color:var(--ink);}
+.spec .k{font-family:var(--title);font-size:1rem;letter-spacing:normal;text-transform:none;color:var(--ink);display:flex;align-items:center;padding:.55rem .8rem .55rem 1rem;border-right:.125rem solid var(--ink);min-width:6rem;}
+.spec .v{font-family:var(--body);font-size:1.2rem;color:var(--ink);display:flex;align-items:center;padding:.55rem .9rem;}
 .maker{font-family:var(--body);font-size:.875rem;color:var(--mute);line-height:1.6;}
 .maker b{font-weight:700;color:var(--ink);}
 
@@ -521,11 +526,9 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
     </section>
   </div>
 
-  <!-- ============ ROW 2 — DEVICE | FLASH ============ -->
-  <div class="grid main">
-
-    <!-- device screens window -->
-    <section class="win device reveal" style="animation-delay:.16s" aria-labelledby="device-h">
+  <!-- ============ ROW 2 — SCREENS (full width, 4 tiles, up top) ============ -->
+  <div class="grid">
+    <section class="win device reveal" style="animation-delay:.12s" aria-labelledby="device-h">
       <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">Screens</div></div>
       <div class="body">
         <p class="window-eyebrow" id="device-h">a 1.54&Prime; e-paper face</p>
@@ -533,6 +536,10 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
           <figure class="screen" style="margin:0">
             <div class="frame"><img src="img/screen-status.png" alt="Bisc8 status screen"></div>
             <figcaption class="cap">Status</figcaption>
+          </figure>
+          <figure class="screen" style="margin:0">
+            <div class="frame"><img src="img/screen-speaking.png" alt="Bisc8 oracle reading screen"></div>
+            <figcaption class="cap">Reading</figcaption>
           </figure>
           <figure class="screen" style="margin:0">
             <div class="frame"><img src="img/screen-lowpower.png" alt="Bisc8 low-power screen"></div>
@@ -545,9 +552,12 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
         </div>
       </div>
     </section>
+  </div>
 
+  <!-- ============ ROW 3 — INSTALLER (full width) ============ -->
+  <div class="grid">
     <!-- flash window -->
-    <section class="win flash reveal" style="animation-delay:.24s" aria-labelledby="flash-h">
+    <section class="win flash reveal" style="animation-delay:.2s" aria-labelledby="flash-h">
       <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">Installer</div></div>
       <div class="body">
         <h2 id="flash-h">Flash the firmware</h2>
