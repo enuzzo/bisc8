@@ -326,8 +326,8 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
 /* THE BOARD — hardware section: 4:3 photo beside the specs */
 .board .body{padding:2.4rem 2.4rem 2.6rem;display:grid;gap:2rem;align-items:center;grid-template-columns:1fr;}
 @media (min-width:48rem){.board .body{grid-template-columns:minmax(15rem,23rem) 1fr;gap:2.6rem;}}
-.board-shot{border:.125rem solid var(--ink);background:var(--cream);box-shadow:.375rem .375rem 0 var(--shadow);aspect-ratio:4 / 3;overflow:hidden;}
-.board-shot img{width:100%;height:100%;object-fit:cover;display:block;}
+.board-shot{display:block;border:.125rem solid var(--ink);border-radius:8px;background:#fff;box-shadow:.5rem .5rem 0 var(--shadow);overflow:hidden;line-height:0;}
+.board-shot img{width:100%;height:auto;display:block;}
 .board-copy{min-width:0;}
 .board .specs.board-specs{grid-template-columns:1fr;}
 .spec{
@@ -567,7 +567,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
     <section class="win board reveal" style="animation-delay:.16s" aria-labelledby="board-h">
       <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">The board</div></div>
       <div class="body">
-        <div class="board-shot"><img src="img/board.png" alt="Waveshare ESP32-C6 1.54-inch e-paper development board"></div>
+        <div class="board-shot"><img src="img/board.jpg" alt="Waveshare ESP32-C6 1.54-inch e-paper development board"></div>
         <div class="board-copy">
           <p class="window-eyebrow" id="board-h">a cookie-sized computer</p>
           <h2>It runs on a Waveshare ESP32-C6</h2>
