@@ -640,12 +640,15 @@ void DisplayService::TickArrowBlink() {
 }
 
 void DisplayService::StartArrowBlink() {
-    arrow_blink_ticks_left_ = 10;  // the arrow keeps winking longer than the others
-    arrow_on_ = false;
-    set_hidden(press_arrow_, true);
-    if (arrow_timer_ == nullptr) {
-        arrow_timer_ = lv_timer_create(&DisplayService::ArrowBlinkThunk, 520, this);
-    }
+    // RESTING / IDLE screen: render the press-arrow ONCE, statically — NO blink
+    // timer. Each blink tick forced an e-ink partial refresh, and after ~30 of
+    // them the anti-ghost logic forces a full-screen flash, so the panel looked
+    // like it was "refreshing by itself" while idle / in low power. Same rule as
+    // the mic/listening screen: never refresh the e-ink on a timer at rest.
+    StopArrowBlink();                 // kill any timer left from a previous screen
+    arrow_on_ = true;
+    arrow_blink_ticks_left_ = 0;
+    set_hidden(press_arrow_, false);  // arrow shown, static
 }
 
 void DisplayService::StopArrowBlink() {
@@ -1321,6 +1324,25 @@ void DisplayService::ShowLowBattery(Language language) {
         lv_obj_set_pos(batt_big_group_, 61, 34);
         StartBatteryFlash();
         lv_label_set_text(body_label_, strings.low_battery_body);
+        lv_label_set_text(footer_left_, code);
+        lv_obj_update_layout(screen_);
+        Lvgl_unlock();
+    }
+}
+
+void DisplayService::ShowCriticalLowBattery(Language language) {
+    // The last thing drawn before the <=10% auto power-off. Big battery glyph +
+    // a "powering off to save the cell" message. Rendered ONCE, statically (no
+    // blink timer) — we are about to deep-sleep, so no need to keep refreshing.
+    const LocalizedStrings &strings = StringsFor(language);
+    char code[4];
+    CopyLangCode(strings.code, code, sizeof(code));
+    if (Lvgl_lock(-1)) {
+        RequestFullRefresh();
+        LayoutGlyphMessage();
+        set_hidden(batt_big_group_, false);
+        lv_obj_set_pos(batt_big_group_, 61, 34);
+        lv_label_set_text(body_label_, strings.low_battery_off_body);
         lv_label_set_text(footer_left_, code);
         lv_obj_update_layout(screen_);
         Lvgl_unlock();

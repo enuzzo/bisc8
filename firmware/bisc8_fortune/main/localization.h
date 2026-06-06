@@ -48,6 +48,7 @@ struct LocalizedStrings {
     const char *no_wifi_body;
     const char *low_battery_title;
     const char *low_battery_body;
+    const char *low_battery_off_body;  // shown right before the <=10% auto power-off
     const char *first_run_title;
     const char *first_run_body;
     const char *low_power_title;

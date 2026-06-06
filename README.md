@@ -90,7 +90,7 @@ OpenAI key, and (optionally) an email recipient. Saving Wi-Fi tests the credenti
 | **16 MB flash** | 6 MB app · 5 MB reserved `assets` · raw `spool` for voice WAVs |
 
 Idle for 3 minutes and Bisc8 drifts into deep sleep, wakeable by either button. A low battery (≤12%) shows a
-big battery glyph on boot.
+big battery glyph; at **≤10%** Bisc8 writes it on screen and powers off completely on its own, to protect the cell.
 
 ## Build from source
 

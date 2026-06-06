@@ -36,6 +36,7 @@ public:
     void ShowError(const char *message, const char *code, Language language);
     void ShowNoWifi(Language language);
     void ShowLowBattery(Language language);
+    void ShowCriticalLowBattery(Language language);  // final frame before <=10% auto power-off
     void ShowFirstRun(Language language);
     void ShowLowPower(Language language);
 

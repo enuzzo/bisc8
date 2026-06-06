@@ -5,6 +5,29 @@
 A pure design/distribution session. The product is functionally complete; this was
 aesthetics + getting it shippable to the public.
 
+### Follow-up fixes (same day, after the revamp)
+- **1.1rem font floor everywhere** (portal + site): no text below 1.1rem on either
+  surface. Portal v5 sub-1.1 sizes raised + reboot-bar/toast overrides; 27 site
+  declarations bumped. (commit ff79942)
+- **🩹 Idle e-paper refresh FIXED** — root cause was `StartArrowBlink()` in
+  `display_service.cpp`: the home/idle press-arrow ran a 520ms blink timer (10
+  ticks), each tick forcing an e-ink partial refresh, and every ~30 partials the
+  anti-ghost logic forced a full-screen flash → "screen refreshes by itself while
+  idle/low-power". Fix: render the arrow ONCE, statically, NO timer (same
+  no-refresh-at-rest rule as the mic screen). `SetBattery()` is just a setter (no
+  render), and only button presses post events — so with the timer gone the idle
+  home screen is truly static.
+- **🔋 ≤10% battery → full auto power-off** (`app_main.cpp`): new
+  `kCriticalBatteryShutdownPct = 10` + `battery_is_critical()` + a
+  `power_off_if_critical()` guard called at boot (covers wake-from-sleep) AND on
+  every event. It writes a dedicated screen (`display.ShowCriticalLowBattery` —
+  big battery glyph + localized "powering off" message, new `low_battery_off_body`
+  string EN/ES/IT), plays the Shutdown cue, then `EnterDeepSleep("low-battery", …)`.
+  (≤12% still just warns at boot, unchanged.) README updated.
+- **Firmware builds clean** (idf.py build OK, bin 58% free). ⚠️ Needs a reflash +
+  on-hardware verification: (1) confirm the idle screen no longer flashes, (2)
+  confirm the ≤10% cutoff fires and shows the message.
+
 ### Shipped (done)
 - **Repo is PUBLIC + GitHub Pages is LIVE** → **https://enuzzo.github.io/bisc8/**
   (source `main` / `/docs`, first build OK). Done via `gh repo edit --visibility

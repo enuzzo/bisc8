@@ -208,6 +208,39 @@ def test_pwr_long_press_shows_power_off_prompt_and_wakes_only_from_pwr():
     assert "by Netmilk Studio" in display_source
 
 
+def test_idle_home_screen_is_static_no_blink_timer():
+    source = DISPLAY_CPP.read_text(encoding="utf-8")
+    # The press-arrow on the resting/home (idle) screen must be rendered ONCE,
+    # statically — NO lv_timer. Each blink tick forced an e-ink partial refresh,
+    # and the anti-ghost logic turned every ~30th into a full-screen flash, so the
+    # panel looked like it was "refreshing by itself" while idle / in low power.
+    start = source.split("void DisplayService::StartArrowBlink()", 1)[1].split("\nvoid DisplayService::", 1)[0]
+    assert "lv_timer_create" not in start
+    assert "set_hidden(press_arrow_, false)" in start  # arrow shown, static
+
+
+def test_critical_battery_auto_shutdown_writes_screen_then_deep_sleeps():
+    app_main = APP_MAIN_CPP.read_text(encoding="utf-8")
+    display_header = DISPLAY_H.read_text(encoding="utf-8")
+    display = DISPLAY_CPP.read_text(encoding="utf-8")
+    localization_header = (ROOT / "firmware/bisc8_fortune/main/localization.h").read_text(encoding="utf-8")
+    localization = LOCALIZATION_CPP.read_text(encoding="utf-8")
+
+    # <=10%: ALWAYS power off completely (deep sleep) after writing it on screen.
+    assert "kCriticalBatteryShutdownPct = 10" in app_main
+    assert "battery_is_critical" in app_main
+    # guard runs at boot (wake-from-sleep) AND on every event -> >=2 call sites
+    assert app_main.count("power_off_if_critical()") >= 2
+    assert 'board.EnterDeepSleep("low-battery", kAnyButtonWakeMask)' in app_main
+    assert "display.ShowCriticalLowBattery" in app_main
+    # dedicated on-screen message (big battery glyph + "powering off") screen
+    assert "void ShowCriticalLowBattery(Language language);" in display_header
+    assert "strings.low_battery_off_body" in display
+    assert "low_battery_off_body" in localization_header
+    for phrase in ("Powering off", "Me apago", "Mi spengo"):
+        assert phrase in localization
+
+
 def test_display_service_exposes_wifi_and_localized_voice_states():
     header = DISPLAY_H.read_text(encoding="utf-8")
     source = DISPLAY_CPP.read_text(encoding="utf-8")

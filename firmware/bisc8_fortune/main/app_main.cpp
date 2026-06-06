@@ -37,6 +37,10 @@ constexpr uint32_t kOnlineStatusSplashMs = 2800;
 constexpr uint32_t kLowPowerSplashMs = 1600;
 constexpr uint32_t kConnectFailedSplashMs = 2600;
 constexpr uint8_t kLowBatteryWarnPct = 12;
+// At/below this charge the device ALWAYS powers off completely (after writing it
+// on screen) to protect the cell from a deep over-discharge. Checked at boot AND
+// on every event, so it triggers from any screen.
+constexpr uint8_t kCriticalBatteryShutdownPct = 10;
 
 // Audio -> display state trampolines: AudioService fires these from its
 // playback/record threads; DisplayService takes the LVGL lock internally.
@@ -132,6 +136,11 @@ OracleErr OracleErrorInfo(const LocalizedStrings &s, VoiceOracleService::OracleF
 bool battery_is_low() {
     const uint8_t level = BatteryLevel();
     return level != 255 && level <= kLowBatteryWarnPct;
+}
+
+bool battery_is_critical() {
+    const uint8_t level = BatteryLevel();
+    return level != 255 && level <= kCriticalBatteryShutdownPct;
 }
 QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
@@ -354,6 +363,29 @@ extern "C" void app_main(void) {
         display.ShowIntro(startup_language);
     }
 
+    // Hard battery cutoff: at/below kCriticalBatteryShutdownPct, write it on
+    // screen and power off completely (deep sleep) to protect the cell. Used at
+    // boot (covers wake-from-deep-sleep) and on every event below. EnterDeepSleep
+    // never returns, so this is a one-way door whenever the charge is critical.
+    auto power_off_if_critical = [&]() {
+        if (!battery_is_critical()) {
+            return;
+        }
+        const uint8_t level = BatteryLevel();
+        DebugSerial::LogAlways("[BATT]", "critical %u%% <= %u%%: powering off to protect the cell",
+                               level, kCriticalBatteryShutdownPct);
+        g_state = "low-battery-off";
+        print_status();
+        display.ShowCriticalLowBattery(ParseLanguage(settings.language.c_str()));
+        if (g_audio_ready) {
+            audio.PlayCueAsync(AudioCue::Shutdown);
+            audio.WaitForPlayback(8000);
+        }
+        vTaskDelay(pdMS_TO_TICKS(2400));  // hold the message on-screen a beat
+        board.EnterDeepSleep("low-battery", kAnyButtonWakeMask);
+    };
+    power_off_if_critical();  // boot/wake check — fires from any state, any case
+
     // Resting-screen overrides: nothing to read yet, or the battery is at the
     // bone. Runs on every boot, including wake from deep sleep, so it doubles
     // as the low-battery auto-trigger.
@@ -400,6 +432,7 @@ extern "C" void app_main(void) {
 #endif
 
         display.SetBattery(BatteryLevel());
+        power_off_if_critical();  // <=10% from any screen -> write it on screen + power off
         switch (event) {
             case AppEvent::GenerateFortune: {
                 g_state = "fortune";
