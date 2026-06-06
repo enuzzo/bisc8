@@ -167,13 +167,13 @@ details summary{font-family:var(--title);font-size:13px;font-weight:400;cursor:p
 .hidden{display:none;}
 /* ===== TYPOGRAPHY v5 — bigger & airier: harmonized scale + more spacing, NO letter-spacing ===== */
 html{font-size:100%;}
-body{font-size:1.0625rem;line-height:1.55;letter-spacing:normal;}
+body{font-size:1.1rem;line-height:1.55;letter-spacing:normal;}
 /* slightly wider column so the bigger type has room to breathe */
 .app,.rebar{max-width:26rem;}
 .wrap{padding:1.35rem 1.15rem 1.65rem;}
 /* window title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
 .titlebar{height:2.1rem;}
-.ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.1rem .6rem;font-family:var(--title);font-size:1.05rem;line-height:1.4;letter-spacing:normal;display:inline-flex;align-items:center;}
+.ttl{background:var(--paper);border:.125rem solid var(--ink);box-shadow:1px 1px 0 var(--shadow);padding:.1rem .6rem;font-family:var(--title);font-size:1.1rem;line-height:1.4;letter-spacing:normal;display:inline-flex;align-items:center;}
 .close,.close-r{top:.55rem;}
 /* status block: more air, color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
 .status{margin-bottom:1.5rem;}
@@ -182,12 +182,12 @@ body{font-size:1.0625rem;line-height:1.55;letter-spacing:normal;}
 .status .cell:nth-child(2){background:var(--paper);--cell-bar:var(--sky);}
 .status .cell:nth-child(3){background:var(--paper);--cell-bar:var(--peach);}
 .status .cell:nth-child(4){background:var(--paper);--cell-bar:var(--lilac);}
-.status .k{font-size:1.05rem;letter-spacing:normal;text-transform:none;}
+.status .k{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
 .status .v{font-size:1.3rem;letter-spacing:normal;margin-top:.15rem;}
 /* groups: more internal air + more space between sections */
 .group{padding:1.6rem 1.2rem 1.4rem;margin:0 0 1.6rem;}
 .group>.glabel{top:-.85rem;font-size:1.2rem;letter-spacing:normal;text-transform:none;padding:.1rem .6rem;}
-label.fld{font-size:1.05rem;letter-spacing:normal;text-transform:none;color:var(--ink);margin:0 0 .55rem;}
+label.fld{font-size:1.1rem;letter-spacing:normal;text-transform:none;color:var(--ink);margin:0 0 .55rem;}
 .field{margin-bottom:1.1rem;}
 .hint{font-size:1.3rem;line-height:1.42;letter-spacing:normal;margin:0 0 1.2rem;color:#5a5249;}
 .hint.below{margin:1.05rem 0 0;}
@@ -200,10 +200,10 @@ input,select{font-size:1.2rem;letter-spacing:normal;min-height:2.9rem;padding:.6
 .actions{gap:.85rem;margin-top:.55rem;}
 .seg b{font-size:1.2rem;letter-spacing:normal;padding:.72rem 1.25rem;}
 .row{font-size:1.2rem;letter-spacing:normal;padding:.85rem 0;}
-.muted{font-size:1.05rem;letter-spacing:normal;}
-.pill{font-size:1.05rem;padding:.25rem .65rem;}
-.foot,.copy{font-size:1.05rem;line-height:1.5;letter-spacing:normal;}
-details summary{font-size:1.05rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
+.muted{font-size:1.1rem;letter-spacing:normal;}
+.pill{font-size:1.1rem;padding:.25rem .65rem;}
+.foot,.copy{font-size:1.1rem;line-height:1.5;letter-spacing:normal;}
+details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
 /* networks-found: a clear solid header bar */
 .scan{margin:0 0 1.05rem;max-height:9.5rem;}
 .scan .h{background:var(--sky);font-family:var(--title);font-size:1.15rem;letter-spacing:normal;text-transform:none;padding:.55rem .85rem;color:var(--ink);}
@@ -211,8 +211,13 @@ details summary{font-size:1.05rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
 .scan button{font-size:1.15rem;letter-spacing:normal;min-height:2.9rem;padding:.72rem .85rem;}
 /* diacritics sample */
 .diac{margin-top:1.1rem;padding-top:.85rem;}
-.diac .k{font-size:.95rem;letter-spacing:normal;}
+.diac .k{font-size:1.1rem;letter-spacing:normal;}
 .diac p{font-size:1.25rem;line-height:1.5;}
+/* reboot bar + toast: floor at 1.1rem too (override base px) */
+.rebar .txt{font-size:1.1rem;line-height:1.3;}
+.rebar .txt b{font-size:1.2rem;}
+.rebar .go{font-size:1.2rem;}
+.toast{font-size:1.1rem;}
 </style>
 </head>
 <body>
