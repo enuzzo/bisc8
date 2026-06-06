@@ -239,6 +239,7 @@ void DisplayService::CreateScreen() {
         BuildPressButton();
         BuildMic();
         BuildWaitDots();
+        BuildStatusQr();
 
         mascot_big_ = lv_image_create(screen_);
         lv_image_set_src(mascot_big_, &kBisc8BootLogo);
@@ -291,7 +292,7 @@ void DisplayService::BuildChrome() {
         create_block(chrome_group_, 0, y, 200, 1);
     }
     create_block(chrome_group_, 0, 20, 200, 2);
-    create_block(chrome_group_, 0, 178, 200, 2);
+    chrome_footer_rule_ = create_block(chrome_group_, 0, 178, 200, 2);  // footer separator; hidden on footer-less screens
 
     create_white(chrome_group_, 7, 5, 12, 12);
     create_frame(chrome_group_, 7, 5, 12, 12, 2);
@@ -371,6 +372,39 @@ void DisplayService::BuildWaitDots() {
     wait_dot2_ = create_block(wait_group_, 12, 0, 8, 8);
     wait_dot3_ = create_block(wait_group_, 24, 0, 8, 8);
     set_hidden(wait_group_, true);
+}
+
+void DisplayService::BuildStatusQr() {
+    // Wi-Fi status screen: a QR that opens http://<ip>, a dark vertical "SCAN >"
+    // pill to its left, and SSID (ellipsized) + IP beneath. The QR + ssid/ip text
+    // are filled in ShowStatus; this only builds the static shapes.
+    status_group_ = lv_obj_create(screen_);
+    style_plain_obj(status_group_);
+    lv_obj_set_pos(status_group_, 0, 0);
+    lv_obj_set_size(status_group_, EPD_WIDTH, EPD_HEIGHT);
+
+    // QR code (black on white) that opens http://<ip>. It is self-explanatory,
+    // so no label/button is needed. The white screen around it is the quiet zone.
+    status_qr_ = lv_qrcode_create(status_group_);
+    lv_qrcode_set_size(status_qr_, 100);
+    lv_qrcode_set_dark_color(status_qr_, lv_color_hex(0x000000));
+    lv_qrcode_set_light_color(status_qr_, lv_color_hex(0xffffff));
+    lv_obj_remove_flag(status_qr_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_pos(status_qr_, 50, 50);   // centered: (200-100)/2
+
+    // SSID (one line, ellipsized) + IP beneath the QR.
+    status_net_label_ = lv_label_create(status_group_);
+    style_label(status_net_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_long_mode(status_net_label_, LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(status_net_label_, 8, 158);
+    lv_obj_set_size(status_net_label_, 184, 16);
+
+    status_ip_label_ = lv_label_create(status_group_);
+    style_label(status_ip_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_pos(status_ip_label_, 8, 176);
+    lv_obj_set_size(status_ip_label_, 184, 16);
+
+    set_hidden(status_group_, true);
 }
 
 void DisplayService::BuildWifiGlyph() {
@@ -715,6 +749,8 @@ void DisplayService::ResetAuxLayers(bool speaking) {
     set_hidden(press_btn_group_, true);
     set_hidden(mic_group_, true);
     set_hidden(wait_group_, true);
+    set_hidden(status_group_, true);
+    set_hidden(chrome_footer_rule_, false);  // shown by default; footer-less screens opt out
 }
 
 void DisplayService::SetText(const char *title, const char *body, const char *footer) {
@@ -856,6 +892,24 @@ void DisplayService::LayoutMessage() {
     RenderBattery();
 }
 
+void DisplayService::LayoutStatusQr() {
+    ResetAuxLayers(false);
+    set_hidden(splash_group_, true);
+    set_hidden(chrome_group_, false);
+    set_hidden(arrow_group_, true);
+    set_hidden(mascot_big_, true);
+    set_hidden(title_label_, false);
+    set_hidden(body_label_, true);     // the QR group replaces the body
+    set_hidden(footer_left_, true);
+    set_hidden(footer_right_, true);
+    set_hidden(batt_icon_group_, true);
+    set_hidden(status_group_, false);
+    set_hidden(chrome_footer_rule_, true);  // no footer here -> drop the bottom line
+
+    // State word ("CONNESSO") as the title chip; the caller sets the text.
+    apply_title_chip(title_label_, &bisc8_font_small, 30);
+}
+
 void DisplayService::LayoutResponso() {
     ResetAuxLayers(false);
     set_hidden(splash_group_, true);
@@ -982,18 +1036,20 @@ void DisplayService::LayoutLowPower() {
     set_hidden(sleep_corner_group_, false);
 
     // Product name as a real title chip (big), with room above the logo.
-    apply_title_chip(title_label_, &bisc8_font_title, 6);
+    // Title detached a touch from the top, with a small gap before the logo.
+    apply_title_chip(title_label_, &bisc8_font_title, 10);
 
-    lv_image_set_scale(mascot_big_, 320);  // ~80px; top-left pivot -> (200-80)/2
-    lv_obj_set_pos(mascot_big_, 60, 46);
+    lv_image_set_scale(mascot_big_, 312);  // ~78px; top-left pivot -> (200-78)/2
+    lv_obj_set_pos(mascot_big_, 61, 50);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(body_label_, 0, 132);
-    lv_obj_set_size(body_label_, 200, 28);
+    lv_obj_set_size(body_label_, 200, 20);
 
+    // "premi per svegliarmi" lifted up, with clear air above the "Zzz" line.
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 164);
+    lv_obj_set_pos(footer_left_, 0, 156);
     lv_obj_set_size(footer_left_, 200, 20);
 }
 
@@ -1034,19 +1090,28 @@ void DisplayService::ShowStatus(const WifiStatus &status, Language language) {
         return;
     }
 
-    char body[96];
-    if (status.online) {
-        snprintf(body,
-                 sizeof(body),
-                 strings.status_online_body,
-                 status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str(),
-                 status.connected_ip.empty() ? "IP pending" : status.connected_ip.c_str());
-    } else {
-        snprintf(body, sizeof(body), "%s", strings.status_offline_body);
-    }
     if (Lvgl_lock(-1)) {
-        LayoutMessage();
-        SetText(strings.status_title, body, strings.status_footer);
+        // A QR has fine detail; force a full refresh so e-ink ghosting can't make
+        // it unscannable.
+        RequestFullRefresh();
+        if (status.online) {
+            const char *ssid = status.connected_ssid.empty() ? "Wi-Fi" : status.connected_ssid.c_str();
+            const char *ip = status.connected_ip.empty() ? "0.0.0.0" : status.connected_ip.c_str();
+            LayoutStatusQr();
+            char title_buf[32];
+            lv_label_set_text(title_label_,
+                              UpperAscii(strings.status_connected_title, title_buf, sizeof(title_buf)));
+            lv_label_set_text(status_net_label_, ssid);
+            lv_label_set_text(status_ip_label_, ip);
+            char url[80];
+            snprintf(url, sizeof(url), "http://%s", ip);
+            lv_qrcode_update(status_qr_, url, strlen(url));
+            lv_obj_update_layout(screen_);
+        } else {
+            LayoutMessage();
+            SetText(strings.status_disconnected_title, strings.status_offline_body,
+                    strings.status_footer);
+        }
         Lvgl_unlock();
     }
 }
@@ -1306,7 +1371,7 @@ void DisplayService::ShowLowPower(Language language) {
     if (Lvgl_lock(-1)) {
         RequestFullRefresh();
         LayoutLowPower();
-        lv_label_set_text(title_label_, "BISC8");
+        lv_label_set_text(title_label_, "Bisc8");
         lv_label_set_text(body_label_, "Zzz ...zzzz....");
         lv_label_set_text(footer_left_, strings.low_power_body);
         lv_obj_update_layout(screen_);

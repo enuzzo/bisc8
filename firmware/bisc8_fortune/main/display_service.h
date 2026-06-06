@@ -60,6 +60,7 @@ private:
     void BuildPressButton();           // dark "PREMI ->" pill on the intro screen
     void BuildMic();                   // microphone glyph + sound-wave bars (listening)
     void BuildWaitDots();              // three "..." dots (thinking/waiting)
+    void BuildStatusQr();              // QR + SCAN pill + ssid/ip (Wi-Fi status)
 
     // Layouts (call inside an Lvgl_lock).
     void LayoutBoot();                 // full-screen splash + mascot, no chrome
@@ -70,6 +71,7 @@ private:
     void LayoutSpeaking();             // chrome + animated speaker glyph + answer
     void LayoutGlyphMessage();         // chrome + centered glyph + message body
     void LayoutLowPower();             // big logo + "Zzz..." + tap-to-wake line
+    void LayoutStatusQr();             // chrome + state title + QR/SCAN + ssid/ip
 
     void SetText(const char *title, const char *body, const char *footer);
     void RenderBattery();              // footer-right battery % + icon (or blank)
@@ -106,6 +108,7 @@ private:
 
     lv_obj_t *screen_ = nullptr;
     lv_obj_t *chrome_group_ = nullptr;
+    lv_obj_t *chrome_footer_rule_ = nullptr; // bottom separator line (hide when no footer)
     lv_obj_t *splash_group_ = nullptr;
     lv_obj_t *arrow_group_ = nullptr;    // right-pointing arrow on the idle prompt
     lv_obj_t *speaker_group_ = nullptr;  // animated speaker glyph (speaking state)
@@ -126,6 +129,10 @@ private:
     lv_obj_t *press_btn_group_ = nullptr; // dark "PREMI ->" pill (intro)
     lv_obj_t *press_label_ = nullptr;     // white "PREMI" text inside the pill
     lv_obj_t *press_arrow_ = nullptr;     // white arrow inside the pill (blinks)
+    lv_obj_t *status_group_ = nullptr;    // Wi-Fi status screen: QR + ssid/ip
+    lv_obj_t *status_qr_ = nullptr;       // lv_qrcode encoding http://<ip>
+    lv_obj_t *status_net_label_ = nullptr;// SSID, ellipsized to one line
+    lv_obj_t *status_ip_label_ = nullptr; // IP address, small
     lv_obj_t *batt_icon_fill_ = nullptr; // footer battery fill bar (width = charge)
     lv_obj_t *mascot_big_ = nullptr;
     lv_obj_t *mascot_glyph_ = nullptr;

@@ -57,6 +57,8 @@ struct LocalizedStrings {
     const char *intro_press;
     const char *voice_no_speech_body;
     const char *voice_error_generic_body;
+    const char *status_connected_title;     // Wi-Fi status screen title when online
+    const char *status_disconnected_title;  // ... and when not connected
 };
 
 const char *DefaultLanguage();

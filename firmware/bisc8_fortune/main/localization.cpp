@@ -31,7 +31,7 @@ constexpr LocalizedStrings kEnglish = {
     "Think your\nquestion",
     "hold to speak",
     "Status",
-    "Connected to\n%s\n%s",
+    "%s\n%s",
     "%s | %s",
     "No network\nSetup unavailable",
     "BOOT oracle",
@@ -55,6 +55,8 @@ constexpr LocalizedStrings kEnglish = {
     "press",
     "I didn't hear you.\nTry again.",
     "The oracle\nglitched.",
+    "Connected",
+    "Not connected",
 };
 
 constexpr LocalizedStrings kSpanish = {
@@ -82,7 +84,7 @@ constexpr LocalizedStrings kSpanish = {
     "Piensa tu\npregunta",
     "mantén pulsado: habla",
     "Estado",
-    "Conectado a\n%s\n%s",
+    "%s\n%s",
     "%s | %s",
     "Sin red\nPortal no listo",
     "BOOT oráculo",
@@ -106,6 +108,8 @@ constexpr LocalizedStrings kSpanish = {
     "pulsa",
     "No te he oído.\nInténtalo otra vez.",
     "El oráculo\nse ha trabado.",
+    "Conectado",
+    "Sin conexión",
 };
 
 constexpr LocalizedStrings kItalian = {
@@ -133,7 +137,7 @@ constexpr LocalizedStrings kItalian = {
     "Pensa al tuo\nquesito",
     "tieni premuto: parla",
     "Stato",
-    "Connesso a\n%s\n%s",
+    "%s\n%s",
     "%s | %s",
     "Senza rete\nPortale non pronto",
     "BOOT oracolo",
@@ -157,6 +161,8 @@ constexpr LocalizedStrings kItalian = {
     "premi",
     "Non ho sentito nulla.\nRiprova.",
     "L'oracolo si è\nincantato.",
+    "Connesso",
+    "Non connesso",
 };
 
 }  // namespace
