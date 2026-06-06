@@ -1014,7 +1014,7 @@ void DisplayService::LayoutLowPower() {
     // Title detached a touch from the top, with a small gap before the logo.
     apply_title_chip(title_label_, &bisc8_font_title, 10);
 
-    lv_image_set_scale(mascot_big_, 312);  // ~78px; top-left pivot -> (200-78)/2
+    lv_image_set_scale(mascot_big_, 208);  // 96px asset * 208/256 = ~78px; top-left pivot -> (200-78)/2
     lv_obj_set_pos(mascot_big_, 61, 50);
 
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
