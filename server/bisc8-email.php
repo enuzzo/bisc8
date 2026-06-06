@@ -207,7 +207,7 @@ $html = <<<HTML
 
 <tr><td style="background:#000;padding:14px 18px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td style="font-family:{$PXF};color:#fff;font-size:22px;font-weight:700;letter-spacing:2px;"><img src="cid:bisc8logo" width="36" height="36" alt="Bisc8" style="vertical-align:middle;margin-right:10px;background:#fff;">BISC8<span style="font-family:{$MNF};font-size:11px;letter-spacing:2px;">  &middot; {$badge}</span></td>
+    <td style="font-family:{$PXF};color:#fff;font-size:22px;font-weight:700;letter-spacing:2px;"><img src="cid:bisc8logo" width="36" height="36" alt="Bisc8" style="vertical-align:middle;margin-right:10px;background:#fff;">Bisc8<span style="font-family:{$MNF};font-size:11px;letter-spacing:2px;">  &middot; {$badge}</span></td>
     <td align="right" style="font-family:{$MNF};color:#fff;font-size:10px;letter-spacing:1px;text-transform:uppercase;">{$tagline}</td>
   </tr></table>
 </td></tr>
