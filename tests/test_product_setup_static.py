@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = ROOT / "firmware/bisc8_fortune/main"
 README = ROOT / "README.md"
-AI_HANDOFF = ROOT / "docs/AI_HANDOFF.md"
+AI_HANDOFF = ROOT / "notes/AI_HANDOFF.md"
 PARTITIONS = ROOT / "firmware/bisc8_fortune/partitions.csv"
 SDKCONFIG = ROOT / "firmware/bisc8_fortune/sdkconfig"
 SDKCONFIG_DEFAULTS = ROOT / "firmware/bisc8_fortune/sdkconfig.defaults"
@@ -508,7 +508,9 @@ def test_connected_wifi_status_exposes_sta_ip_to_web_and_intro_splash():
     assert 'data-bind="device_address"' in web
     assert "wifi_mode" in web
     assert "status.connected_ip" in display
-    assert "Connected to\\n%s\\n%s" in localization
+    # Online status body now stacks SSID + IP on their own lines ("%s\n%s");
+    # the connected/disconnected header lives in status_connected_title.
+    assert '"%s\\n%s"' in localization
     assert "kOnlineStatusSplashMs" in app_main
     assert "display.ShowStatus(connectivity.Status(), startup_language)" in app_main
 
@@ -753,34 +755,31 @@ def test_fortune_service_selects_grimoire_by_language():
 
 
 def test_readme_documents_product_setup_and_logo_requirements():
+    # The README is now a public showcase (badges, flow diagram, hardware table)
+    # rather than an internal setup doc — it must still document the core product,
+    # the browser flashing flow, the setup hotspot, and the type/credits system.
     readme = read(README)
 
     for phrase in (
-        "First boot defaults to English",
-        "Bisc8-XXXX",
-        "http://192.168.4.1",
+        "briciomanzia",
+        "ESP32-C6",
         "e-paper",
-        "does not require a PIN",
-        "SoftAP is active",
-        "tests the credentials immediately",
-        "reboot Bisc8",
-        "OpenAI API key",
-        "email relay",
-        "Hold BOOT to ask",
-        "PWR triple click",
-        "BOOT + PWR",
-        "1024x1024",
-        "64x64",
-        "secrets are stored on the device",
+        "Bisc8-XXXX",
+        "192.168.4.1",
+        "ESP Web Tools",
+        "whisper-1",
+        "OpenAI",
+        "deep sleep",
+        "Pixelify Sans",
     ):
         assert phrase in readme
 
 
 def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
-    readme = read(README)
+    # AI_HANDOFF now lives in notes/ (kept out of the published docs/ GitHub Pages site).
+    # The public README is a showcase and intentionally does not link the internal handoff.
     handoff = read(AI_HANDOFF)
 
-    assert "docs/AI_HANDOFF.md" in readme
     for phrase in (
         "VoiceOracleService",
         "audio/transcriptions",
@@ -826,7 +825,7 @@ def test_public_flash_page_uses_web_serial_manifest_without_secrets():
     for forbidden in ("sk-", "smtp_password", "relay_token"):
         assert forbidden not in page
         assert forbidden not in manifest
-    assert "Public Web Flasher" in readme
+    assert "GitHub Pages flasher" in readme
 
 
 def test_public_flash_prepare_rejects_symlink_escape_and_prints_hashes():

@@ -38,7 +38,7 @@ def test_display_service_builds_system6_chrome():
     assert "kBisc8BootLogo" in source
     assert "LayoutResponso" in source
     assert "LayoutIntro" in source
-    assert "LayoutWifiSetup" in source
+    assert "LayoutStatusQr" in source
     assert "CreateOracleFrame" not in source
 
 
@@ -65,8 +65,6 @@ def test_boot_logo_uses_generated_min_png_bitmap_asset():
     assert "{LV_IMAGE_HEADER_MAGIC, LV_COLOR_FORMAT_RGB565, 0, 64, 64, 128, 0}" in source
     assert "generated/logo_assets.h" in display
     assert "generated/logo_assets.cpp" in cmake
-    assert "tools/generate_logo_assets.py" in readme
-    assert "assets/logo/logo_min.png" in readme
 
 
 def test_display_fonts_are_pixelify_with_latin_1_accents():
@@ -224,8 +222,8 @@ def test_display_service_exposes_wifi_and_localized_voice_states():
     ):
         assert method in header
         assert method in source
-    assert "strings.wifi_setup_body" in source
-    assert "strings.wifi_setup_footer" in source
+    assert "strings.wifi_setup_title" in source
+    assert "strings.status_connected_title" in source
     assert "strings.listening_body" in source
     assert "strings.cooking_title" in source
 
@@ -234,7 +232,7 @@ def test_wifi_setup_shows_real_ssid_and_big_ip():
     display = DISPLAY_CPP.read_text(encoding="utf-8")
     localization = LOCALIZATION_CPP.read_text(encoding="utf-8")
 
-    assert "LayoutWifiSetup" in display
+    assert "LayoutStatusQr" in display
     assert "SetupDisplayAddress" in display
     assert "ShowWifiSetup(const char *ssid, const char *url, Language" in display
     # The network name must drop onto its own whole line, never breaking mid-word.
