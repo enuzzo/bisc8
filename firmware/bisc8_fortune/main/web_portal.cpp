@@ -179,19 +179,19 @@ body{font-size:1.1rem;line-height:1.55;letter-spacing:normal;}
 .close,.close-r{top:.55rem;}
 /* status block: more air, color ONLY as a ~6px LEFT BAR (override the base per-cell full fill) */
 .status{margin-bottom:1.5rem;}
-.status .cell{background:var(--paper);box-shadow:inset .375rem 0 0 var(--cell-bar);padding:.7rem .85rem .75rem 1.1rem;}
+.status .cell{background:var(--paper);box-shadow:inset .85rem 0 0 var(--cell-bar);padding:.4rem .85rem .45rem 1.4rem;}
 .status .cell:nth-child(1){background:var(--paper);--cell-bar:var(--mint);}
 .status .cell:nth-child(2){background:var(--paper);--cell-bar:var(--sky);}
 .status .cell:nth-child(3){background:var(--paper);--cell-bar:var(--peach);}
 .status .cell:nth-child(4){background:var(--paper);--cell-bar:var(--lilac);}
-.status .k{font-size:1.1rem;letter-spacing:normal;text-transform:none;}
-.status .v{font-size:1.3rem;letter-spacing:normal;margin-top:.15rem;}
+.status .k{font-size:1.35rem;letter-spacing:normal;text-transform:none;}
+.status .v{font-size:1.2rem;letter-spacing:normal;margin-top:.05rem;}
 /* groups: more internal air + more space between sections */
 .group{padding:1.6rem 1.2rem 1.4rem;margin:0 0 1.6rem;}
 .group>.glabel{top:-.85rem;font-size:1.2rem;letter-spacing:normal;text-transform:none;padding:.1rem .6rem;}
 label.fld{font-size:1.1rem;letter-spacing:normal;text-transform:none;color:var(--ink);margin:0 0 .55rem;}
 .field{margin-bottom:1.1rem;}
-.hint{font-size:1.3rem;line-height:1.42;letter-spacing:normal;margin:0 0 1.2rem;color:#5a5249;}
+.hint{font-size:1.3rem;line-height:1.12;letter-spacing:normal;margin:.625rem 0 1.2rem;color:#5a5249;}
 .hint.below{margin:1.05rem 0 0;}
 input,select{font-size:1.2rem;letter-spacing:normal;min-height:2.9rem;padding:.62rem .8rem;}
 /* reference button: rose fill, ink border, top bevel + hard shadow, ChiKareGo2 */
