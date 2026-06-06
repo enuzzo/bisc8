@@ -122,8 +122,23 @@ html{font-size:100%;}
 body{font-size:1.1rem;line-height:1.55;letter-spacing:normal;}
 /* slightly wider column so the bigger type has room to breathe */
 .app,.rebar{max-width:26rem;}
-/* hero logo at the top of the portal — the cookie-wizard, hard-offset shadow */
-.logo{display:block;width:10.5rem;max-width:60%;height:auto;margin:.7rem auto -.1rem;filter:drop-shadow(.2rem .26rem 0 var(--shadow));}
+/* hero logo at the top — cookie-wizard, hard-offset shadow, gentle float + twinkling sparkles */
+.logo-stage{display:block;position:relative;width:-moz-fit-content;width:fit-content;max-width:62%;margin:.7rem auto -.1rem;}
+.logo{display:block;width:10.5rem;max-width:100%;height:auto;filter:drop-shadow(.2rem .26rem 0 var(--shadow));}
+.spark{position:absolute;font-family:var(--title);color:var(--ink);opacity:0;pointer-events:none;z-index:3;text-shadow:0 0 .5rem var(--butter),0 0 1rem var(--butter);}
+.spark.s1{top:-.3rem;right:-.2rem;font-size:2rem;}
+.spark.s2{bottom:1.6rem;left:-.5rem;font-size:1.6rem;}
+.spark.s3{top:2.6rem;right:-.6rem;font-size:1.75rem;}
+.spark.s4{top:.7rem;left:0;font-size:1.45rem;}
+@media (prefers-reduced-motion:no-preference){
+  .logo{animation:bob 4.6s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-.6rem);}}
+  .spark.s1{animation:tw 3s ease-in-out .1s infinite;}
+  .spark.s2{animation:tw 3s ease-in-out 1s infinite;}
+  .spark.s3{animation:tw 3s ease-in-out 1.9s infinite;}
+  .spark.s4{animation:tw 3s ease-in-out 2.5s infinite;}
+  @keyframes tw{0%,100%{opacity:0;transform:scale(.5) rotate(-12deg);}45%{opacity:1;transform:scale(1.3) rotate(12deg);}}
+}
 .wrap{padding:1.35rem 1.15rem 1.65rem;}
 /* window title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
 .titlebar{height:2.1rem;}
@@ -179,7 +194,13 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
   <div class="titlebar"><div class="close"></div><div class="ttl">Bisc8</div><div class="close close-r"></div></div>
   <div class="wrap">
 
-    <img class="logo" src="data:image/png;base64,__LOGO_B64__" alt="Bisc8 — the cookie-wizard">
+    <span class="logo-stage">
+      <span class="spark s1" aria-hidden="true">+</span>
+      <span class="spark s2" aria-hidden="true">*</span>
+      <span class="spark s3" aria-hidden="true">+</span>
+      <span class="spark s4" aria-hidden="true">*</span>
+      <img class="logo" src="data:image/png;base64,__LOGO_B64__" alt="Bisc8 — the cookie-wizard">
+    </span>
     <p data-i18n="tagline" style="text-align:center;font-family:var(--title);font-size:1.3rem;letter-spacing:normal;text-transform:capitalize;margin:.2rem 0 1.1rem;color:var(--ink);">briciomanzia tascabile</p>
 
     <div class="status">

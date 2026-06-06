@@ -178,15 +178,17 @@ a{color:var(--ink);}
   @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-.7rem);}}
 }
 /* sparkles around the mascot */
-.spark{position:absolute;font-family:var(--title);color:var(--ink);font-size:1.1rem;opacity:0;pointer-events:none;}
-.spark.s1{top:-.55rem;right:-.4rem;}
-.spark.s2{bottom:.6rem;left:-.65rem;font-size:1.1rem;}
-.spark.s3{top:2.4rem;right:-.85rem;font-size:1.1rem;}
+.spark{position:absolute;font-family:var(--title);color:var(--ink);font-size:2rem;opacity:0;pointer-events:none;z-index:3;text-shadow:0 0 .5rem var(--butter),0 0 1.1rem var(--butter);}
+.spark.s1{top:-.4rem;right:.5rem;font-size:2.3rem;}
+.spark.s2{bottom:1.2rem;left:-.5rem;font-size:1.8rem;}
+.spark.s3{top:3rem;right:-.7rem;font-size:1.9rem;}
+.spark.s4{top:1rem;left:-.2rem;font-size:1.6rem;}
 @media (prefers-reduced-motion:no-preference){
-  .spark.s1{animation:tw 3.4s ease-in-out .2s infinite;}
-  .spark.s2{animation:tw 3.4s ease-in-out 1.3s infinite;}
-  .spark.s3{animation:tw 3.4s ease-in-out 2.2s infinite;}
-  @keyframes tw{0%,100%{opacity:0;transform:scale(.6);}45%{opacity:.9;transform:scale(1);}}
+  .spark.s1{animation:tw 3s ease-in-out .1s infinite;}
+  .spark.s2{animation:tw 3s ease-in-out 1s infinite;}
+  .spark.s3{animation:tw 3s ease-in-out 1.9s infinite;}
+  .spark.s4{animation:tw 3s ease-in-out 2.5s infinite;}
+  @keyframes tw{0%,100%{opacity:0;transform:scale(.5) rotate(-12deg);}45%{opacity:1;transform:scale(1.3) rotate(12deg);}}
 }
 .hero .copy{min-width:0;}
 .badge{
@@ -503,6 +505,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
           <span class="spark s1" aria-hidden="true">+</span>
           <span class="spark s2" aria-hidden="true">*</span>
           <span class="spark s3" aria-hidden="true">+</span>
+          <span class="spark s4" aria-hidden="true">*</span>
           <img class="herologo" src="img/bisc8-logo.png" alt="Bisc8 — a cookie-headed wizard cradling a crystal ball with an 8 and a crescent-moon staff">
         </div>
         <div class="copy">
