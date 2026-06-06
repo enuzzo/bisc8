@@ -2,7 +2,7 @@
 
 <img src="docs/img/bisc8-logo.png" width="300" alt="Bisc8 — a cookie-headed wizard cradling a crystal ball with an 8 and a crescent-moon staff" />
 
-# BISC8
+# Bisc8
 
 [![platform](https://img.shields.io/badge/platform-ESP32--C6-111111?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32-c6)
 [![framework](https://img.shields.io/badge/framework-ESP--IDF%205.5-e7352c?style=for-the-badge)](https://docs.espressif.com/projects/esp-idf/)
@@ -139,6 +139,6 @@ Built by [@enuzzo](https://github.com/enuzzo) at **Netmilk Studio**. Fonts credi
 
 <div align="center">
 
-<sub><b>BISC8</b> — briciomanzia tascabile · <i>pocket crumbomancy</i></sub>
+<sub><b>Bisc8</b> — briciomanzia tascabile · <i>pocket crumbomancy</i></sub>
 
 </div>

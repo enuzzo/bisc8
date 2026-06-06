@@ -92,7 +92,7 @@ a{color:var(--ink);}
   font-family:var(--title);
   font-size:1.1rem;letter-spacing:normal;
 }
-.menubar .os{padding:0 .75rem 0 .25rem;text-transform:uppercase;}
+.menubar .os{padding:0 .75rem 0 .25rem;}
 .menubar .mi{padding:0 .7rem;line-height:1.875rem;height:1.875rem;cursor:pointer;text-transform:uppercase;}
 .menubar .mi:hover,.menubar .os:hover{background:var(--ink);color:var(--paper);}
 .menubar .os{cursor:pointer;}
@@ -210,6 +210,10 @@ a{color:var(--ink);}
 
 /* big CTA buttons (reference recipe scaled up) */
 .cta{display:flex;flex-wrap:wrap;gap:.875rem;align-items:stretch;}
+.cta>esp-web-install-button,.cta>.btn-big{flex:1 1 12rem;}
+.cta esp-web-install-button .btn-big{width:100%;}
+/* the brand name is ALWAYS "Bisc8" — never uppercased, even inside uppercase UI */
+.brand{text-transform:none;}
 .btn-big{
   font-family:var(--title);font-size:1.3125rem;letter-spacing:normal;
   background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);
@@ -227,7 +231,6 @@ a{color:var(--ink);}
 }
 .btn-big.sec{
   background:var(--cream);color:var(--ink);
-  font-size:1.1rem;min-height:3.125rem;padding:.8rem 1.4rem;
 }
 .btn-big.sec:hover{background:#ece2d2;}
 
@@ -508,7 +511,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
           <p class="pitch">A pocket oracle that reads your fate in the crumbs. Hold the button, ask aloud, and a tiny black-and-white biscuit answers — speaking and showing a lyrical reading, then quietly emailing the verdict to you.</p>
           <div class="cta">
             <esp-web-install-button manifest="manifest.json">
-              <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+              <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash <span class="brand">Bisc8</span></button>
               <span slot="unsupported" class="unsupported">Your browser can&rsquo;t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
               <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
             </esp-web-install-button>
@@ -573,7 +576,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
 
         <div class="flash-cta">
           <esp-web-install-button manifest="manifest.json">
-            <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+            <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash <span class="brand">Bisc8</span></button>
             <span slot="unsupported" class="unsupported">Your browser can&rsquo;t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
             <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
           </esp-web-install-button>
@@ -640,7 +643,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
   <!-- ============ FOOTER ============ -->
   <footer class="foot reveal" style="animation-delay:.54s">
     Type set in <b>ChiKareGo2</b> · <b>Pixolde</b> · <b>ITC Garamond</b><br>
-    Bisc8 OS — briciomanzia tascabile<br>
+    <span class="brand">Bisc8</span> OS — briciomanzia tascabile<br>
     &copy; <b>enuzzo</b> · <b>Netmilk Studio</b> · <a href="https://github.com/enuzzo/bisc8">github.com/enuzzo/bisc8</a>
   </footer>
 
