@@ -73,6 +73,7 @@ body{background:repeating-conic-gradient(var(--desk) 0% 25%,#c6c0b3 0% 50%) 0 0/
 .status .cell:nth-child(odd){border-left:none;}
 .status .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;}
 .status .v{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dot-on{display:inline-block;width:8px;height:8px;background:var(--ink);margin-right:5px;vertical-align:1px;}
 .group{position:relative;border:2px solid var(--ink);padding:16px 12px 13px;margin:0 0 16px;}
 .group>.glabel{position:absolute;top:-9px;left:10px;background:var(--paper);padding:0 6px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
 .hint{font-size:13px;line-height:1.4;margin:0 0 11px;}
@@ -301,6 +302,7 @@ function setEmailEnabled(on){document.getElementById('emailEnabled').value=on?'1
  document.querySelectorAll('#emailSeg b').forEach(function(b){var sel=(b.dataset.val==='1')===!!on;b.classList.toggle('on',sel);b.setAttribute('aria-pressed',sel)});}
 function fill(s){if(s.language)applyLanguage(s.language);
  for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(function(el){el.textContent=valueText(k,s[k])})}
+ var _wm=document.querySelector('[data-bind="wifi_mode"]');if(_wm&&s.wifi_mode==='online'){_wm.innerHTML='<span class="dot-on"></span>'+_wm.textContent;}
  if(typeof s.email_enabled!=='undefined')setEmailEnabled(s.email_enabled);
  document.getElementById('rebar').classList.toggle('show',!!s.reboot_required);}
 async function refresh(){try{fill(await api('/api/status'))}catch(e){note(e.message)}}
