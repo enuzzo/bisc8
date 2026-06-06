@@ -3,19 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bisc8 — flash the pocket oracle</title>
+<title>Bisc8 OS — flash the pocket oracle</title>
 <meta name="description" content="Bisc8 — a pocket oracle that reads your fate in the crumbs. Flash the firmware to your ESP32-C6 right from your browser.">
 
-<!-- esp-web-tools -->
+<!-- esp-web-tools (Web Serial flasher) -->
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 
 <style>
 /* ============================================================
-   FONTS — DESIGN SYSTEM v2
-   TITLES / wordmark / labels / buttons / nav = ChiKareGo2 (pixel),
-     always falling back to Pixolde (ChiKareGo2 lacks ù ú ü ' …).
-   SHORT body / values / hints / pills / dock labels = Pixolde.
-   ITC Garamond 400 = ONLY genuinely long body copy (the pitch paragraph).
+   BISC8 OS — DISTRIBUTION SITE
+   Type system (rem only, NO px in layout):
+     TITLES / wordmark / labels / buttons / nav = ChiKareGo2 (pixel),
+       ALWAYS falling back to Pixolde (ChiKareGo2 lacks ' ù ú ü …).
+     BODY / values / hints / captions = Pixolde 1rem (16px), crisp.
+     ITC Garamond 400 = the ONE long pitch paragraph only.
+   Titles use natural case (first-letter capital), never ALL-CAPS.
    ============================================================ */
 @font-face{font-family:'ChiKareGo2';src:url('fonts/ChiKareGo2.woff2') format('woff2');font-weight:400;font-display:swap;}
 @font-face{font-family:'Pixolde';src:url('fonts/Pixolde.woff2') format('woff2');font-weight:400;font-display:swap;}
@@ -23,7 +25,7 @@
 @font-face{font-family:'ITC Garamond';src:url('fonts/ITCGaramondStd-Bk.woff2') format('woff2');font-weight:400;font-display:swap;}
 
 /* ============================================================
-   PALETTE — multi-pastel, harmonized (DESIGN v2)
+   PALETTE — multi-pastel, used as ACCENTS not full fills.
    ============================================================ */
 :root{
   --desk:#f0d9d2;      /* peachy-rose desktop */
@@ -31,260 +33,448 @@
   --paper:#fbf6ef;     /* cream panels */
   --cream:#f4ecdf;     /* inset / secondary panel */
   --ink:#23211c;       /* text / borders */
-  --rose:#f0b8bb;      /* primary action, active segment */
-  --mint:#bfe0cf;      /* online / success / secondary */
+  --rose:#f0b8bb;      /* primary action */
+  --rose-hi:#f3c6c8;   /* rose hover */
+  --mint:#bfe0cf;      /* online / success */
   --butter:#f4e4a0;    /* flash / lightning / highlights */
-  --lilac:#cdc6ec;     /* lingua / links / info */
-  --peach:#f6cfa6;     /* section labels / tabs / badges */
-  --sky:#bcd9e6;       /* powder-blue extra accent */
+  --lilac:#cdc6ec;     /* links / info */
+  --peach:#f6cfa6;     /* labels / badges */
+  --sky:#bcd9e6;       /* extra accent */
   --mute:#6b6055;      /* muted ink for keys/captions */
+  --warm:#7a4b46;      /* warm caption brown */
   --shadow:rgba(35,33,28,.30);
 
   --title:'ChiKareGo2','Pixolde',monospace;
   --body:'Pixolde',monospace;
   --longbody:'ITC Garamond',Georgia,serif;
+
+  --bevel:inset 0 2px 0 rgba(255,255,255,.55);
 }
 *{box-sizing:border-box;}
+html{font-size:100%;}                 /* 1rem = 16px; pixel fonts crisp here */
 html,body{margin:0;}
 body{
   min-height:100vh;
   background:
+    /* faint System-7 pinstripe wash for depth */
+    repeating-linear-gradient(90deg, rgba(35,33,28,.025) 0 .0625rem, transparent .0625rem .25rem),
     radial-gradient(125% 90% at 16% 0%, var(--desk-2) 0%, transparent 56%),
     linear-gradient(155deg, var(--desk) 0%, #f0c8c0 46%, var(--desk-2) 100%);
   background-attachment:fixed;
   font-family:var(--body);
+  font-size:1rem;line-height:1.5;
   color:var(--ink);
   -webkit-font-smoothing:none;
   font-smooth:never;
-  padding:0 0 120px;
+  padding:0 0 7rem;
 }
 img{display:block;}
+a{color:var(--ink);}
 
 /* ============================================================
-   TOP MENU STRIP — System-7 menu bar with faux date/time
+   PAGE-LOAD REVEAL — staggered, classy
+   ============================================================ */
+@media (prefers-reduced-motion:no-preference){
+  .reveal{opacity:0;transform:translateY(.9rem);animation:rise .62s cubic-bezier(.22,.7,.3,1) forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+}
+
+/* ============================================================
+   TOP MENU STRIP — System-7 menu bar + faux clock
    ============================================================ */
 .menubar{
-  position:sticky;top:0;z-index:50;height:30px;
+  position:sticky;top:0;z-index:50;height:1.875rem;
   background:var(--paper);
-  border-bottom:2px solid var(--ink);
-  box-shadow:0 2px 0 var(--shadow);
+  border-bottom:.125rem solid var(--ink);
+  box-shadow:0 .125rem 0 var(--shadow);
   display:flex;align-items:center;
-  padding:0 10px;
+  padding:0 .625rem;
   font-family:var(--title);
-  font-size:16px;letter-spacing:1px;
+  font-size:1rem;letter-spacing:.05em;
 }
-.menubar .os{font-weight:400;padding:0 12px 0 4px;text-transform:uppercase;}
-.menubar .mi{padding:0 11px;line-height:30px;height:30px;cursor:default;text-transform:uppercase;}
+.menubar .os{padding:0 .75rem 0 .25rem;text-transform:uppercase;}
+.menubar .mi{padding:0 .7rem;line-height:1.875rem;height:1.875rem;cursor:pointer;text-transform:uppercase;}
 .menubar .mi:hover,.menubar .os:hover{background:var(--ink);color:var(--paper);}
-.menubar [data-pop]{cursor:pointer;}
-.foot a{color:var(--ink);}
-/* menu popup dialog */
-.modal-ov{position:fixed;inset:0;background:rgba(35,33,28,.45);display:grid;place-items:center;z-index:100;padding:20px;}
-.modal-ov[hidden]{display:none;}
-.modal{width:min(380px,100%);background:var(--paper);border:2px solid var(--ink);box-shadow:6px 6px 0 var(--shadow);}
-.modal-bar{position:relative;height:28px;border-bottom:2px solid var(--ink);background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);display:flex;align-items:center;justify-content:center;}
-.modal-bar .close{position:absolute;left:8px;top:7px;width:13px;height:13px;border:2px solid var(--ink);background:var(--paper);cursor:pointer;}
-.modal-bar .close:active{background:var(--ink);}
-.modal-ttl{background:var(--paper);padding:0 12px;font-family:var(--title);font-size:15px;}
-.modal-body{padding:18px;font-family:var(--body);font-size:15px;line-height:1.6;color:var(--ink);}
-.modal-body .lead{font-family:var(--title);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:9px;color:#9a7b75;}
-.menubar .clock{margin-left:auto;font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:1px;padding-right:4px;text-transform:uppercase;}
+.menubar .os{cursor:pointer;}
+.menubar .clock{margin-left:auto;font-family:var(--body);font-size:.8125rem;letter-spacing:.06em;padding-right:.25rem;text-transform:uppercase;}
 
 /* ============================================================
-   DESKTOP CANVAS
+   DESKTOP CANVAS — wide, centered, full desktop width
    ============================================================ */
 .desktop{
-  max-width:980px;margin:0 auto;
-  padding:38px 26px 0;
-  display:flex;flex-direction:column;gap:34px;align-items:center;
+  max-width:71.25rem;        /* ~1140px canvas */
+  margin:0 auto;
+  padding:2.5rem 1.6rem 0;
 }
 
 /* ============================================================
-   WINDOW CHROME — System-7 pinstripe title bar + square close box
-   (NO mascot/logo glyph in the title bar — text title only)
+   WINDOW CHROME — System-7 pinstripe title bar + close box
+   (text title only — NO mascot glyph in title bars)
    ============================================================ */
 .win{
-  width:100%;
   background:var(--paper);
-  border:2px solid var(--ink);
-  box-shadow:7px 7px 0 var(--shadow);
+  border:.125rem solid var(--ink);
+  box-shadow:.4375rem .4375rem 0 var(--shadow);
 }
 .titlebar{
-  position:relative;height:30px;
-  border-bottom:2px solid var(--ink);
-  background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 3px);
+  position:relative;height:1.875rem;
+  border-bottom:.125rem solid var(--ink);
+  background:repeating-linear-gradient(var(--ink) 0 .0625rem,var(--paper) .0625rem .1875rem);
   display:flex;align-items:center;justify-content:center;
 }
 .close{
-  position:absolute;left:8px;top:7px;width:14px;height:14px;
-  border:2px solid var(--ink);background:var(--paper);cursor:pointer;padding:0;
+  position:absolute;left:.5rem;top:.4375rem;width:.875rem;height:.875rem;
+  border:.125rem solid var(--ink);background:var(--paper);cursor:pointer;padding:0;
 }
 .close:active{background:var(--ink);}
 .ttl{
-  background:var(--paper);padding:0 14px;
-  font-family:var(--title);font-weight:400;font-size:16px;letter-spacing:1px;
+  background:var(--paper);padding:0 .875rem;max-width:78%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--title);font-size:1rem;letter-spacing:.04em;
 }
 
 /* ============================================================
-   HERO WINDOW
+   GRID — multi-column on desktop, single column on mobile
    ============================================================ */
-.hero .body{padding:30px 28px 34px;text-align:center;}
-.hero .badge{
-  display:inline-block;font-family:var(--body);font-weight:400;font-size:11px;
-  letter-spacing:3px;text-transform:uppercase;color:var(--ink);
-  border:2px solid var(--ink);background:var(--peach);padding:3px 12px;margin-bottom:22px;
-  box-shadow:2px 2px 0 var(--shadow);
+.grid{
+  display:grid;gap:1.6rem;
+  grid-template-columns:1fr;
 }
+.grid + .grid{margin-top:1.6rem;}
+
+/* Row 1: hero spans full width */
+.hero{grid-column:1 / -1;}
+
+/* Row 2: device window | flash window  (asymmetric) */
+@media (min-width:56.25rem){          /* >= 900px */
+  .grid.main{grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);}
+}
+/* Row 3: about | features */
+@media (min-width:56.25rem){
+  .grid.tail{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);}
+}
+
+/* ============================================================
+   HERO WINDOW — the WOW moment
+   ============================================================ */
+.hero .body{
+  padding:2.6rem 2rem 2.9rem;
+  display:grid;gap:1.8rem;align-items:center;
+  grid-template-columns:1fr;
+  text-align:center;
+}
+@media (min-width:48rem){            /* >= 768px : mascot beside the wordmark */
+  .hero .body{grid-template-columns:auto 1fr;text-align:left;padding:3rem 2.8rem 3.2rem;}
+}
+.hero .stage{position:relative;display:grid;place-items:center;}
 .crumb{
-  width:150px;height:150px;margin:0 auto 10px;
-  border:2px solid var(--ink);background:var(--cream);
-  box-shadow:6px 6px 0 var(--shadow);display:grid;place-items:center;
+  position:relative;
+  width:11.5rem;height:11.5rem;
+  border:.125rem solid var(--ink);background:var(--cream);
+  box-shadow:.375rem .375rem 0 var(--shadow);
+  display:grid;place-items:center;overflow:visible;
 }
-.crumb img{width:118px;height:118px;image-rendering:pixelated;image-rendering:crisp-edges;}
+.crumb img{
+  width:8.75rem;height:8.75rem;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+}
+@media (prefers-reduced-motion:no-preference){
+  .crumb img{animation:float 4.2s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-.55rem);}}
+}
+/* sparkles around the mascot */
+.spark{position:absolute;font-family:var(--title);color:var(--ink);font-size:1.1rem;opacity:0;pointer-events:none;}
+.spark.s1{top:-.55rem;right:-.4rem;}
+.spark.s2{bottom:.6rem;left:-.65rem;font-size:.85rem;}
+.spark.s3{top:2.4rem;right:-.85rem;font-size:.7rem;}
+@media (prefers-reduced-motion:no-preference){
+  .spark.s1{animation:tw 3.4s ease-in-out .2s infinite;}
+  .spark.s2{animation:tw 3.4s ease-in-out 1.3s infinite;}
+  .spark.s3{animation:tw 3.4s ease-in-out 2.2s infinite;}
+  @keyframes tw{0%,100%{opacity:0;transform:scale(.6);}45%{opacity:.9;transform:scale(1);}}
+}
+.hero .copy{min-width:0;}
+.badge{
+  display:inline-block;font-family:var(--body);font-size:.6875rem;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink);
+  border:.125rem solid var(--ink);background:var(--peach);
+  padding:.2rem .75rem;margin-bottom:1.1rem;
+  box-shadow:.125rem .125rem 0 var(--shadow);
+}
 .wordmark{
-  font-family:var(--title);font-weight:400;
-  font-size:92px;line-height:.92;letter-spacing:2px;
-  margin:18px 0 6px;text-transform:none;
+  font-family:var(--title);
+  font-size:5.5rem;line-height:.9;letter-spacing:.02em;
+  margin:.1rem 0 .45rem;text-transform:none;
 }
 .pitch{
-  font-family:var(--longbody);font-weight:400;font-size:21px;line-height:1.5;
-  color:#3c352d;max-width:440px;margin:8px auto 26px;
+  font-family:var(--longbody);font-weight:400;
+  font-size:1.4375rem;line-height:1.5;
+  color:#3c352d;max-width:31rem;margin:.5rem 0 1.6rem;
 }
+.hero .body[text] {}
 
-/* primary + secondary big buttons */
-.cta{display:flex;flex-direction:column;gap:14px;align-items:stretch;max-width:380px;margin:0 auto;}
+/* big CTA buttons (reference recipe scaled up) */
+.cta{display:flex;flex-wrap:wrap;gap:.875rem;align-items:stretch;}
 .btn-big{
-  font-family:var(--title);font-weight:400;font-size:21px;letter-spacing:1px;
-  background:var(--rose);color:var(--ink);border:2px solid var(--ink);
-  padding:15px 20px;min-height:56px;box-shadow:5px 5px 0 var(--shadow);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--title);font-size:1.3125rem;letter-spacing:.03em;
+  background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);
+  padding:.95rem 1.4rem;min-height:3.5rem;
+  box-shadow:var(--bevel),.3125rem .3125rem 0 var(--shadow);
+  cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:.625rem;
   text-decoration:none;text-transform:uppercase;
 }
-.btn-big:hover{background:#f3c6c8;}
-.btn-big:active{transform:translate(5px,5px);box-shadow:none;}
-.btn-big .bolt{color:var(--ink);background:var(--butter);border:2px solid var(--ink);
-  width:30px;height:30px;display:grid;place-items:center;font-size:17px;line-height:1;}
+.btn-big:hover{background:var(--rose-hi);}
+.btn-big:active{transform:translate(.3125rem,.3125rem);box-shadow:var(--bevel),0 0 0 var(--shadow);}
+.btn-big .bolt{
+  color:var(--ink);background:var(--butter);border:.125rem solid var(--ink);
+  width:1.875rem;height:1.875rem;display:grid;place-items:center;font-size:1.0625rem;line-height:1;
+}
 .btn-big.sec{
-  background:var(--cream);color:var(--ink);box-shadow:5px 5px 0 var(--shadow);
-  font-size:17px;min-height:50px;padding:13px 20px;
+  background:var(--cream);color:var(--ink);
+  font-size:1.0625rem;min-height:3.125rem;padding:.8rem 1.4rem;
 }
 .btn-big.sec:hover{background:#ece2d2;}
-/* esp-web-install-button takes our slotted button as-is */
-esp-web-install-button{display:block;}
+
+/* esp-web-install-button uses our slotted button as-is */
+esp-web-install-button{display:inline-block;}
 esp-web-install-button[install-unsupported] .unsupported{display:block;}
-esp-web-install-button .unsupported{display:none;}
 .unsupported{
-  font-family:var(--body);font-size:13px;line-height:1.45;color:#7a4b46;
-  border:2px solid var(--ink);background:var(--butter);
-  padding:10px 12px;text-align:left;
+  display:none;
+  font-family:var(--body);font-size:.8125rem;line-height:1.45;color:var(--warm);
+  border:.125rem solid var(--ink);background:var(--butter);
+  padding:.625rem .75rem;text-align:left;max-width:24rem;
 }
 
 /* ============================================================
-   DEVICE SCREENSHOTS — crisp pixel art
+   DEVICE WINDOW — crisp pixel screenshots
    ============================================================ */
-.screens{
-  display:flex;flex-wrap:wrap;gap:22px;justify-content:center;
-  margin:32px 0 4px;
+.device .body{padding:1.6rem 1.5rem 1.7rem;}
+.window-eyebrow{
+  font-family:var(--body);font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 1.1rem;text-align:center;
 }
-.screen{text-align:center;}
+.screens{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;justify-items:center;
+}
+.screen{text-align:center;width:100%;}
 .screen .frame{
-  width:200px;height:200px;
-  border:2px solid var(--ink);background:#ffffff;
-  box-shadow:5px 5px 0 var(--shadow);
+  width:100%;max-width:9rem;aspect-ratio:1/1;margin:0 auto;
+  border:.125rem solid var(--ink);background:#ffffff;
+  box-shadow:.3125rem .3125rem 0 var(--shadow);
   display:grid;place-items:center;overflow:hidden;
 }
 .screen .frame img{
-  width:200px;height:200px;
+  width:100%;height:100%;
   image-rendering:pixelated;image-rendering:crisp-edges;
 }
 .screen .cap{
-  margin-top:9px;font-family:var(--body);font-weight:700;font-size:12px;
-  letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);
+  margin-top:.55rem;font-family:var(--body);font-weight:700;font-size:.75rem;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--mute);
 }
 
 /* ============================================================
    FLASH WINDOW
    ============================================================ */
-.flash .body{padding:28px 28px 32px;}
+.flash .body{padding:1.7rem 1.8rem 1.9rem;}
 .flash h2{
-  font-family:var(--title);font-weight:400;font-size:30px;letter-spacing:1px;
-  text-align:center;margin:0 0 6px;text-transform:uppercase;
+  font-family:var(--title);font-size:2rem;letter-spacing:.02em;
+  margin:0 0 .3rem;text-transform:none;
 }
 .flash .sub{
-  font-family:var(--body);font-size:13px;letter-spacing:2px;text-transform:uppercase;
-  text-align:center;color:var(--mute);margin:0 0 24px;
+  font-family:var(--body);font-size:.8125rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 1.4rem;
 }
-/* numbered steps */
-.steps{list-style:none;counter-reset:step;margin:0 0 26px;padding:0;
-  display:grid;gap:14px;}
+.steps{list-style:none;counter-reset:step;margin:0 0 1.5rem;padding:0;display:grid;gap:.875rem;}
 .steps li{
   position:relative;counter-increment:step;
-  border:2px solid var(--ink);background:var(--cream);
-  padding:14px 16px 14px 60px;box-shadow:3px 3px 0 var(--shadow);
+  border:.125rem solid var(--ink);background:var(--cream);
+  padding:.875rem 1rem .875rem 3.75rem;
+  box-shadow:.1875rem .1875rem 0 var(--shadow);
 }
 .steps li::before{
   content:counter(step);
-  position:absolute;left:-2px;top:-2px;bottom:-2px;width:46px;
+  position:absolute;left:-.125rem;top:-.125rem;bottom:-.125rem;width:2.875rem;
   display:grid;place-items:center;
-  font-family:var(--title);font-weight:400;font-size:24px;
-  border-right:2px solid var(--ink);color:var(--ink);
+  font-family:var(--title);font-size:1.5rem;
+  border-right:.125rem solid var(--ink);color:var(--ink);
 }
 .steps li:nth-child(1)::before{background:var(--mint);}
 .steps li:nth-child(2)::before{background:var(--butter);}
 .steps li:nth-child(3)::before{background:var(--lilac);}
-.steps .st{font-family:var(--title);font-weight:400;font-size:18px;letter-spacing:.5px;text-transform:uppercase;}
-.steps .sd{font-family:var(--body);font-weight:400;font-size:14px;line-height:1.5;color:#3c352d;margin-top:3px;}
+.steps .st{font-family:var(--title);font-size:1.125rem;letter-spacing:.01em;}
+.steps .sd{font-family:var(--body);font-size:.875rem;line-height:1.5;color:#3c352d;margin-top:.2rem;}
 
-.flash-cta{display:flex;flex-direction:column;gap:14px;align-items:stretch;max-width:380px;margin:0 auto;}
+.flash-cta{display:flex;flex-direction:column;gap:.875rem;align-items:stretch;}
+.flash-cta .btn-big{justify-content:center;}
+
+/* ============================================================
+   ABOUT WINDOW — product card
+   ============================================================ */
+.about .body{padding:1.7rem 1.8rem 1.9rem;}
+.about h2{font-family:var(--title);font-size:1.625rem;margin:0 0 .9rem;text-transform:none;}
+.about .lede{
+  font-family:var(--longbody);font-weight:400;font-size:1.25rem;line-height:1.5;
+  color:#3c352d;margin:0 0 1.2rem;
+}
+.specs{display:grid;gap:.625rem;margin:0 0 1.2rem;}
+.spec{
+  display:flex;align-items:center;gap:.75rem;
+  border:.125rem solid var(--ink);background:var(--paper);
+  padding:.6rem .75rem;box-shadow:inset .375rem 0 0 var(--spec-bar);
+}
+.spec:nth-child(1){--spec-bar:var(--mint);}
+.spec:nth-child(2){--spec-bar:var(--sky);}
+.spec:nth-child(3){--spec-bar:var(--peach);}
+.spec:nth-child(4){--spec-bar:var(--lilac);}
+.spec .k{font-family:var(--title);font-size:.8125rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);min-width:6rem;}
+.spec .v{font-family:var(--body);font-size:1rem;color:var(--ink);}
+.maker{font-family:var(--body);font-size:.875rem;color:var(--mute);line-height:1.6;}
+.maker b{font-weight:700;color:var(--ink);}
+
+/* ============================================================
+   FEATURES WINDOW — how it reads the crumbs
+   ============================================================ */
+.feats .body{padding:1.7rem 1.8rem 1.9rem;}
+.feats h2{font-family:var(--title);font-size:1.625rem;margin:0 0 1rem;text-transform:none;}
+.feat{display:flex;gap:.85rem;align-items:flex-start;padding:.7rem 0;border-top:.125rem dotted var(--ink);}
+.feat:first-of-type{border-top:0;padding-top:0;}
+.feat .ic{
+  flex:none;width:2.5rem;height:2.5rem;border:.125rem solid var(--ink);
+  display:grid;place-items:center;font-size:1.25rem;font-family:var(--title);
+  box-shadow:.125rem .125rem 0 var(--shadow);
+}
+.feat:nth-of-type(1) .ic{background:var(--rose);}
+.feat:nth-of-type(2) .ic{background:var(--butter);}
+.feat:nth-of-type(3) .ic{background:var(--sky);}
+.feat:nth-of-type(4) .ic{background:var(--mint);}
+.feat .ft{font-family:var(--title);font-size:1.0625rem;letter-spacing:.01em;}
+.feat .fd{font-family:var(--body);font-size:.875rem;line-height:1.5;color:#3c352d;margin-top:.15rem;}
 
 /* ============================================================
    DOCK — framed pixel icons with Pixolde labels
    ============================================================ */
+.dockwrap{display:flex;justify-content:center;margin-top:2.2rem;}
 .dock{
   display:inline-flex;
-  border:2px solid var(--ink);background:var(--paper);
-  box-shadow:5px 5px 0 var(--shadow);
+  border:.125rem solid var(--ink);background:var(--paper);
+  box-shadow:.3125rem .3125rem 0 var(--shadow);
 }
 .dock a{
-  width:90px;padding:13px 6px 9px;text-align:center;cursor:pointer;
-  border-left:2px solid var(--ink);text-decoration:none;color:var(--ink);
+  width:5.625rem;padding:.8rem .4rem .55rem;text-align:center;cursor:pointer;
+  border-left:.125rem solid var(--ink);text-decoration:none;color:var(--ink);
 }
 .dock a:first-child{border-left:0;}
 .dock a:hover{background:var(--cream);}
 .dock .glyph{
-  width:40px;height:40px;margin:0 auto 7px;border:2px solid var(--ink);
-  display:grid;place-items:center;font-size:20px;
-  font-family:var(--title);font-weight:400;overflow:hidden;
+  width:2.5rem;height:2.5rem;margin:0 auto .45rem;border:.125rem solid var(--ink);
+  display:grid;place-items:center;font-size:1.25rem;
+  font-family:var(--title);overflow:hidden;
 }
 .dock a:nth-child(1) .glyph{background:var(--rose);}
 .dock a:nth-child(2) .glyph{background:var(--butter);}
 .dock a:nth-child(3) .glyph{background:var(--sky);}
 .dock a:nth-child(4) .glyph{background:var(--mint);}
-.dock .glyph img{width:30px;height:30px;image-rendering:pixelated;image-rendering:crisp-edges;}
-.dock .lbl{font-family:var(--body);font-weight:400;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+.dock .glyph img{width:1.875rem;height:1.875rem;image-rendering:pixelated;image-rendering:crisp-edges;}
+.dock .lbl{font-family:var(--body);font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;}
 
 /* ============================================================
    FOOTER
    ============================================================ */
 .foot{
-  width:100%;text-align:center;margin:4px auto 0;
-  font-family:var(--body);font-weight:400;font-size:11px;letter-spacing:2px;
-  text-transform:uppercase;color:#7a4b46;line-height:1.8;
+  width:100%;text-align:center;margin:1.4rem auto 0;
+  font-family:var(--body);font-size:.8125rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--warm);line-height:1.9;
 }
 .foot b{font-weight:700;color:var(--ink);}
-.foot a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;}
+.foot a{color:var(--ink);text-decoration:underline;text-underline-offset:.125rem;}
+
+/* ============================================================
+   MENU POPUP DIALOGS — pretty, meaningful
+   ============================================================ */
+.modal-ov{position:fixed;inset:0;background:rgba(35,33,28,.45);display:grid;place-items:center;z-index:100;padding:1.25rem;}
+.modal-ov[hidden]{display:none;}
+.modal{width:min(28rem,100%);background:var(--paper);border:.125rem solid var(--ink);box-shadow:.5rem .5rem 0 var(--shadow);}
+.modal-bar{
+  position:relative;height:1.875rem;border-bottom:.125rem solid var(--ink);
+  background:repeating-linear-gradient(var(--ink) 0 .0625rem,var(--paper) .0625rem .1875rem);
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-bar .close{left:.5rem;top:.4375rem;}
+.modal-ttl{background:var(--paper);padding:0 .875rem;font-family:var(--title);font-size:1.0625rem;}
+.modal-body{padding:1.5rem 1.5rem 1.6rem;font-family:var(--body);font-size:1rem;line-height:1.6;color:var(--ink);}
+.modal-head{display:flex;align-items:center;gap:.85rem;margin-bottom:1.1rem;}
+.modal-icon{
+  flex:none;width:3rem;height:3rem;border:.125rem solid var(--ink);
+  display:grid;place-items:center;font-size:1.5rem;font-family:var(--title);
+  box-shadow:.1875rem .1875rem 0 var(--shadow);
+}
+.modal-head h3{font-family:var(--title);font-size:1.5rem;margin:0;text-transform:none;line-height:1;}
+.lead{font-family:var(--body);font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;display:block;color:#9a7b75;margin-top:.2rem;}
+
+/* oracle card */
+.oracle-card{
+  border:.125rem solid var(--ink);background:var(--cream);
+  box-shadow:inset 0 0 0 .1875rem var(--paper),.25rem .25rem 0 var(--shadow);
+  padding:1.4rem 1.3rem;text-align:center;
+}
+.oracle-card .reading{font-family:var(--longbody);font-weight:400;font-size:1.5rem;line-height:1.45;color:#2c2822;margin:.3rem 0 .9rem;}
+.oracle-card .rule{height:.125rem;background:repeating-linear-gradient(90deg,var(--ink) 0 .25rem,transparent .25rem .5rem);margin:.7rem auto;width:60%;}
+.oracle-again{margin-top:1.1rem;text-align:center;}
+.btn-mini{
+  font-family:var(--title);font-size:.9375rem;letter-spacing:.03em;text-transform:uppercase;
+  background:var(--rose);color:var(--ink);border:.125rem solid var(--ink);
+  padding:.5rem 1rem;min-height:2.5rem;cursor:pointer;
+  box-shadow:var(--bevel),.1875rem .1875rem 0 var(--shadow);
+}
+.btn-mini:hover{background:var(--rose-hi);}
+.btn-mini:active{transform:translate(.1875rem,.1875rem);box-shadow:var(--bevel),0 0 0 var(--shadow);}
+
+/* help numbered steps */
+.help-steps{list-style:none;counter-reset:hs;margin:0;padding:0;display:grid;gap:.75rem;}
+.help-steps li{
+  position:relative;counter-increment:hs;
+  padding:.2rem 0 .2rem 2.5rem;font-size:.9375rem;line-height:1.5;
+}
+.help-steps li::before{
+  content:counter(hs);position:absolute;left:0;top:.05rem;
+  width:1.75rem;height:1.75rem;border:.125rem solid var(--ink);
+  display:grid;place-items:center;font-family:var(--title);font-size:1rem;
+}
+.help-steps li:nth-child(1)::before{background:var(--rose);}
+.help-steps li:nth-child(2)::before{background:var(--butter);}
+.help-steps li:nth-child(3)::before{background:var(--mint);}
+.help-steps li:nth-child(4)::before{background:var(--lilac);}
+.help-steps b{font-family:var(--title);font-weight:400;}
+.modal-note{margin-top:1.1rem;font-size:.875rem;line-height:1.55;color:var(--mute);border-top:.125rem dotted var(--ink);padding-top:.9rem;}
+.modal-note b{font-weight:700;color:var(--ink);}
+
+.about-card .spec{margin:0;}
+.about-card .specs{margin-bottom:1.1rem;}
 
 /* ============================================================
    FOCUS / A11Y
    ============================================================ */
-.btn-big:focus-visible,.close:focus-visible,.dock a:focus-visible,.menubar .mi:focus-visible{
-  outline:2px solid var(--ink);outline-offset:3px;
+.btn-big:focus-visible,.btn-mini:focus-visible,.close:focus-visible,
+.dock a:focus-visible,.menubar .mi:focus-visible,.menubar .os:focus-visible{
+  outline:.125rem solid var(--ink);outline-offset:.1875rem;
 }
-@media (max-width:560px){
-  .wordmark{font-size:68px;}
-  .screen,.screen .frame{width:160px;}
-  .screen .frame{height:160px;}
-  .screen .frame img{width:160px;height:160px;}
+
+/* ============================================================
+   RESPONSIVE TUNING
+   ============================================================ */
+@media (max-width:48rem){
+  .wordmark{font-size:4.25rem;}
+  .hero .body{gap:1.4rem;}
+}
+@media (max-width:34rem){
+  .wordmark{font-size:3.5rem;}
+  .crumb{width:9rem;height:9rem;}
+  .crumb img{width:6.75rem;height:6.75rem;}
+  .pitch{font-size:1.25rem;}
+  .desktop{padding:1.8rem 1rem 0;}
+  .cta{flex-direction:column;}
+  .cta .btn-big{width:100%;}
 }
 </style>
 </head>
@@ -299,97 +489,162 @@ esp-web-install-button .unsupported{display:none;}
   <span class="clock" id="clock">Sat 6 Jun&nbsp;&nbsp;14:32</span>
 </div>
 
-<div class="desktop">
+<main class="desktop">
 
-  <!-- ============ HERO WINDOW ============ -->
-  <section class="win hero" aria-labelledby="wordmark">
-    <div class="titlebar"><button class="close" type="button" aria-label="Close"></button><div class="ttl">flash.bisc8.os</div></div>
-    <div class="body">
-      <span class="badge">crumbomancy · v1</span>
-      <div class="crumb"><img src="img/mascot.png" alt="Bisc8 — a smiling pixel biscuit with a bow"></div>
-      <h1 class="wordmark" id="wordmark">Bisc8</h1>
-      <p class="pitch">A pocket oracle that reads your fate in the crumbs. Hold the button, ask aloud, and a tiny black-and-white biscuit answers — then quietly emails the verdict to you.</p>
-
-      <div class="cta">
-        <esp-web-install-button manifest="manifest.json">
-          <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
-          <span slot="unsupported" class="unsupported">Your browser can’t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
-          <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
-        </esp-web-install-button>
-        <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+  <!-- ============ ROW 1 — HERO (full width) ============ -->
+  <div class="grid">
+    <section class="win hero reveal" style="animation-delay:.05s" aria-labelledby="wordmark">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">flash.bisc8.os</div></div>
+      <div class="body">
+        <div class="stage">
+          <span class="spark s1" aria-hidden="true">+</span>
+          <span class="spark s2" aria-hidden="true">*</span>
+          <span class="spark s3" aria-hidden="true">+</span>
+          <div class="crumb"><img src="img/mascot.png" alt="Bisc8 — a smiling pixel biscuit with a bow"></div>
+        </div>
+        <div class="copy">
+          <span class="badge">crumbomancy · v1</span>
+          <h1 class="wordmark" id="wordmark">Bisc8</h1>
+          <p class="pitch">A pocket oracle that reads your fate in the crumbs. Hold the button, ask aloud, and a tiny black-and-white biscuit answers — speaking and showing a lyrical reading, then quietly emailing the verdict to you.</p>
+          <div class="cta">
+            <esp-web-install-button manifest="manifest.json">
+              <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+              <span slot="unsupported" class="unsupported">Your browser can&rsquo;t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
+              <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
+            </esp-web-install-button>
+            <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
-
-  <!-- ============ DEVICE SCREENSHOTS ============ -->
-  <div class="screens" role="group" aria-label="Bisc8 screens">
-    <figure class="screen" style="margin:0">
-      <div class="frame"><img src="img/screen-status.png" alt="Bisc8 status screen"></div>
-      <figcaption class="cap">Status</figcaption>
-    </figure>
-    <figure class="screen" style="margin:0">
-      <div class="frame"><img src="img/screen-lowpower.png" alt="Bisc8 low-power screen"></div>
-      <figcaption class="cap">Low power</figcaption>
-    </figure>
-    <figure class="screen" style="margin:0">
-      <div class="frame"><img src="img/screen-setup.png" alt="Bisc8 Wi-Fi setup screen"></div>
-      <figcaption class="cap">Setup</figcaption>
-    </figure>
+    </section>
   </div>
 
-  <!-- ============ FLASH WINDOW ============ -->
-  <section class="win flash" aria-labelledby="flash-h">
-    <div class="titlebar"><button class="close" type="button" aria-label="Close"></button><div class="ttl">Installer</div></div>
-    <div class="body">
-      <h2 id="flash-h">Flash the firmware</h2>
-      <p class="sub">three steps · no toolchain · right in the browser</p>
+  <!-- ============ ROW 2 — DEVICE | FLASH ============ -->
+  <div class="grid main">
 
-      <ol class="steps">
-        <li>
-          <div class="st">Plug in</div>
-          <div class="sd">Use desktop Chrome or Edge and connect the Bisc8 to your computer over USB-C.</div>
-        </li>
-        <li>
-          <div class="st">Click Flash</div>
-          <div class="sd">Hit Flash Bisc8, pick the serial port in the dialog, and let it erase and install. It takes about a minute.</div>
-        </li>
-        <li>
-          <div class="st">Configure</div>
-          <div class="sd">When it reboots, join the Bisc8 Wi-Fi network and set up your network, language, and oracle in the captive portal.</div>
-        </li>
-      </ol>
-
-      <div class="flash-cta">
-        <esp-web-install-button manifest="manifest.json">
-          <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
-          <span slot="unsupported" class="unsupported">Your browser can’t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
-          <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
-        </esp-web-install-button>
-        <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+    <!-- device screens window -->
+    <section class="win device reveal" style="animation-delay:.16s" aria-labelledby="device-h">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">Screens</div></div>
+      <div class="body">
+        <p class="window-eyebrow" id="device-h">a 1.54&Prime; e-paper face</p>
+        <div class="screens" role="group" aria-label="Bisc8 device screens">
+          <figure class="screen" style="margin:0">
+            <div class="frame"><img src="img/screen-status.png" alt="Bisc8 status screen"></div>
+            <figcaption class="cap">Status</figcaption>
+          </figure>
+          <figure class="screen" style="margin:0">
+            <div class="frame"><img src="img/screen-lowpower.png" alt="Bisc8 low-power screen"></div>
+            <figcaption class="cap">Low power</figcaption>
+          </figure>
+          <figure class="screen" style="margin:0">
+            <div class="frame"><img src="img/screen-setup.png" alt="Bisc8 Wi-Fi setup screen"></div>
+            <figcaption class="cap">Setup</figcaption>
+          </figure>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- flash window -->
+    <section class="win flash reveal" style="animation-delay:.24s" aria-labelledby="flash-h">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">Installer</div></div>
+      <div class="body">
+        <h2 id="flash-h">Flash the firmware</h2>
+        <p class="sub">three steps · no toolchain · right in the browser</p>
+
+        <ol class="steps">
+          <li>
+            <div class="st">Plug in</div>
+            <div class="sd">Use desktop Chrome or Edge and connect the Bisc8 to your computer over USB-C.</div>
+          </li>
+          <li>
+            <div class="st">Click Flash</div>
+            <div class="sd">Hit Flash Bisc8, pick the serial port in the dialog, and let it erase and install. About a minute.</div>
+          </li>
+          <li>
+            <div class="st">Configure</div>
+            <div class="sd">When it reboots, join the Bisc8 setup Wi-Fi network and set your network, language and oracle in the captive portal.</div>
+          </li>
+        </ol>
+
+        <div class="flash-cta">
+          <esp-web-install-button manifest="manifest.json">
+            <button class="btn-big" slot="activate" type="button"><span class="bolt" aria-hidden="true">⚡</span> Flash Bisc8</button>
+            <span slot="unsupported" class="unsupported">Your browser can&rsquo;t flash here. Open this page in desktop <b>Chrome</b> or <b>Edge</b> with the device plugged in over USB-C.</span>
+            <span slot="not-allowed" class="unsupported">Web Serial needs a secure (https) context. Try the published page.</span>
+          </esp-web-install-button>
+          <a class="btn-big sec" href="firmware/bisc8-firmware.zip" download>Download .zip</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ROW 3 — ABOUT | FEATURES ============ -->
+  <div class="grid tail">
+
+    <!-- about window -->
+    <section class="win about reveal" style="animation-delay:.32s" aria-labelledby="about-h">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">About</div></div>
+      <div class="body">
+        <h2 id="about-h">A little oracle in a tin</h2>
+        <p class="lede">Bisc8 is a tiny machine for briciomanzia — crumbomancy, the reading of fate in the crumbs.</p>
+        <div class="specs">
+          <div class="spec"><span class="k">Brain</span><span class="v">ESP32-C6</span></div>
+          <div class="spec"><span class="k">Face</span><span class="v">1.54&Prime; e-paper</span></div>
+          <div class="spec"><span class="k">Voice</span><span class="v">OpenAI oracle</span></div>
+          <div class="spec"><span class="k">Build</span><span class="v">Bisc8 OS v1</span></div>
+        </div>
+        <p class="maker">Made by <b>enuzzo</b> + <b>Netmilk Studio</b>. Open hardware &amp; firmware, flashed straight from this page.</p>
+      </div>
+    </section>
+
+    <!-- features window -->
+    <section class="win feats reveal" style="animation-delay:.4s" aria-labelledby="feats-h">
+      <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">How it reads</div></div>
+      <div class="body">
+        <h2 id="feats-h">Hold. Ask. Listen.</h2>
+        <div class="feat">
+          <div class="ic" aria-hidden="true">?</div>
+          <div><div class="ft">Ask aloud</div><div class="fd">Hold the BOOT button, speak your question, and let go.</div></div>
+        </div>
+        <div class="feat">
+          <div class="ic" aria-hidden="true">~</div>
+          <div><div class="ft">It reads the crumbs</div><div class="fd">The oracle consults the scatter and composes a lyrical answer.</div></div>
+        </div>
+        <div class="feat">
+          <div class="ic" aria-hidden="true">▤</div>
+          <div><div class="ft">On screen &amp; voice</div><div class="fd">The verdict appears on the e-paper and is spoken back to you.</div></div>
+        </div>
+        <div class="feat">
+          <div class="ic" aria-hidden="true">@</div>
+          <div><div class="ft">Mailed to you</div><div class="fd">If you like, Bisc8 quietly emails the reading to keep.</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- ============ DOCK ============ -->
-  <nav class="dock" aria-label="Bisc8 dock">
-    <a href="#wordmark"><div class="glyph"><img src="img/mascot.png" alt=""></div><div class="lbl">Oracle</div></a>
-    <a href="#flash-h"><div class="glyph" aria-hidden="true">⚡</div><div class="lbl">Flash</div></a>
-    <a href="firmware/bisc8-firmware.zip" download><div class="glyph" aria-hidden="true">▤</div><div class="lbl">Zip</div></a>
-    <a href="https://github.com/enuzzo/bisc8"><div class="glyph" aria-hidden="true">★</div><div class="lbl">Source</div></a>
-  </nav>
+  <div class="dockwrap reveal" style="animation-delay:.48s">
+    <nav class="dock" aria-label="Bisc8 dock">
+      <a data-pop="oracle" role="button" tabindex="0"><div class="glyph"><img src="img/mascot.png" alt=""></div><div class="lbl">Oracle</div></a>
+      <a href="#flash-h"><div class="glyph" aria-hidden="true">⚡</div><div class="lbl">Flash</div></a>
+      <a href="firmware/bisc8-firmware.zip" download><div class="glyph" aria-hidden="true">▤</div><div class="lbl">Zip</div></a>
+      <a href="https://github.com/enuzzo/bisc8"><div class="glyph" aria-hidden="true">★</div><div class="lbl">Source</div></a>
+    </nav>
+  </div>
 
   <!-- ============ FOOTER ============ -->
-  <footer class="foot">
+  <footer class="foot reveal" style="animation-delay:.54s">
     Type set in <b>ChiKareGo2</b> · <b>Pixolde</b> · <b>ITC Garamond</b><br>
     Bisc8 OS — briciomanzia tascabile<br>
     &copy; <b>enuzzo</b> · <b>Netmilk Studio</b> · <a href="https://github.com/enuzzo/bisc8">github.com/enuzzo/bisc8</a>
   </footer>
 
-</div>
+</main>
 
+<!-- ============ MENU POPUP DIALOG ============ -->
 <div class="modal-ov" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-t">
-    <div class="modal-bar"><div class="close" id="modal-x" role="button" tabindex="0" aria-label="close"></div><span class="modal-ttl" id="modal-t">Bisc8</span></div>
+    <div class="modal-bar"><button class="close" id="modal-x" type="button" aria-label="Close dialog"></button><span class="modal-ttl" id="modal-t">Bisc8</span></div>
     <div class="modal-body" id="modal-b"></div>
   </div>
 </div>
@@ -405,14 +660,18 @@ esp-web-install-button .unsupported{display:none;}
     var d=new Date();
     var hh=String(d.getHours()).padStart(2,'0');
     var mm=String(d.getMinutes()).padStart(2,'0');
-    el.textContent=days[d.getDay()]+' '+d.getDate()+' '+mons[d.getMonth()]+'  '+hh+':'+mm;
+    el.textContent=days[d.getDay()]+' '+d.getDate()+' '+mons[d.getMonth()]+'  '+hh+':'+mm;
   }
   tick();setInterval(tick,15000);
 })();
-/* menu-strip popups: Oracle reads the crumbs, Help explains, File/Bisc8 OS = about */
+
+/* menu-strip popups: Oracle reads the crumbs, Help explains, File/Bisc8 OS = About */
 (function(){
   var modal=document.getElementById('modal'),
-      mt=document.getElementById('modal-t'), mb=document.getElementById('modal-b');
+      mt=document.getElementById('modal-t'),
+      mb=document.getElementById('modal-b'),
+      lastTrigger=null;
+
   var crumbs=[
     "The crumbs scatter east. Say yes before noon.",
     "A buttery omen — what you delayed will rise.",
@@ -423,26 +682,80 @@ esp-web-install-button .unsupported{display:none;}
     "A crack runs through the glaze; the break is the doorway.",
     "Eat the corner first. The middle keeps its secret."
   ];
-  var POP={
-    about:{t:'Bisc8 OS', h:'about', b:'A pocket crumbomancy machine — ESP32-C6 &middot; 1.54&quot; e-paper &middot; OpenAI voice oracle.<br><br>Bisc8 OS v1, made by <b>enuzzo</b> + <b>Netmilk Studio</b>.'},
-    help:{t:'Help', h:'how it works', b:'Hold <b>BOOT</b>, ask aloud, release. Bisc8 transcribes your question, consults the oracle, and reads the crumbs back — on the e-paper, out loud, and (if you like) by email.<br><br>Flash it above, then join the <b>Bisc8-XXXX</b> Wi-Fi and set your network, language &amp; OpenAI key in the captive portal.'}
-  };
-  function open(k){
-    var inner;
-    if(k==='oracle'){ mt.textContent='Oracle';
-      inner='<span class="lead">reading the crumbs</span>'+crumbs[Math.floor(Math.random()*crumbs.length)]; }
-    else { var p=POP[k]||POP.about; mt.textContent=p.t;
-      inner='<span class="lead">'+p.h+'</span>'+p.b; }
-    mb.innerHTML=inner; modal.hidden=false;
+
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function oracleHTML(){
+    var r=crumbs[Math.floor(Math.random()*crumbs.length)];
+    return ''+
+      '<div class="modal-head">'+
+        '<div class="modal-icon" style="background:var(--rose)" aria-hidden="true">◍</div>'+
+        '<div><h3>Oracle</h3><span class="lead">reading the crumbs</span></div>'+
+      '</div>'+
+      '<div class="oracle-card">'+
+        '<div class="rule"></div>'+
+        '<p class="reading">&ldquo;'+esc(r)+'&rdquo;</p>'+
+        '<div class="rule"></div>'+
+      '</div>'+
+      '<div class="oracle-again"><button class="btn-mini" type="button" id="oracle-again">Read again</button></div>';
   }
-  function close(){ modal.hidden=true; }
+
+  function helpHTML(){
+    return ''+
+      '<div class="modal-head">'+
+        '<div class="modal-icon" style="background:var(--butter)" aria-hidden="true">?</div>'+
+        '<div><h3>How it works</h3><span class="lead">hold · ask · listen</span></div>'+
+      '</div>'+
+      '<ol class="help-steps">'+
+        '<li>Flash Bisc8 above, then it reboots into setup.</li>'+
+        '<li>Join the <b>Bisc8-XXXX</b> Wi-Fi and open the captive portal to set your network, language and OpenAI key.</li>'+
+        '<li>Hold <b>BOOT</b>, ask your question aloud, and release.</li>'+
+        '<li>It reads the crumbs back — on the e-paper, out loud, and by email.</li>'+
+      '</ol>'+
+      '<p class="modal-note">No toolchain, no app store. The key and your networks live only on the device.</p>';
+  }
+
+  function aboutHTML(){
+    return ''+
+      '<div class="modal-head">'+
+        '<div class="modal-icon" style="background:var(--mint)" aria-hidden="true">◐</div>'+
+        '<div><h3>Bisc8 OS</h3><span class="lead">about</span></div>'+
+      '</div>'+
+      '<div class="about-card">'+
+        '<div class="specs">'+
+          '<div class="spec"><span class="k">Brain</span><span class="v">ESP32-C6</span></div>'+
+          '<div class="spec"><span class="k">Face</span><span class="v">1.54&Prime; e-paper</span></div>'+
+          '<div class="spec"><span class="k">Voice</span><span class="v">OpenAI oracle</span></div>'+
+          '<div class="spec"><span class="k">Build</span><span class="v">Bisc8 OS v1</span></div>'+
+        '</div>'+
+        '<p class="maker">A pocket crumbomancy machine, made by <b>enuzzo</b> + <b>Netmilk Studio</b>.</p>'+
+      '</div>';
+  }
+
+  function open(k){
+    lastTrigger=document.activeElement;
+    if(k==='oracle'){mt.textContent='Oracle';mb.innerHTML=oracleHTML();bindAgain();}
+    else if(k==='help'){mt.textContent='Help';mb.innerHTML=helpHTML();}
+    else {mt.textContent='Bisc8 OS';mb.innerHTML=aboutHTML();}
+    modal.hidden=false;
+    document.getElementById('modal-x').focus();
+  }
+  function bindAgain(){
+    var b=document.getElementById('oracle-again');
+    if(b)b.addEventListener('click',function(){mb.innerHTML=oracleHTML();bindAgain();document.getElementById('oracle-again').focus();});
+  }
+  function close(){
+    modal.hidden=true;
+    if(lastTrigger&&lastTrigger.focus)lastTrigger.focus();
+  }
+
   document.querySelectorAll('[data-pop]').forEach(function(el){
-    el.addEventListener('click',function(){open(el.dataset.pop);});
+    el.addEventListener('click',function(e){e.preventDefault();open(el.dataset.pop);});
     el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open(el.dataset.pop);}});
   });
   document.getElementById('modal-x').addEventListener('click',close);
   modal.addEventListener('click',function(e){if(e.target===modal)close();});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!modal.hidden)close();});
 })();
 </script>
 
