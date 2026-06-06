@@ -122,6 +122,8 @@ html{font-size:100%;}
 body{font-size:1.1rem;line-height:1.55;letter-spacing:normal;}
 /* slightly wider column so the bigger type has room to breathe */
 .app,.rebar{max-width:26rem;}
+/* hero logo at the top of the portal — the cookie-wizard, hard-offset shadow */
+.logo{display:block;width:10.5rem;max-width:60%;height:auto;margin:.7rem auto -.1rem;filter:drop-shadow(.2rem .26rem 0 var(--shadow));}
 .wrap{padding:1.35rem 1.15rem 1.65rem;}
 /* window title = a bordered LABEL chip sitting ON the pinstripe bar (not a white hole) */
 .titlebar{height:2.1rem;}
@@ -177,7 +179,8 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
   <div class="titlebar"><div class="close"></div><div class="ttl">Bisc8</div><div class="close close-r"></div></div>
   <div class="wrap">
 
-    <p data-i18n="tagline" style="text-align:center;font-family:var(--title);font-size:1.3rem;letter-spacing:normal;text-transform:capitalize;margin:.5rem 0 1.1rem;color:var(--ink);">briciomanzia tascabile</p>
+    <img class="logo" src="data:image/png;base64,__LOGO_B64__" alt="Bisc8 — the cookie-wizard">
+    <p data-i18n="tagline" style="text-align:center;font-family:var(--title);font-size:1.3rem;letter-spacing:normal;text-transform:capitalize;margin:.2rem 0 1.1rem;color:var(--ink);">briciomanzia tascabile</p>
 
     <div class="status">
       <div class="cell"><div class="k" data-i18n="st_state">Stato</div><div class="v" data-bind="wifi_mode">setup</div></div>
@@ -281,55 +284,55 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
 <script>
 const I18N={
  it:{st_state:"Stato",st_net:"Rete",st_addr:"Indirizzo",st_lang:"Lingua",tagline:"briciomanzia tascabile",
- wifi_label:"Wi-Fi",wifi_hint:"Le reti salvate restano qui, sul dispositivo. Niente cloud, niente impicci.",
- wifi_scan:"Cerca reti",wifi_scan_note:"le reti vicine, niente di più.",scan_h:"Reti trovate",
+ wifi_label:"Wi-Fi",wifi_hint:"Le reti salvate restano qui, sul biscotto. Niente cloud, niente telefonate a casa.",
+ wifi_scan:"Cerca reti",wifi_scan_note:"le reti a portata d'orecchio, niente di più.",scan_h:"Reti trovate",
  ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
- lang_label:"Lingua",lang_hint:"In che lingua vaticina l'oracolo. I responsi cambiano con lei.",
- oracle_label:"Oracolo",oracle_hint:"La chiave vive solo qui. Non la sbandieriamo a nessuno.",
+ lang_label:"Lingua",lang_hint:"La lingua in cui vaticina l'oracolo. Scegline una: i responsi seguono.",
+ oracle_label:"Oracolo",oracle_hint:"La chiave resta sul biscotto e da nessun'altra parte. Acqua in bocca.",
  api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",
  save_oracle:"Salva Oracolo",key_stored:"Chiave salvata:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@esempio.it",send_resp:"Manda i responsi",yes:"Sì",no:"No",
  relay_adv:"Relay (avanzato)",relay_url:"URL relay",relay_token:"Token relay",keep_token:"lascia vuoto per non toccarlo",save_email:"Salva Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
- reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Si riparte da zero, a digiuno.",
- firmware:"Firmware",secret_warn:"I segreti vivono su questo dispositivo. Attiva la flash encryption prima della produzione.",
- reboot_title:"Wi-Fi pronta.",reboot_msg:"Testata e salvata. Riavvia per applicarla.",reboot_now:"Riavvia ora",
+ reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Di nuovo un biscotto vuoto e a digiuno.",
+ firmware:"Firmware",secret_warn:"I segreti vivono in chiaro su questo biscotto. Attiva la flash encryption prima di spedirne uno.",
+ reboot_title:"Wi-Fi dentro.",reboot_msg:"Testata, salvata, pronta. Riavvia per renderla effettiva.",reboot_now:"Riavvia ora",
  diac_label:"test diacritici",
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
  resetConfirm:"Cancellare tutta la configurazione locale?",resetDone:"Configurazione cancellata"},
  en:{st_state:"Status",st_net:"Network",st_addr:"Address",st_lang:"Language",tagline:"pocket crumbomancy",
- wifi_label:"Wi-Fi",wifi_hint:"Saved networks stay right here, on the device. No cloud, no nonsense.",
- wifi_scan:"Scan",wifi_scan_note:"the networks nearby, nothing more.",scan_h:"Networks found",
+ wifi_label:"Wi-Fi",wifi_hint:"Saved networks live here on the biscuit. Nothing leaves, nothing phones home.",
+ wifi_scan:"Scan",wifi_scan_note:"the networks within earshot, nothing more.",scan_h:"Networks found",
  ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
- lang_label:"Language",lang_hint:"Which tongue the oracle prophesies in. The readings follow suit.",
- oracle_label:"Oracle",oracle_hint:"The key lives here and nowhere else. We don't go bragging about it.",
+ lang_label:"Language",lang_hint:"The tongue the oracle prophesies in. Pick one — the readings follow.",
+ oracle_label:"Oracle",oracle_hint:"Your key stays on the biscuit and nowhere else. We don't kiss and tell.",
  api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",
  save_oracle:"Save Oracle",key_stored:"Stored key:",
  email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the readings",yes:"Yes",no:"No",
  relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
  rec_lbl:"Recipient",relay_lbl:"Relay",
- reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to zero, on an empty stomach.",
- firmware:"Firmware",secret_warn:"Secrets live on this device. Turn on flash encryption before production.",
- reboot_title:"Wi-Fi ready.",reboot_msg:"Tested and saved. Reboot to apply it.",reboot_now:"Reboot now",
+ reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to a blank, hungry biscuit.",
+ firmware:"Firmware",secret_warn:"Secrets live on this biscuit, in the clear. Turn on flash encryption before you ship one.",
+ reboot_title:"Wi-Fi's in.",reboot_msg:"Tested, saved, ready. Reboot to make it count.",reboot_now:"Reboot now",
  diac_label:"diacritics test",
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
  resetConfirm:"Wipe all local configuration?",resetDone:"Configuration wiped"},
  es:{st_state:"Estado",st_net:"Red",st_addr:"Dirección",st_lang:"Idioma",tagline:"migamancia de bolsillo",
- wifi_label:"Wi-Fi",wifi_hint:"Las redes guardadas se quedan aquí, en el dispositivo. Sin nube, sin líos.",
- wifi_scan:"Buscar redes",wifi_scan_note:"las redes cercanas, nada más.",scan_h:"Redes encontradas",
+ wifi_label:"Wi-Fi",wifi_hint:"Las redes guardadas viven aquí, en la galleta. Nada sale, nada llama a casa.",
+ wifi_scan:"Buscar redes",wifi_scan_note:"las redes al alcance del oído, nada más.",scan_h:"Redes encontradas",
  ssid:"SSID",password:"Contraseña",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
- lang_label:"Idioma",lang_hint:"En qué lengua vaticina el oráculo. Las lecturas la siguen.",
- oracle_label:"Oráculo",oracle_hint:"La clave vive solo aquí. No la andamos pregonando.",
+ lang_label:"Idioma",lang_hint:"La lengua en que vaticina el oráculo. Elige una: las lecturas la siguen.",
+ oracle_label:"Oráculo",oracle_hint:"Tu clave se queda en la galleta y en ningún otro sitio. Boca sellada.",
  api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",
  save_oracle:"Guardar Oráculo",key_stored:"Clave guardada:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda las lecturas",yes:"Sí",no:"No",
  relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"déjalo vacío para no tocarlo",save_email:"Guardar Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
- reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. Vuelta a cero, en ayunas.",
- firmware:"Firmware",secret_warn:"Los secretos viven en este dispositivo. Activa el cifrado de flash antes de producción.",
- reboot_title:"Wi-Fi lista.",reboot_msg:"Probada y guardada. Reinicia para aplicarla.",reboot_now:"Reiniciar ahora",
+ reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. De vuelta a una galleta vacía y hambrienta.",
+ firmware:"Firmware",secret_warn:"Los secretos viven en claro en esta galleta. Activa el cifrado de flash antes de enviar una.",
+ reboot_title:"Wi-Fi dentro.",reboot_msg:"Probada, guardada, lista. Reinicia para que cuente.",reboot_now:"Reiniciar ahora",
  diac_label:"test de diacríticos",
  missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
  saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",

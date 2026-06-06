@@ -19,6 +19,7 @@ CPP = MAIN / "web_portal.cpp"
 FONT = ROOT / "docs/fonts/ChiKareGo2.woff2"      # __FONT_B64__  -> family 'ChiKareGo2' (titles/labels)
 PIXOLDE = ROOT / "docs/fonts/Pixolde.woff2"      # __PIXOLDE_B64__ -> family 'Pixolde' (body + accent fallback)
 MASCOT = ROOT / "assets/logo/logo_min.png"
+LOGO = ROOT / "assets/logo/bisc8-logo-portal.png"  # __LOGO_B64__ -> hero logo at the top of the portal
 PREVIEW = pathlib.Path("/tmp/portal_preview.html")
 
 START = 'kIndexHtml = R"HTML('
@@ -33,9 +34,10 @@ def main() -> None:
     html = TEMPLATE.read_text(encoding="utf-8")
     html = (html.replace("__FONT_B64__", b64(FONT))
                 .replace("__PIXOLDE_B64__", b64(PIXOLDE))
-                .replace("__MASCOT_B64__", b64(MASCOT)))
+                .replace("__MASCOT_B64__", b64(MASCOT))
+                .replace("__LOGO_B64__", b64(LOGO)))
 
-    for tok in ("__FONT_B64__", "__PIXOLDE_B64__", "__MASCOT_B64__"):
+    for tok in ("__FONT_B64__", "__PIXOLDE_B64__", "__MASCOT_B64__", "__LOGO_B64__"):
         assert tok not in html, f"token left unfilled: {tok}"
     assert END not in html, "content collides with the raw-string delimiter"
 
