@@ -172,8 +172,8 @@ $wave = '<span style="display:inline-block;vertical-align:middle;margin-right:6p
     . '<span style="display:inline-block;width:2px;height:6px;background:#23211c;vertical-align:bottom;"></span>'
     . '</span>';
 foreach ($attachments as $att) {
-    $chipsHtml .= '<span style="display:inline-block;font-family:ui-monospace,\'Courier New\',monospace;'
-        . 'font-size:12px;border:2px solid #23211c;box-shadow:2px 2px 0 #23211c;padding:4px 9px;margin:0 8px 8px 0;'
+    $chipsHtml .= '<span style="display:inline-block;font-family:\'Pixolde\',ui-monospace,\'Courier New\',monospace;'
+        . 'font-size:16px;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 #23211c;padding:10px 16px;margin:0 10px 10px 0;'
         . 'color:#23211c;background:#f4e4a0;">' . $wave . $esc($att['filename']) . '</span>';
 }
 $qLabel = $esc($S['q_label']);
@@ -209,33 +209,33 @@ body{margin:0;padding:0;background:#f0d9d2;-webkit-text-size-adjust:100%;}
 <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background:#fbf6ef;border:2px solid #23211c;box-shadow:6px 6px 0 rgba(0,0,0,.35);">
 
 <tr><td style="background:#fbf6ef;background-image:repeating-linear-gradient(#23211c 0 1px,#fbf6ef 1px 3px);border-bottom:2px solid #23211c;padding:12px 16px;text-align:center;">
-  <span style="display:inline-block;font-family:{$PXF};color:#23211c;font-size:19px;letter-spacing:1px;background:#fbf6ef;border:2px solid #23211c;box-shadow:2px 2px 0 rgba(35,33,28,.25);padding:3px 14px;">Bisc8 <span style="font-family:{$MNF};font-size:11px;letter-spacing:1px;">&middot; {$badge}</span></span>
+  <span style="display:inline-block;font-family:{$PXF};color:#23211c;font-size:19px;letter-spacing:1px;background:#fbf6ef;border:2px solid #23211c;box-shadow:2px 2px 0 rgba(35,33,28,.25);padding:3px 14px;">Bisc8 <span style="font-family:{$MNF};font-size:16px;letter-spacing:1px;">&middot; {$badge}</span></span>
 </td></tr>
 
 <tr><td style="height:4px;background:#f4e4a0;font-size:0;line-height:0;">&nbsp;</td></tr>
 
 <tr><td style="padding:22px 20px 6px;">
-  <div style="font-family:{$PXF};font-size:13px;letter-spacing:1px;color:#23211c;margin:0 0 7px;">{$qLabel}</div>
+  <div style="font-family:{$PXF};font-size:16px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$qLabel}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf6ef;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),4px 4px 0 rgba(35,33,28,.22);margin:0 0 22px;"><tr>
-    <td style="font-family:{$MNF};font-size:15px;line-height:1.5;color:#23211c;padding:14px 16px;">{$qHtml}</td>
+    <td style="font-family:{$MNF};font-size:18px;line-height:1.5;color:#23211c;padding:16px 18px;">{$qHtml}</td>
   </tr></table>
 
-  <div style="font-family:{$PXF};font-size:13px;letter-spacing:1px;color:#23211c;margin:0 0 7px;">{$aLabel}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0b8bb;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.5),5px 5px 0 rgba(35,33,28,.28);margin:0 0 18px;"><tr>
-    <td style="font-family:{$LONG};font-size:21px;line-height:1.5;color:#23211c;padding:18px 18px 20px;">{$aHtml}</td>
+  <div style="font-family:{$PXF};font-size:16px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$aLabel}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf6ef;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),5px 5px 0 rgba(35,33,28,.26);margin:0 0 18px;"><tr>
+    <td style="font-family:{$LONG};font-size:18px;line-height:1.55;color:#23211c;padding:16px 18px 18px;">{$aHtml}</td>
   </tr></table>
 </td></tr>
 
 {$chipsRow}
 
 <tr><td style="padding:4px 20px 2px;text-align:center;">
-  <span style="font-family:{$MNF};font-size:11px;letter-spacing:1px;color:#23211c;">{$dateFullEsc}</span>
+  <span style="font-family:{$MNF};font-size:16px;letter-spacing:1px;color:#23211c;">{$dateFullEsc}</span>
 </td></tr>
 
 <tr><td style="padding:10px 20px 18px;border-top:2px dotted #23211c;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td style="font-family:{$MNF};font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#23211c;">{$footerLeft}</td>
-    <td align="right" style="font-family:{$MNF};font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#23211c;">{$footer}</td>
+    <td style="font-family:{$MNF};font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#23211c;">{$footerLeft}</td>
+    <td align="right" style="font-family:{$MNF};font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#23211c;">{$footer}</td>
   </tr></table>
 </td></tr>
 
