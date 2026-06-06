@@ -8,7 +8,6 @@
 [![framework](https://img.shields.io/badge/framework-ESP--IDF%205.5-e7352c?style=for-the-badge)](https://docs.espressif.com/projects/esp-idf/)
 [![display](https://img.shields.io/badge/display-1.54%22%20e--paper%20200%C3%97200-fdfcf7?style=for-the-badge&labelColor=111111)](#hardware)
 [![oracle](https://img.shields.io/badge/oracle-OpenAI%20voice-1a1714?style=for-the-badge)](#how-it-works)
-[![vibe](https://img.shields.io/badge/vibe%20coded%3F-yes.%20random%3F%20no.-e8a6a1?style=for-the-badge)](#design--bisc8-os)
 
 > A tiny e-paper pocket oracle shaped like a biscuit. Hold the button, ask aloud, and it reads the crumbs.
 
