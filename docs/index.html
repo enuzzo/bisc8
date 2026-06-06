@@ -165,24 +165,17 @@ a{color:var(--ink);}
   grid-template-columns:1fr;
   text-align:center;
 }
-@media (min-width:48rem){            /* >= 768px : mascot beside the wordmark */
-  .hero .body{grid-template-columns:auto 1fr;text-align:left;padding:3rem 2.8rem 3.2rem;}
+@media (min-width:48rem){            /* >= 768px : BIG logo left, text fills the right */
+  .hero .body{grid-template-columns:minmax(15rem,20rem) 1fr;text-align:left;padding:3rem 3.2rem 3.3rem;gap:2.8rem;}
 }
 .hero .stage{position:relative;display:grid;place-items:center;}
-.crumb{
-  position:relative;
-  width:11.5rem;height:11.5rem;
-  border:.125rem solid var(--ink);background:var(--cream);
-  box-shadow:.375rem .375rem 0 var(--shadow);
-  display:grid;place-items:center;overflow:visible;
-}
-.crumb img{
-  width:8.75rem;height:8.75rem;
-  image-rendering:pixelated;image-rendering:crisp-edges;
+.herologo{
+  width:100%;max-width:21rem;height:auto;display:block;
+  filter:drop-shadow(.45rem .55rem 0 rgba(35,33,28,.16));
 }
 @media (prefers-reduced-motion:no-preference){
-  .crumb img{animation:float 4.2s ease-in-out infinite;}
-  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-.55rem);}}
+  .herologo{animation:float 4.6s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-.7rem);}}
 }
 /* sparkles around the mascot */
 .spark{position:absolute;font-family:var(--title);color:var(--ink);font-size:1.1rem;opacity:0;pointer-events:none;}
@@ -211,7 +204,7 @@ a{color:var(--ink);}
 .pitch{
   font-family:var(--longbody);font-weight:400;
   font-size:1.4375rem;line-height:1.5;
-  color:#3c352d;max-width:31rem;margin:.5rem 0 1.6rem;
+  color:#3c352d;max-width:36rem;margin:.5rem 0 1.6rem;
 }
 .hero .body[text] {}
 
@@ -507,7 +500,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
           <span class="spark s1" aria-hidden="true">+</span>
           <span class="spark s2" aria-hidden="true">*</span>
           <span class="spark s3" aria-hidden="true">+</span>
-          <div class="crumb"><img src="img/mascot.png" alt="Bisc8 — a smiling pixel biscuit with a bow"></div>
+          <img class="herologo" src="img/bisc8-logo.png" alt="Bisc8 — a cookie-headed wizard cradling a crystal ball with an 8 and a crescent-moon staff">
         </div>
         <div class="copy">
           <span class="badge">crumbomancy · v1</span>
