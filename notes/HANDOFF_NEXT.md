@@ -2,31 +2,19 @@
 
 ## ▶ Open / next round
 
-- **⏳ VERIFY ON HARDWARE: the model self-heal migration (committed `1fc4aae`).**
-  The device was disconnected when this landed (USB-JTAG port `/dev/cu.usbmodem14201`
-  vanished — needs a physical replug). On next connect: flash, then confirm the
-  boot log prints `[CONFIG] upgraded deprecated gpt-4o model(s) -> whisper-1 /
-  gpt-5.4-mini / tts-1-hd` and a real query logs `stt model=whisper-1`. This
-  replaces the old manual "push the lean set via the portal" chore — `ConfigStore::Load`
-  now rewrites any stored `gpt-4o*` model to the lean default and re-saves once.
 - **⏳ DEPLOY: re-upload `server/bisc8-email.php` to the host.** It is deploy-only
-  (not served from the repo); the new "made with" engines line (STT/brain/TTS/voice
-  under the date) only appears in real mail once the host copy is replaced. Preview
-  verified in-browser; sample render is correct.
-- **🐛 BUG: device hangs in "thinking" after a real question (heap starvation on the
-  brain step).** Observed on hardware: a real query (non-empty transcript) gets
-  stuck at `state=thinking` with `free_heap≈29904` (~29KB). The STT step succeeds
-  (`[ORACLE] stt ... status=200`), then `GenerateAnswer()` opens a SECOND TLS to
-  `api.openai.com/v1/chat/completions` (`kHttpTimeoutMs=25000`) and the mbedtls
-  handshake is starved for memory → stalls up to 25s (perceived as a freeze).
-  A silence query does NOT reproduce it (empty transcript skips the brain).
-  PARTIALLY MITIGATED by `1fc4aae`: healing gpt-4o → leaner models lightens the
-  brain request, and the user's own "~4 min" wait pointed at a slow home network
-  as the dominant factor that night. Still worth hardening: log
-  `heap_caps_get_free_size` right before the brain TLS; free the STT
-  connection/buffers before opening the brain one; consider stopping the config
-  portal httpd during the oracle flow and restarting after; make the brain path
-  fail gracefully (show E0x) instead of stalling.
+  (not served from the repo); the new email changes (engines line; question in the
+  same serif as the answer; 21px section titles; named attachments instead of fake
+  buttons) only appear in real mail once the host copy is replaced. Preview verified
+  in-browser; sample render is correct.
+- **🛡️ Possible extra hardening for the brain step (no longer urgent).** The
+  original "thinking" hang was heap starvation (free_heap≈29KB) + a slow network;
+  after the model migration the device idles at ~86KB and real queries COMPLETE
+  (verified: stt/brain/tts all 200, though TTS took up to 68s on the bad home
+  network that day). If it ever recurs, harden: log `heap_caps_get_free_size`
+  before the brain TLS; free the STT connection/buffers before opening the brain
+  one; consider stopping the config portal httpd during the oracle flow; fail the
+  brain path gracefully (show E0x) instead of stalling.
 - **General design inspection.** A fresh, deep visual pass across all surfaces
   (site, captive portal, on-device screens, email) — catch anything off after
   all the recent churn.
@@ -38,8 +26,19 @@
 - **PWR-only deep-sleep wake** (commit `2fd4964`): the wake mask is `BIT64(PWR_BUTTON_PIN)`
   alone — BOOT is GPIO9 and cannot wake the C6 from deep sleep (an invalid wake
   pin silently aborts the whole sleep). (Static test updated to match.)
-- **Models self-heal + email engines line** (commit `1fc4aae`) — pending the
-  hardware verify + PHP re-upload noted above.
+- **Models self-heal — VERIFIED ON HARDWARE** (commits `1fc4aae`, `1332a55`, `dd42f56`).
+  On the device: `stt model=whisper-1`, `brain POST model=gpt-5.4-mini`,
+  `tts model=tts-1-hd voice=coral`, all HTTP 200, no hang. `Save()` also sanitizes,
+  so gpt-4o can never persist from any source (portal/oracle/boot).
+- **TTS voice bug found + fixed** (`dd42f56`): NVS held voice `marin`; tts-1-hd
+  rejects realtime-only voices (marin/cedar) with 400 → no audio. `coral` works on
+  tts-1-hd (no gpt-4o needed). Set the device to coral live; the self-heal now also
+  snaps marin/cedar → coral on a classic tts-1* model.
+- **Email refinements** (`1332a55`): question shares the answer's serif; 21px section
+  titles; fake .wav buttons replaced by a named-attachments line; fixed a $MNF
+  ordering bug that would have dropped the engines-line monospace. (Pending PHP re-upload.)
+- **Confirmed: the "~4 min" slowness is the home network**, not the device — STT/TTS
+  calls measured 30s/68s one evening yet completed with 200.
 
 ---
 
