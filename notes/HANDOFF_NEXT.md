@@ -1,5 +1,18 @@
 # Handoff (next session)
 
+## ▶ Open / next round
+- **General design inspection.** A fresh, deep visual pass across all surfaces
+  (site, captive portal, on-device screens, email) — catch anything off after
+  all the recent churn.
+- **Drop the battery ICON on the device, keep just the percentage** (bottom-right
+  footer). The "%u%%" is plenty; the little glyph is redundant. Likely in
+  `display_service.cpp`: `RenderBattery()` sets `footer_right_` (the % text) and
+  shows `batt_icon_group_` — keep the former, stop showing the latter (and check
+  every layout that calls `set_hidden(batt_icon_group_, false)`). Needs a reflash
+  to verify via SNAP.
+
+---
+
 ## Latest session: new logo everywhere, email reskin, hardware-verified screens (2026-06-07)
 
 Brand polish across all four surfaces (site, captive portal, on-device e-paper,
