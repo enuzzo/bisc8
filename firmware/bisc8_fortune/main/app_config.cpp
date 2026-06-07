@@ -180,6 +180,16 @@ bool MigrateDeprecatedModels(DeviceSettings *settings) {
     upgrade(&settings->openai.transcription_model, defaults.transcription_model);
     upgrade(&settings->openai.response_model, defaults.response_model);
     upgrade(&settings->openai.speech_model, defaults.speech_model);
+
+    // The classic tts-1 / tts-1-hd models reject the realtime-only voices
+    // ('marin', 'cedar') with HTTP 400 (no spoken answer). If a stale voice would
+    // break TTS on the now-classic speech model, snap it back to the default voice
+    // so audio keeps working. (coral works fine on tts-1-hd.)
+    const bool classic_tts = settings->openai.speech_model.find("tts-1") != std::string::npos;
+    if (classic_tts && (settings->openai.voice == "marin" || settings->openai.voice == "cedar")) {
+        settings->openai.voice = defaults.voice;
+        changed = true;
+    }
     return changed;
 }
 }  // namespace
@@ -272,10 +282,11 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     err = LoadWifi(handle, settings);
     nvs_close(handle);
     if (err == ESP_OK && MigrateDeprecatedModels(settings)) {
-        printf("[CONFIG] upgraded deprecated gpt-4o model(s) -> %s / %s / %s\n",
+        printf("[CONFIG] healed deprecated model(s)/voice -> %s / %s / %s (voice %s)\n",
                settings->openai.transcription_model.c_str(),
                settings->openai.response_model.c_str(),
-               settings->openai.speech_model.c_str());
+               settings->openai.speech_model.c_str(),
+               settings->openai.voice.c_str());
         Save(*settings);  // persist the upgrade so it only happens once
     }
     return err;
@@ -287,10 +298,11 @@ esp_err_t ConfigStore::Save(const DeviceSettings &settings_in) {
     // migration this means a stored gpt-4o model is impossible going forward.
     DeviceSettings settings = settings_in;
     if (MigrateDeprecatedModels(&settings)) {
-        printf("[CONFIG] refused to persist deprecated gpt-4o; using %s / %s / %s\n",
+        printf("[CONFIG] refused to persist deprecated model/voice; using %s / %s / %s (voice %s)\n",
                settings.openai.transcription_model.c_str(),
                settings.openai.response_model.c_str(),
-               settings.openai.speech_model.c_str());
+               settings.openai.speech_model.c_str(),
+               settings.openai.voice.c_str());
     }
 
     nvs_handle_t handle = 0;
