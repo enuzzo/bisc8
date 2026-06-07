@@ -74,6 +74,16 @@ if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
 $transcript = trim((string)($_POST['transcript'] ?? ''));
 $answerText = trim((string)($_POST['answer'] ?? ''));
 $lang = strtolower(trim((string)($_POST['lang'] ?? '')));
+// Engines used per phase (for the "made with" line). Device-provided, optional.
+$sttModel   = trim((string)($_POST['stt_model'] ?? ''));
+$brainModel = trim((string)($_POST['brain_model'] ?? ''));
+$ttsModel   = trim((string)($_POST['tts_model'] ?? ''));
+$voiceName  = trim((string)($_POST['voice'] ?? ''));
+$engineBits = [];
+if ($sttModel   !== '') $engineBits[] = 'STT '   . $sttModel;
+if ($brainModel !== '') $engineBits[] = 'brain ' . $brainModel;
+if ($ttsModel   !== '') $engineBits[] = 'TTS '   . $ttsModel;
+if ($voiceName  !== '') $engineBits[] = 'voice ' . $voiceName;
 
 // --- Localized chrome: subject, body labels and attachment filenames follow the
 //     language the device detected for THIS query (falls back to English). The
@@ -119,6 +129,9 @@ $text = $S['q_label'] . ":\n" . ($transcript !== '' ? $transcript : $S['empty'])
       . "\n" . $S['date_label'] . ": " . $dateFull . "\n";
 if ($lang !== '') {
     $text .= $S['lang_label'] . ": " . strtoupper($lang) . "\n";
+}
+if ($engineBits) {
+    $text .= "engines: " . implode(' · ', $engineBits) . "\n";
 }
 $text .= "\n-- " . $S['footer'] . "\n";
 
@@ -184,6 +197,11 @@ $footer = $esc($S['footer']);
 $langLabel = $esc($S['lang_label']);
 $preheader = $esc($S['preheader']);
 $dateFullEsc = $esc($dateFull);
+// "Made with" engines line (STT / brain / TTS / voice), HTML row.
+$enginesEsc = $esc(implode('  ·  ', $engineBits));
+$enginesRow = $engineBits
+    ? "<tr><td style=\"padding:0 20px 10px;text-align:center;\"><span style=\"font-family:{$MNF};font-size:16px;letter-spacing:.4px;color:#8a7d70;\">{$enginesEsc}</span></td></tr>"
+    : '';
 $PXF  = "'ChiKareGo2',ui-monospace,'Courier New',monospace";  // titles / labels / wordmark (site pixel font)
 $MNF  = "'Pixolde',ui-monospace,'Courier New',monospace";      // body / question / footer (site pixel font)
 $LONG = "Georgia,'Times New Roman',serif";                     // the reading (serif; free Garamond stand-in)
@@ -231,6 +249,8 @@ body{margin:0;padding:0;background:#f0d9d2;-webkit-text-size-adjust:100%;}
 <tr><td style="padding:4px 20px 2px;text-align:center;">
   <span style="font-family:{$MNF};font-size:16px;letter-spacing:1px;color:#23211c;">{$dateFullEsc}</span>
 </td></tr>
+
+{$enginesRow}
 
 <tr><td style="padding:10px 20px 18px;border-top:2px dotted #23211c;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>

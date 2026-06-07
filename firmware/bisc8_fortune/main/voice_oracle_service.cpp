@@ -500,6 +500,10 @@ esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const O
         response->oracle_answer_full = "";
         response->oracle_answer_screen = "";
         response->tts_text = "";
+        response->stt_model = "";
+        response->brain_model = "";
+        response->tts_model = "";
+        response->voice = "";
     }
     if (openai.api_key.empty()) {
         DebugSerial::LogAlways("[ORACLE]", "no OpenAI key configured");
@@ -525,6 +529,13 @@ esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const O
     }
 
     FillResponse(response);
+    if (response != nullptr) {
+        // Engines used this run (point into the stable settings.openai). For the email.
+        response->stt_model = openai.transcription_model.c_str();
+        response->brain_model = openai.response_model.c_str();
+        response->tts_model = openai.speech_model.c_str();
+        response->voice = openai.voice.c_str();
+    }
     return ESP_OK;
 }
 

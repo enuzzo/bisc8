@@ -181,10 +181,13 @@ def test_fortune_auto_sleep_keeps_the_fortune_visible():
     assert "display.ShowSleep" not in fortune_case
 
 
-def test_idle_timeout_enters_deep_sleep_wakeable_by_any_button():
+def test_idle_timeout_enters_deep_sleep_wakeable_by_pwr_only():
     source = APP_MAIN_CPP.read_text(encoding="utf-8")
 
-    assert "constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);" in source
+    # PWR-only wake: on the C6 only LP GPIO0-7 can wake deep sleep, and BOOT is
+    # GPIO9 (an invalid wake pin silently aborts the whole sleep), so the mask is
+    # PWR alone.
+    assert "constexpr uint64_t kAnyButtonWakeMask = BIT64(PWR_BUTTON_PIN);" in source
     assert "CONFIG_BISC8_IDLE_DEEP_SLEEP_ENABLED" in source
     assert "CONFIG_BISC8_IDLE_SLEEP_DELAY_MS" in source
     assert "xQueueReceive(g_event_queue, &event, pdMS_TO_TICKS(CONFIG_BISC8_IDLE_SLEEP_DELAY_MS))" in source

@@ -15,6 +15,10 @@ struct OracleResponse {
     const char *oracle_answer_full;
     const char *oracle_answer_screen;
     const char *tts_text;
+    const char *stt_model;    // engine used per phase (for the email "made with" line)
+    const char *brain_model;
+    const char *tts_model;
+    const char *voice;
 };
 
 class VoiceOracleService {

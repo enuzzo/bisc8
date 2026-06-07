@@ -107,6 +107,11 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     AddField(preamble, boundary, "transcript", Str(response.transcript));
     AddField(preamble, boundary, "answer", Str(response.oracle_answer_full));
     AddField(preamble, boundary, "lang", Str(response.detected_language));
+    // Engines used per phase (rendered as a "made with" line in the email).
+    AddField(preamble, boundary, "stt_model", Str(response.stt_model));
+    AddField(preamble, boundary, "brain_model", Str(response.brain_model));
+    AddField(preamble, boundary, "tts_model", Str(response.tts_model));
+    AddField(preamble, boundary, "voice", Str(response.voice));
 
     // Each file part is self-terminating (body followed by CRLF), so question +
     // answer concatenate cleanly and a missing question still yields valid MIME.

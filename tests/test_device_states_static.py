@@ -111,13 +111,17 @@ def test_eink_refresh_policy_lives_at_the_port_boundary():
     assert "RequestFullRefresh()" in speaking
 
 
-def test_footer_battery_icon_tracks_charge():
+def test_footer_shows_battery_percent_icon_dropped():
     source = DISPLAY_CPP.read_text(encoding="utf-8")
 
-    assert "BuildFooterBattery" in source
-    assert "batt_icon_fill_" in source
-    # Fill width is derived from the charge percentage.
-    assert "lv_obj_set_width(batt_icon_fill_" in source
+    # The battery icon was dropped on purpose: the bottom-right footer shows the
+    # charge as a plain percentage and the icon group stays hidden.
+    render = source.split("DisplayService::RenderBattery", 1)[1].split("DisplayService::", 1)[0]
+    assert 'snprintf(buf, sizeof(buf), "%u%%", battery_pct_)' in render
+    assert "lv_label_set_text(footer_right_, buf)" in render
+    assert "set_hidden(batt_icon_group_, true)" in render
+    # No live icon fill any more.
+    assert "lv_obj_set_width(batt_icon_fill_" not in source
 
 
 def test_new_state_copy_is_localized_in_netmilk_voice():

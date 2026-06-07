@@ -163,6 +163,27 @@ esp_err_t ConfigStore::Init() {
     return err;
 }
 
+namespace {
+// One-time self-heal: any saved OpenAI model still on the deprecated gpt-4o-*
+// family is upgraded to the current lean default. Runs on every Load; once a
+// config is clean it's a no-op. The caller persists the result, so a device with
+// stale models upgrades itself the first time it boots this firmware.
+bool MigrateDeprecatedModels(DeviceSettings *settings) {
+    const OpenAiSettings defaults = DefaultOpenAiSettings();
+    bool changed = false;
+    auto upgrade = [&](std::string *model, const std::string &fresh) {
+        if (model->find("gpt-4o") != std::string::npos) {
+            *model = fresh;
+            changed = true;
+        }
+    };
+    upgrade(&settings->openai.transcription_model, defaults.transcription_model);
+    upgrade(&settings->openai.response_model, defaults.response_model);
+    upgrade(&settings->openai.speech_model, defaults.speech_model);
+    return changed;
+}
+}  // namespace
+
 esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     if (settings == nullptr) {
         return ESP_ERR_INVALID_ARG;
@@ -250,6 +271,13 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     }
     err = LoadWifi(handle, settings);
     nvs_close(handle);
+    if (err == ESP_OK && MigrateDeprecatedModels(settings)) {
+        printf("[CONFIG] upgraded deprecated gpt-4o model(s) -> %s / %s / %s\n",
+               settings->openai.transcription_model.c_str(),
+               settings->openai.response_model.c_str(),
+               settings->openai.speech_model.c_str());
+        Save(*settings);  // persist the upgrade so it only happens once
+    }
     return err;
 }
 
