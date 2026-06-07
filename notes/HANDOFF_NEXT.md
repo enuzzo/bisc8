@@ -2,6 +2,16 @@
 
 ## ▶ Open / next round
 
+- **⏳ FLASH + measure AFTER the voice-latency optimization (committed `5572c70`).**
+  Full write-up + before/after in `notes/PERF_SESSION_2026-06-08.md`. TL;DR: the
+  "frozen after the question" wait is NOT GPT or our code — it is network audio
+  transfer (uploading the question WAV, downloading the ~350 KB uncompressed
+  answer WAV; TTS hit 112 s once on the bad home network). Fix: paint the text
+  answer right after the brain (before the slow TTS), and default to the instant
+  `gpt-4o-mini-tts`. Built + 96 tests green but NOT hardware-verified — the
+  USB-JTAG port vanished before I could flash. On next connect: flash, confirm the
+  migration log, then `python3 tools/measure_oracle.py 3.0 4 after-instant`. The
+  big remaining lever is a COMPRESSED TTS format (opus) to shrink the download.
 - **⏳ DEPLOY: re-upload `server/bisc8-email.php` to the host.** It is deploy-only
   (not served from the repo); the new email changes (engines line; question in the
   same serif as the answer; 21px section titles; named attachments instead of fake
