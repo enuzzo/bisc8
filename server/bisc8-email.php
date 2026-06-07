@@ -96,7 +96,7 @@ $STRINGS = [
              'empty' => '(empty)', 'lang_label' => 'Language', 'date_label' => 'Date',
              'footer' => 'Crumbled for you by Bisc8', 'preheader' => 'The crumbs have spoken.',
              'badge' => 'CRUMBOMANCY', 'tagline' => 'fortunes read in the crumbs',
-             'q_file' => 'question.wav', 'a_file' => 'answer.wav',
+             'q_file' => 'question.wav', 'a_file' => 'answer.wav', 'attach_label' => 'Attached',
              'days' => ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
              'months' => ['January','February','March','April','May','June','July','August','September','October','November','December']],
     'es' => ['subj_prefix' => "\u{1F36A} Bisc8: ", 'subj_fallback' => 'una lectura en las migas',
@@ -104,7 +104,7 @@ $STRINGS = [
              'empty' => '(vacío)', 'lang_label' => 'Idioma', 'date_label' => 'Fecha',
              'footer' => 'Desmigajado para ti por Bisc8', 'preheader' => 'Las migas han hablado.',
              'badge' => 'MIGAMANCIA', 'tagline' => 'adivinación entre las migas',
-             'q_file' => 'pregunta.wav', 'a_file' => 'respuesta.wav',
+             'q_file' => 'pregunta.wav', 'a_file' => 'respuesta.wav', 'attach_label' => 'Adjuntos',
              'days' => ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],
              'months' => ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']],
     'it' => ['subj_prefix' => "\u{1F36A} Bisc8: ", 'subj_fallback' => 'un responso tra le briciole',
@@ -112,7 +112,7 @@ $STRINGS = [
              'empty' => '(vuoto)', 'lang_label' => 'Lingua', 'date_label' => 'Data',
              'footer' => 'Sbriciolato per te da Bisc8', 'preheader' => 'Le briciole hanno parlato.',
              'badge' => 'BRICIOMANZIA', 'tagline' => 'divinazione tra le briciole',
-             'q_file' => 'domanda.wav', 'a_file' => 'risposta.wav',
+             'q_file' => 'domanda.wav', 'a_file' => 'risposta.wav', 'attach_label' => 'Allegati',
              'days' => ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],
              'months' => ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']],
 ];
@@ -133,7 +133,7 @@ if ($lang !== '') {
 if ($engineBits) {
     $text .= "engines: " . implode(' · ', $engineBits) . "\n";
 }
-$text .= "\n-- " . $S['footer'] . "\n";
+// footer + attachment names are appended once the uploads are known (below).
 
 // --- Optional WAV attachments: the question recording (field "audio") and the
 //     generated answer audio (field "answer"). Either may be absent. ---
@@ -161,6 +161,15 @@ if ($aWav !== null) {
     $attachments[] = ['filename' => $S['a_file'], 'data' => $aWav];
 }
 
+// The WAVs ride along as real MIME attachments; an email client has no stable URL
+// to "click", so we simply name them (no fake buttons) in both the text and HTML.
+$attachNames = array_map(static fn(array $a): string => (string)$a['filename'], $attachments);
+$attachNote  = $attachNames ? ($S['attach_label'] . ': ' . implode(', ', $attachNames)) : '';
+if ($attachNote !== '') {
+    $text .= $attachNote . "\n";
+}
+$text .= "\n-- " . $S['footer'] . "\n";
+
 $from = (string)$cfg['mail_from'] !== ''
     ? (string)$cfg['mail_from']
     : ('noreply@' . preg_replace('/[^a-z0-9.-]/i', '', $_SERVER['HTTP_HOST'] ?? 'localhost'));
@@ -177,18 +186,6 @@ $esc = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
 $qHtml = $transcript !== '' ? nl2br($esc($transcript)) : '<span style="font-style:italic;">' . $esc($S['empty']) . '</span>';
 $aHtml = $answerText !== '' ? nl2br($esc($answerText)) : '<span style="font-style:italic;">' . $esc($S['empty']) . '</span>';
 $langUpper = $lang !== '' ? strtoupper($esc($lang)) : '';
-$chipsHtml = '';
-// A 1-bit "waveform" (three ink bars) instead of a colour emoji, to stay monochrome.
-$wave = '<span style="display:inline-block;vertical-align:middle;margin-right:6px;line-height:0;">'
-    . '<span style="display:inline-block;width:2px;height:5px;background:#23211c;margin-right:1px;vertical-align:bottom;"></span>'
-    . '<span style="display:inline-block;width:2px;height:9px;background:#23211c;margin-right:1px;vertical-align:bottom;"></span>'
-    . '<span style="display:inline-block;width:2px;height:6px;background:#23211c;vertical-align:bottom;"></span>'
-    . '</span>';
-foreach ($attachments as $att) {
-    $chipsHtml .= '<span style="display:inline-block;font-family:\'Pixolde\',ui-monospace,\'Courier New\',monospace;'
-        . 'font-size:16px;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),3px 3px 0 #23211c;padding:10px 16px;margin:0 10px 10px 0;'
-        . 'color:#23211c;background:#f4e4a0;">' . $wave . $esc($att['filename']) . '</span>';
-}
 $qLabel = $esc($S['q_label']);
 $aLabel = $esc($S['a_label']);
 $badge = $esc($S['badge']);
@@ -197,16 +194,18 @@ $footer = $esc($S['footer']);
 $langLabel = $esc($S['lang_label']);
 $preheader = $esc($S['preheader']);
 $dateFullEsc = $esc($dateFull);
+$PXF  = "'ChiKareGo2',ui-monospace,'Courier New',monospace";  // titles / labels / wordmark (site pixel font)
+$MNF  = "'Pixolde',ui-monospace,'Courier New',monospace";      // body / question / footer (site pixel font)
+$LONG = "Georgia,'Times New Roman',serif";                     // the reading (serif; free Garamond stand-in)
 // "Made with" engines line (STT / brain / TTS / voice), HTML row.
 $enginesEsc = $esc(implode('  ·  ', $engineBits));
 $enginesRow = $engineBits
     ? "<tr><td style=\"padding:0 20px 10px;text-align:center;\"><span style=\"font-family:{$MNF};font-size:16px;letter-spacing:.4px;color:#8a7d70;\">{$enginesEsc}</span></td></tr>"
     : '';
-$PXF  = "'ChiKareGo2',ui-monospace,'Courier New',monospace";  // titles / labels / wordmark (site pixel font)
-$MNF  = "'Pixolde',ui-monospace,'Courier New',monospace";      // body / question / footer (site pixel font)
-$LONG = "Georgia,'Times New Roman',serif";                     // the reading (serif; free Garamond stand-in)
 $footerLeft = $langUpper !== '' ? "{$langLabel}: {$langUpper}" : '&nbsp;';
-$chipsRow = $chipsHtml !== '' ? "<tr><td style=\"padding:0 20px 16px;\">{$chipsHtml}</td></tr>" : '';
+$attachRow = $attachNote !== ''
+    ? "<tr><td style=\"padding:2px 20px 16px;text-align:center;\"><span style=\"font-family:{$MNF};font-size:16px;letter-spacing:.4px;color:#23211c;\">" . $esc($attachNote) . "</span></td></tr>"
+    : '';
 
 $html = <<<HTML
 <!doctype html>
@@ -233,18 +232,18 @@ body{margin:0;padding:0;background:#f0d9d2;-webkit-text-size-adjust:100%;}
 <tr><td style="height:4px;background:#f4e4a0;font-size:0;line-height:0;">&nbsp;</td></tr>
 
 <tr><td style="padding:22px 20px 6px;">
-  <div style="font-family:{$PXF};font-size:16px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$qLabel}</div>
+  <div style="font-family:{$PXF};font-size:21px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$qLabel}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf6ef;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),4px 4px 0 rgba(35,33,28,.22);margin:0 0 22px;"><tr>
-    <td style="font-family:{$MNF};font-size:18px;line-height:1.5;color:#23211c;padding:16px 18px;">{$qHtml}</td>
+    <td style="font-family:{$LONG};font-size:18px;line-height:1.55;color:#23211c;padding:16px 18px;">{$qHtml}</td>
   </tr></table>
 
-  <div style="font-family:{$PXF};font-size:16px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$aLabel}</div>
+  <div style="font-family:{$PXF};font-size:21px;letter-spacing:1px;color:#23211c;margin:0 0 8px;">{$aLabel}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbf6ef;border:2px solid #23211c;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),5px 5px 0 rgba(35,33,28,.26);margin:0 0 18px;"><tr>
     <td style="font-family:{$LONG};font-size:18px;line-height:1.55;color:#23211c;padding:16px 18px 18px;">{$aHtml}</td>
   </tr></table>
 </td></tr>
 
-{$chipsRow}
+{$attachRow}
 
 <tr><td style="padding:4px 20px 2px;text-align:center;">
   <span style="font-family:{$MNF};font-size:16px;letter-spacing:1px;color:#23211c;">{$dateFullEsc}</span>

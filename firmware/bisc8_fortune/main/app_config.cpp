@@ -281,7 +281,18 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     return err;
 }
 
-esp_err_t ConfigStore::Save(const DeviceSettings &settings) {
+esp_err_t ConfigStore::Save(const DeviceSettings &settings_in) {
+    // Sanitize before persisting: gpt-4o can never reach NVS, no matter the source
+    // (portal POST, oracle flow, boot self-heal). Combined with the Load-time
+    // migration this means a stored gpt-4o model is impossible going forward.
+    DeviceSettings settings = settings_in;
+    if (MigrateDeprecatedModels(&settings)) {
+        printf("[CONFIG] refused to persist deprecated gpt-4o; using %s / %s / %s\n",
+               settings.openai.transcription_model.c_str(),
+               settings.openai.response_model.c_str(),
+               settings.openai.speech_model.c_str());
+    }
+
     nvs_handle_t handle = 0;
     esp_err_t err = nvs_open(kConfigNamespace, NVS_READWRITE, &handle);
     if (err != ESP_OK) {
