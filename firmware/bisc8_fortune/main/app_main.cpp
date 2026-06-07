@@ -31,7 +31,13 @@ using namespace bisc8;
 
 namespace {
 
-constexpr uint64_t kAnyButtonWakeMask = BIT64(BOOT_BUTTON_PIN) | BIT64(PWR_BUTTON_PIN);
+// Deep-sleep wake source. On the ESP32-C6 only LP/RTC GPIOs (GPIO0-7) can wake
+// from deep sleep; BOOT (GPIO9) is an HP GPIO, so including it made
+// esp_deep_sleep_enable_gpio_wakeup() reject the WHOLE mask with
+// ESP_ERR_INVALID_ARG -> EnterDeepSleep bailed before esp_deep_sleep_start() and
+// the device never slept, re-flashing the low-power screen every idle timeout.
+// PWR (GPIO2) is LP-capable, so wake is PWR-only (matches the manual-sleep path).
+constexpr uint64_t kAnyButtonWakeMask = BIT64(PWR_BUTTON_PIN);
 constexpr uint32_t kMinimumBootSplashMs = 5000;
 constexpr uint32_t kOnlineStatusSplashMs = 2800;
 constexpr uint32_t kLowPowerSplashMs = 1600;

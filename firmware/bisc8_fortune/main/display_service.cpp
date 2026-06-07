@@ -108,7 +108,7 @@ void apply_title_chip(lv_obj_t *label, const lv_font_t *font, int y) {
     lv_obj_set_style_text_color(label, lv_color_hex(0xffffff), LV_PART_MAIN);
     lv_obj_set_style_pad_hor(label, 11, LV_PART_MAIN);
     lv_obj_set_style_pad_ver(label, 3, LV_PART_MAIN);
-    lv_obj_set_style_radius(label, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(label, 4, LV_PART_MAIN);  // softly rounded title chips
     lv_obj_set_width(label, LV_SIZE_CONTENT);
     lv_obj_set_height(label, LV_SIZE_CONTENT);
     lv_obj_set_align(label, LV_ALIGN_TOP_MID);
@@ -513,7 +513,7 @@ void DisplayService::BuildPressButton() {
     press_label_ = lv_label_create(press_btn_group_);
     style_label(press_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_text_color(press_label_, lv_color_hex(0xffffff), LV_PART_MAIN);
-    lv_obj_set_pos(press_label_, 11, 3);
+    lv_obj_set_pos(press_label_, 11, 5);  // nudged down ~2px to sit centred in the pill
     lv_obj_set_size(press_label_, 50, 18);
 
     // White right-arrow as its own layer so only the arrow blinks; gap from word.
@@ -777,21 +777,8 @@ void DisplayService::RenderBattery() {
             lv_label_set_text(footer_right_, "");
         }
     }
-    if (batt_icon_group_ == nullptr) {
-        return;
-    }
-    if (battery_pct_ <= 100) {
-        set_hidden(batt_icon_group_, false);
-        int fill = (battery_pct_ * 12 + 50) / 100;  // inner width is 12px
-        if (fill < 1) {
-            fill = 1;
-        } else if (fill > 12) {
-            fill = 12;
-        }
-        if (batt_icon_fill_ != nullptr) {
-            lv_obj_set_width(batt_icon_fill_, fill);
-        }
-    } else {
+    // Battery icon dropped — the percentage alone is enough. Keep it hidden.
+    if (batt_icon_group_ != nullptr) {
         set_hidden(batt_icon_group_, true);
     }
 }
@@ -808,18 +795,19 @@ void DisplayService::LayoutBoot() {
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
 
-    // Boot logo as big as it goes (128px), with a little padding top and a gap
-    // before the name; then "Bisc8" + the studio credit sit lower down.
-    lv_image_set_scale(mascot_big_, 256);  // 128px asset at 1:1
-    lv_obj_set_pos(mascot_big_, 36, 6);    // centred, ~6px top padding
+    // Boot logo at 90% (scale 230/256 of the 128px asset = ~115px), centred with
+    // breathing room top and bottom so it isn't glued to the edges; then "Bisc8"
+    // + the studio credit sit below with a little more air than before.
+    lv_image_set_scale(mascot_big_, 230);  // ~115px (10% smaller than 1:1)
+    lv_obj_set_pos(mascot_big_, 42, 14);   // centred: (200-115)/2; ~14px top padding
 
     style_label(title_label_, &bisc8_font_title, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(title_label_, 0, 140);
+    lv_obj_set_pos(title_label_, 0, 136);
     lv_obj_set_size(title_label_, 200, 32);
 
     style_label(body_label_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 174);
+    lv_obj_set_pos(body_label_, 0, 170);
     lv_obj_set_size(body_label_, 200, 18);
 }
 
@@ -883,8 +871,7 @@ void DisplayService::LayoutMessage() {
 
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(footer_right_, 110, 182);
-    lv_obj_set_size(footer_right_, 58, 16);
-    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    lv_obj_set_size(footer_right_, 81, 16);  // flush right (battery icon dropped)
     RenderBattery();
 }
 
@@ -928,8 +915,7 @@ void DisplayService::LayoutResponso() {
 
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(footer_right_, 106, 182);
-    lv_obj_set_size(footer_right_, 62, 16);
-    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    lv_obj_set_size(footer_right_, 85, 16);  // flush right (battery icon dropped)
     RenderBattery();
 }
 
@@ -957,8 +943,7 @@ void DisplayService::LayoutSpeaking() {
     lv_obj_set_size(footer_left_, 100, 16);
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(footer_right_, 110, 182);
-    lv_obj_set_size(footer_right_, 58, 16);
-    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    lv_obj_set_size(footer_right_, 81, 16);  // flush right (battery icon dropped)
     RenderBattery();
 }
 
@@ -987,42 +972,43 @@ void DisplayService::LayoutGlyphMessage() {
     lv_obj_set_size(footer_left_, 100, 16);
     style_label(footer_right_, &bisc8_font_small, LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(footer_right_, 110, 182);
-    lv_obj_set_size(footer_right_, 58, 16);
-    lv_obj_set_pos(batt_icon_group_, 172, 184);
+    lv_obj_set_size(footer_right_, 81, 16);  // flush right (battery icon dropped)
     RenderBattery();
 }
 
 void DisplayService::LayoutLowPower() {
-    // Sleep card: product name up top, a big centered mascot, a drowsy "Zzz"
-    // line, a tap-to-wake hint, and biscuit-corner ornaments framing it all.
+    // Sleep card now wears the same window "chrome" header as every other screen
+    // (instead of a big black title chip + framing ornaments): chrome bar at top,
+    // the official logo bigger and centered, a two-line drowsy "Zzz", and the
+    // tap-to-wake hint under the footer rule.
     ResetAuxLayers(false);
     set_hidden(splash_group_, true);
-    set_hidden(chrome_group_, true);
+    set_hidden(chrome_group_, false);   // standard window header, like the other screens
     set_hidden(arrow_group_, true);
     set_hidden(mascot_big_, false);
-    set_hidden(title_label_, false);
+    set_hidden(title_label_, true);     // the chrome header already shows "Bisc8"
     set_hidden(body_label_, false);
     set_hidden(footer_left_, false);
     set_hidden(footer_right_, true);
     set_hidden(batt_icon_group_, true);
-    set_hidden(sleep_corner_group_, false);
+    set_hidden(sleep_corner_group_, true);  // chrome frames the screen now; drop the biscuit corners
 
-    // Product name as a real title chip (big), with room above the logo.
-    // Title detached a touch from the top, with a small gap before the logo.
-    apply_title_chip(title_label_, &bisc8_font_title, 10);
+    // Official boot logo, bigger and centered below the header. 128px asset at
+    // scale 180/256 = ~90px; top-left pivot -> x=(200-90)/2=55.
+    lv_image_set_scale(mascot_big_, 180);
+    lv_obj_set_pos(mascot_big_, 55, 30);
 
-    lv_image_set_scale(mascot_big_, 156);  // 128px asset * 156/256 = ~78px; top-left pivot -> (200-78)/2
-    lv_obj_set_pos(mascot_big_, 61, 50);
-
+    // Two-line drowsy "Zzz" centered under the logo (text set in ShowLowPower).
     style_label(body_label_, &bisc8_font_body, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_align(body_label_, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(body_label_, 0, 132);
-    lv_obj_set_size(body_label_, 200, 20);
+    lv_obj_set_pos(body_label_, 0, 124);
+    lv_obj_set_size(body_label_, 200, 44);
 
-    // "premi per svegliarmi" lifted up, with clear air above the "Zzz" line.
+    // Tap-to-wake hint below the chrome footer rule (y=178), centered, like the
+    // other footered screens.
     style_label(footer_left_, &bisc8_font_small, LV_TEXT_ALIGN_CENTER);
-    lv_obj_set_pos(footer_left_, 0, 156);
-    lv_obj_set_size(footer_left_, 200, 20);
+    lv_obj_set_pos(footer_left_, 0, 182);
+    lv_obj_set_size(footer_left_, 200, 16);
 }
 
 void DisplayService::ShowBoot() {
@@ -1362,8 +1348,8 @@ void DisplayService::ShowLowPower(Language language) {
     if (Lvgl_lock(-1)) {
         RequestFullRefresh();
         LayoutLowPower();
-        lv_label_set_text(title_label_, "Bisc8");
-        lv_label_set_text(body_label_, "Zzz ...zzzz....");
+        // Title stays hidden here — the chrome header already carries "Bisc8".
+        lv_label_set_text(body_label_, "Zzz...\n...zzzz....");
         lv_label_set_text(footer_left_, strings.low_power_body);
         lv_obj_update_layout(screen_);
         Lvgl_unlock();
