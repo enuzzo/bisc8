@@ -8,6 +8,7 @@
 #include <esp_crt_bundle.h>
 #include <esp_http_client.h>
 #include <esp_partition.h>
+#include <esp_system.h>
 #include <esp_timer.h>
 
 #include "app_config.h"
@@ -347,9 +348,12 @@ esp_err_t VoiceOracleService::GenerateAnswer(const OpenAiSettings &openai, const
 
     std::string resp;
     int status = 0;
-    DebugSerial::LogAlways("[ORACLE]", "brain POST model=%s transcript_len=%u",
-                           openai.response_model.c_str(), static_cast<unsigned>(transcript_.size()));
+    DebugSerial::LogAlways("[ORACLE]", "brain POST model=%s transcript_len=%u free_heap=%u",
+                           openai.response_model.c_str(), static_cast<unsigned>(transcript_.size()),
+                           static_cast<unsigned>(esp_get_free_heap_size()));
+    const int64_t t0 = esp_timer_get_time();
     const esp_err_t err = OpenAiPostJson(kChatUrl, openai.api_key, body, &resp, &status);
+    const long long brain_ms = (esp_timer_get_time() - t0) / 1000;
     if (err != ESP_OK) {
         DebugSerial::LogAlways("[ORACLE]", "brain http error: %s", esp_err_to_name(err));
         return err;
@@ -402,8 +406,8 @@ esp_err_t VoiceOracleService::GenerateAnswer(const OpenAiSettings &openai, const
         DebugSerial::LogAlways("[ORACLE]", "brain produced no usable answer");
         return ESP_ERR_INVALID_RESPONSE;
     }
-    DebugSerial::LogAlways("[ORACLE]", "brain ok lang=%s screen='%s'",
-                           detected_language_.c_str(), answer_screen_.c_str());
+    DebugSerial::LogAlways("[ORACLE]", "brain ok lang=%s time=%lldms screen='%s'",
+                           detected_language_.c_str(), brain_ms, answer_screen_.c_str());
     DebugSerial::LogAlways("[ORACLE]", "brain voice_dir='%s' tts='%s'",
                            voice_direction_.c_str(), tts_text_.c_str());
     return ESP_OK;
@@ -491,8 +495,8 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     return ESP_OK;
 }
 
-esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const OpenAiSettings &openai,
-                                                   OracleResponse *response) {
+esp_err_t VoiceOracleService::AskTextAnswer(const char *wav_path, const OpenAiSettings &openai,
+                                            OracleResponse *response) {
     Reset();
     if (response != nullptr) {
         response->detected_language = "";
@@ -510,7 +514,9 @@ esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const O
         last_failure_ = OracleFailure::NoKey;
         return ESP_ERR_INVALID_STATE;
     }
-    DebugSerial::LogAlways("[ORACLE]", "voice flow start wav=%s", wav_path == nullptr ? "(null)" : wav_path);
+    DebugSerial::LogAlways("[ORACLE]", "voice flow start wav=%s free_heap=%u",
+                           wav_path == nullptr ? "(null)" : wav_path,
+                           static_cast<unsigned>(esp_get_free_heap_size()));
 
     detected_language_ = "it";  // overwritten by STT / brain when detected
     esp_err_t err = Transcribe(openai);
@@ -522,11 +528,6 @@ esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const O
         last_failure_ = OracleFailure::Brain;
         return err;
     }
-    // TTS failure is non-fatal: still show the screen answer.
-    answer_audio_ready_ = (Synthesize(openai) == ESP_OK);
-    if (!answer_audio_ready_) {
-        DebugSerial::LogAlways("[ORACLE]", "tts failed; showing screen answer without audio");
-    }
 
     FillResponse(response);
     if (response != nullptr) {
@@ -536,6 +537,29 @@ esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const O
         response->tts_model = openai.speech_model.c_str();
         response->voice = openai.voice.c_str();
     }
+    return ESP_OK;
+}
+
+esp_err_t VoiceOracleService::SpeakAnswer(const OpenAiSettings &openai) {
+    // TTS failure is non-fatal: the caller still shows the screen answer.
+    answer_audio_ready_ = (Synthesize(openai) == ESP_OK);
+    if (!answer_audio_ready_) {
+        DebugSerial::LogAlways("[ORACLE]", "tts failed; showing screen answer without audio");
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+esp_err_t VoiceOracleService::AskFromRecordedAudio(const char *wav_path, const OpenAiSettings &openai,
+                                                   OracleResponse *response) {
+    // Convenience wrapper: text answer, then spoken audio. The live device flow runs
+    // the two phases separately (see app_main) so it can paint the answer on screen
+    // before the slow TTS download instead of looking frozen until audio arrives.
+    const esp_err_t err = AskTextAnswer(wav_path, openai, response);
+    if (err != ESP_OK) {
+        return err;
+    }
+    SpeakAnswer(openai);  // non-fatal
     return ESP_OK;
 }
 

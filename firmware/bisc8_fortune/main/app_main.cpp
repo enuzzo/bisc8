@@ -62,7 +62,11 @@ void OnAudioRecording(void *ctx, bool active) {
 // a stack-protection fault). Run it on a dedicated worker with a generous stack
 // and block until it finishes. Keeping the main task small also leaves a big
 // contiguous heap free for the 64 KB microphone buffer.
-struct OracleJob {
+// The flow runs in two phases on dedicated workers so the screen can show the
+// text answer the moment the brain has it, BEFORE the slow TTS audio download
+// (which on a weak network can take tens of seconds). Phase 1 = STT + brain,
+// phase 2 = TTS; the main task paints the answer between them.
+struct OracleTextJob {
     VoiceOracleService *oracle;
     const char *wav_path;
     const OpenAiSettings *openai;
@@ -71,18 +75,42 @@ struct OracleJob {
     TaskHandle_t caller;
 };
 
-void OracleTaskEntry(void *arg) {
-    auto *job = static_cast<OracleJob *>(arg);
-    job->result = job->oracle->AskFromRecordedAudio(job->wav_path, *job->openai, job->response);
+void OracleTextTaskEntry(void *arg) {
+    auto *job = static_cast<OracleTextJob *>(arg);
+    job->result = job->oracle->AskTextAnswer(job->wav_path, *job->openai, job->response);
     xTaskNotifyGive(job->caller);
     vTaskDelete(nullptr);
 }
 
-esp_err_t RunOracleOnWorker(VoiceOracleService &oracle, const char *wav_path,
-                            const OpenAiSettings &openai, OracleResponse *response) {
-    OracleJob job{&oracle, wav_path, &openai, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
-    if (xTaskCreate(OracleTaskEntry, "oracle", 16384, &job, 5, nullptr) != pdPASS) {
-        DebugSerial::LogAlways("[ORACLE]", "worker task create failed (no mem)");
+esp_err_t RunOracleTextOnWorker(VoiceOracleService &oracle, const char *wav_path,
+                                const OpenAiSettings &openai, OracleResponse *response) {
+    OracleTextJob job{&oracle, wav_path, &openai, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+    if (xTaskCreate(OracleTextTaskEntry, "oracle_text", 16384, &job, 5, nullptr) != pdPASS) {
+        DebugSerial::LogAlways("[ORACLE]", "text worker task create failed (no mem)");
+        return ESP_ERR_NO_MEM;
+    }
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    return job.result;
+}
+
+struct OracleSpeakJob {
+    VoiceOracleService *oracle;
+    const OpenAiSettings *openai;
+    esp_err_t result;
+    TaskHandle_t caller;
+};
+
+void OracleSpeakTaskEntry(void *arg) {
+    auto *job = static_cast<OracleSpeakJob *>(arg);
+    job->result = job->oracle->SpeakAnswer(*job->openai);
+    xTaskNotifyGive(job->caller);
+    vTaskDelete(nullptr);
+}
+
+esp_err_t RunOracleSpeakOnWorker(VoiceOracleService &oracle, const OpenAiSettings &openai) {
+    OracleSpeakJob job{&oracle, &openai, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+    if (xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", 16384, &job, 5, nullptr) != pdPASS) {
+        DebugSerial::LogAlways("[ORACLE]", "tts worker task create failed (no mem)");
         return ESP_ERR_NO_MEM;
     }
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -486,9 +514,15 @@ extern "C" void app_main(void) {
                 }
                 display.ShowVoiceThinking(language);
                 OracleResponse response;
-                err = RunOracleOnWorker(oracle, wav_path, settings.openai, &response);
+                // Phase 1 (STT + brain): get the text answer fast.
+                err = RunOracleTextOnWorker(oracle, wav_path, settings.openai, &response);
                 if (err == ESP_OK) {
+                    // Paint the answer NOW, before fetching the spoken audio. The TTS
+                    // download is the slow part on a weak network; showing the text
+                    // first means the screen never looks frozen waiting for voice.
                     display.ShowVoiceSpeaking(response.oracle_answer_screen, language);
+                    // Phase 2 (TTS): synthesize + play the spoken answer when ready.
+                    RunOracleSpeakOnWorker(oracle, settings.openai);
                     if (oracle.HasAnswerAudio()) {
                         audio.PlayAnswerAudio(oracle.AnswerAudioBytes());  // speaks the answer; animates the glyph
                     }

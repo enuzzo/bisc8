@@ -125,9 +125,9 @@ esp_err_t SaveWifi(nvs_handle_t handle, const DeviceSettings &settings) {
 
 OpenAiSettings DefaultOpenAiSettings() {
     OpenAiSettings settings;
-    settings.transcription_model = "whisper-1";    // gpt-4o-* audio deprecated; non-4o STT
-    settings.response_model = "gpt-5.4-mini";       // text generation
-    settings.speech_model = "tts-1-hd";             // best non-4o voice quality
+    settings.transcription_model = "whisper-1";       // non-4o STT (accurate, cheap)
+    settings.response_model = "gpt-5.4-mini";          // text generation (non-4o)
+    settings.speech_model = "gpt-4o-mini-tts";         // instant expressive TTS: honours 'instructions', speaks coral natively
     settings.voice = "coral";
     settings.reasoning_effort = "";  // off by default; set per reasoning-capable model in the portal
     return settings;
@@ -177,17 +177,17 @@ bool MigrateDeprecatedModels(DeviceSettings *settings) {
             changed = true;
         }
     };
+    // STT + brain: the gpt-4o-* family is deprecated for those stages -> lean defaults.
     upgrade(&settings->openai.transcription_model, defaults.transcription_model);
     upgrade(&settings->openai.response_model, defaults.response_model);
-    upgrade(&settings->openai.speech_model, defaults.speech_model);
 
-    // The classic tts-1 / tts-1-hd models reject the realtime-only voices
-    // ('marin', 'cedar') with HTTP 400 (no spoken answer). If a stale voice would
-    // break TTS on the now-classic speech model, snap it back to the default voice
-    // so audio keeps working. (coral works fine on tts-1-hd.)
-    const bool classic_tts = settings->openai.speech_model.find("tts-1") != std::string::npos;
-    if (classic_tts && (settings->openai.voice == "marin" || settings->openai.voice == "cedar")) {
-        settings->openai.voice = defaults.voice;
+    // TTS is the deliberate exception: the instant gpt-4o-mini-tts is the chosen
+    // voice engine (it honours the per-answer 'instructions' for expressive delivery
+    // and speaks the newer voices like 'coral' natively, which the classic
+    // tts-1/tts-1-hd models do NOT). Heal a stale classic tts-1* speech model UP to
+    // the instant model so every device gets the good, fast voice.
+    if (settings->openai.speech_model.find("tts-1") != std::string::npos) {
+        settings->openai.speech_model = defaults.speech_model;  // gpt-4o-mini-tts
         changed = true;
     }
     return changed;

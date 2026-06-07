@@ -42,6 +42,9 @@ def test_voice_oracle_signature_and_response_contract():
     src = read(ORACLE_CPP)
     # Settings are passed in (key + models + voice live in ConfigStore).
     assert "AskFromRecordedAudio(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response)" in header
+    # Two-phase API: the text answer first (shown immediately), then the spoken audio.
+    assert "AskTextAnswer(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response)" in header
+    assert "SpeakAnswer(const OpenAiSettings &openai)" in header
     assert "HasAnswerAudio" in header
     # The Brain JSON maps onto the repo's OracleResponse field names.
     for field in ("oracle_answer_screen", "oracle_answer_full", "tts_text", "detected_language", "voice_direction"):
@@ -93,10 +96,14 @@ def test_generated_audio_playback_resamples_to_codec_rate():
 def test_voice_flow_is_wired_and_guards_on_audio_and_key():
     app = read(APP_MAIN)
     src = read(ORACLE_CPP)
-    # The flow is dispatched to a dedicated worker (see the stack test below),
-    # which is the one that calls AskFromRecordedAudio.
-    assert "RunOracleOnWorker(oracle, wav_path, settings.openai, &response)" in app
-    assert "AskFromRecordedAudio(" in app
+    # Two-phase flow on dedicated workers (see the stack test below): phase 1
+    # (STT + brain) yields the text answer; phase 2 (TTS) yields the audio.
+    assert "RunOracleTextOnWorker(oracle, wav_path, settings.openai, &response)" in app
+    assert "AskTextAnswer(" in app
+    assert "RunOracleSpeakOnWorker(oracle, settings.openai)" in app
+    # Perceived-latency fix: the text answer is painted BEFORE the (slow) TTS phase
+    # runs, so the screen never looks frozen while audio downloads.
+    assert app.index("display.ShowVoiceSpeaking(response.oracle_answer_screen") < app.index("RunOracleSpeakOnWorker(oracle, settings.openai)")
     assert "oracle.HasAnswerAudio()" in app
     # Playback is fed the real byte count, not the WAV header's size field.
     assert "audio.PlayAnswerAudio(oracle.AnswerAudioBytes())" in app
@@ -162,6 +169,9 @@ def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     # fault. They must run on a dedicated worker with a generous stack, so the
     # main task stays small and the 64 KB mic buffer still fits contiguous heap.
     app = read(APP_MAIN)
-    m = re.search(r'xTaskCreate\(\s*OracleTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
-    assert m is not None, "oracle flow must run on a dedicated xTaskCreate worker"
+    m = re.search(r'xTaskCreate\(\s*OracleTextTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
+    assert m is not None, "oracle text phase must run on a dedicated xTaskCreate worker"
     assert int(m.group(1)) >= 12288
+    m2 = re.search(r'xTaskCreate\(\s*OracleSpeakTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
+    assert m2 is not None, "oracle speak (TTS) phase must run on a dedicated xTaskCreate worker"
+    assert int(m2.group(1)) >= 12288

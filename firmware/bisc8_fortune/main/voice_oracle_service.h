@@ -36,6 +36,17 @@ public:
     // fields in `response` point at internal storage valid until the next call.
     esp_err_t AskFromRecordedAudio(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response);
 
+    // Phase 1 of the flow: speech-to-text + the oracle's text answer. Fills the
+    // text fields of `response` (and the engine/voice fields for the email) so the
+    // caller can SHOW the answer immediately, before the slow TTS audio download.
+    // The const char* fields point at internal storage valid until the next call.
+    esp_err_t AskTextAnswer(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response);
+
+    // Phase 2: synthesize the spoken answer for the text produced by AskTextAnswer,
+    // leaving a WAV in the answer spool. Returns ESP_OK iff fresh audio is ready
+    // (a TTS failure is non-fatal: the caller still shows the screen answer).
+    esp_err_t SpeakAnswer(const OpenAiSettings &openai);
+
     // Spool URI of the generated answer audio (valid after a successful ask).
     static const char *AnswerAudioPath();
 
