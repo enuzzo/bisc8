@@ -1,6 +1,25 @@
 # Handoff (next session)
 
 ## ▶ Open / next round
+
+- **🐛 BUG: device hangs in "thinking" after a real question (heap starvation on the
+  brain step).** Observed on hardware: a real query (non-empty transcript) gets
+  stuck at `state=thinking` with `free_heap≈29904` (~29KB). The STT step succeeds
+  (`[ORACLE] stt ... status=200`), then `GenerateAnswer()` opens a SECOND TLS to
+  `api.openai.com/v1/chat/completions` (`kHttpTimeoutMs=25000`) and the mbedtls
+  handshake is starved for memory → stalls up to 25s (perceived as a freeze).
+  A silence query does NOT reproduce it (empty transcript skips the brain).
+  Likely contributors: (1) the LAN config portal httpd stays up the whole time
+  holding heap; (2) possible per-attempt heap leak in the brain failure path,
+  matching "lately it gets worse". TO DO: log `heap_caps_get_free_size` right
+  before the brain TLS; free the STT connection/buffers before opening the brain
+  one; consider stopping the config portal during the oracle flow and restarting
+  after; make the brain path fail gracefully (show E0x) instead of stalling.
+- **Device still runs deprecated gpt-4o models** (NVS predates the default swap):
+  STT = `gpt-4o-mini-transcribe` (confirmed in logs), response/speech likely old
+  gpt-4o-* too. Push the lean set (whisper-1 / gpt-5.4-mini / tts-1-hd) to the
+  device via the portal `/api/openai` (POST) + reboot, or re-save in the Oracle
+  section. (The default change only affects fresh configs.)
 - **General design inspection.** A fresh, deep visual pass across all surfaces
   (site, captive portal, on-device screens, email) — catch anything off after
   all the recent churn.
