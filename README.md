@@ -15,6 +15,10 @@
 
 </div>
 
+**Bisc8** is a **fortune cookie** crossed with a **Magic 8-Ball** — and the name is a bilingual pun: in Italian, **8** is *otto*, so **Bisc-8** reads *“Bisc-otto” → biscotto*, the Italian word for *cookie*.
+
+> **bi·scòt·to** &nbsp;·&nbsp; /bisˈkɔt.to/ &nbsp;·&nbsp; *noun, Italian* — a cookie; here, one that reads your fortune.
+
 Bisc8 is a black-and-white **briciomanzia** machine (*crumbomancy*, the noble art of divining fate from biscuit crumbs), crammed onto a Waveshare ESP32-C6 e-paper board roughly the size of the cookie it's cosplaying as. Press and hold the button, speak your question, release. A theatrical cookie-wizard transcribes you, consults a large language model and his own crumbs, answers out loud in a mystic-seer voice, etches a short lyrical reading onto the 1-bit panel and, if you let it, emails you the whole performance with the audio attached.
 
 It is not a smart speaker. Smart speakers listen all day and sell what they hear. This one listens for fifteen seconds, answers in verse, then goes back to sleep and forgets you existed. In Italian, English, or Spanish, whichever tongue you ask in.
