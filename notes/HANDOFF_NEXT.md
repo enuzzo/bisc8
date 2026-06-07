@@ -2,6 +2,17 @@
 
 ## ▶ Open / next round
 
+- **⏳ VERIFY ON HARDWARE: the model self-heal migration (committed `1fc4aae`).**
+  The device was disconnected when this landed (USB-JTAG port `/dev/cu.usbmodem14201`
+  vanished — needs a physical replug). On next connect: flash, then confirm the
+  boot log prints `[CONFIG] upgraded deprecated gpt-4o model(s) -> whisper-1 /
+  gpt-5.4-mini / tts-1-hd` and a real query logs `stt model=whisper-1`. This
+  replaces the old manual "push the lean set via the portal" chore — `ConfigStore::Load`
+  now rewrites any stored `gpt-4o*` model to the lean default and re-saves once.
+- **⏳ DEPLOY: re-upload `server/bisc8-email.php` to the host.** It is deploy-only
+  (not served from the repo); the new "made with" engines line (STT/brain/TTS/voice
+  under the date) only appears in real mail once the host copy is replaced. Preview
+  verified in-browser; sample render is correct.
 - **🐛 BUG: device hangs in "thinking" after a real question (heap starvation on the
   brain step).** Observed on hardware: a real query (non-empty transcript) gets
   stuck at `state=thinking` with `free_heap≈29904` (~29KB). The STT step succeeds
@@ -9,26 +20,26 @@
   `api.openai.com/v1/chat/completions` (`kHttpTimeoutMs=25000`) and the mbedtls
   handshake is starved for memory → stalls up to 25s (perceived as a freeze).
   A silence query does NOT reproduce it (empty transcript skips the brain).
-  Likely contributors: (1) the LAN config portal httpd stays up the whole time
-  holding heap; (2) possible per-attempt heap leak in the brain failure path,
-  matching "lately it gets worse". TO DO: log `heap_caps_get_free_size` right
-  before the brain TLS; free the STT connection/buffers before opening the brain
-  one; consider stopping the config portal during the oracle flow and restarting
-  after; make the brain path fail gracefully (show E0x) instead of stalling.
-- **Device still runs deprecated gpt-4o models** (NVS predates the default swap):
-  STT = `gpt-4o-mini-transcribe` (confirmed in logs), response/speech likely old
-  gpt-4o-* too. Push the lean set (whisper-1 / gpt-5.4-mini / tts-1-hd) to the
-  device via the portal `/api/openai` (POST) + reboot, or re-save in the Oracle
-  section. (The default change only affects fresh configs.)
+  PARTIALLY MITIGATED by `1fc4aae`: healing gpt-4o → leaner models lightens the
+  brain request, and the user's own "~4 min" wait pointed at a slow home network
+  as the dominant factor that night. Still worth hardening: log
+  `heap_caps_get_free_size` right before the brain TLS; free the STT
+  connection/buffers before opening the brain one; consider stopping the config
+  portal httpd during the oracle flow and restarting after; make the brain path
+  fail gracefully (show E0x) instead of stalling.
 - **General design inspection.** A fresh, deep visual pass across all surfaces
   (site, captive portal, on-device screens, email) — catch anything off after
   all the recent churn.
-- **Drop the battery ICON on the device, keep just the percentage** (bottom-right
-  footer). The "%u%%" is plenty; the little glyph is redundant. Likely in
-  `display_service.cpp`: `RenderBattery()` sets `footer_right_` (the % text) and
-  shows `batt_icon_group_` — keep the former, stop showing the latter (and check
-  every layout that calls `set_hidden(batt_icon_group_, false)`). Needs a reflash
-  to verify via SNAP.
+
+## ✓ Closed since last handoff
+- **Battery ICON dropped** (commit `2fd4964`): `RenderBattery()` now shows only the
+  bottom-right `%` and keeps `batt_icon_group_` hidden; every layout footer is
+  flush-right. (Static test `test_footer_shows_battery_percent_icon_dropped`.)
+- **PWR-only deep-sleep wake** (commit `2fd4964`): the wake mask is `BIT64(PWR_BUTTON_PIN)`
+  alone — BOOT is GPIO9 and cannot wake the C6 from deep sleep (an invalid wake
+  pin silently aborts the whole sleep). (Static test updated to match.)
+- **Models self-heal + email engines line** (commit `1fc4aae`) — pending the
+  hardware verify + PHP re-upload noted above.
 
 ---
 
