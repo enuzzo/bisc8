@@ -31,3 +31,10 @@ server/bisc8-email.config.php
 
 # Dev e-paper SNAP captures (bench artifacts, not source)
 screenshots/epaper/
+
+# Brainstorm visual-companion mockups (local only)
+.superpowers/
+
+# Scratch logo iterations / AI-generated drafts
+assets/logo/archive/
+assets/logo/Gemini_*

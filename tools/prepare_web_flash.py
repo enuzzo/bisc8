@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FLASH_DIR = ROOT / "public" / "flash" / "firmware"
+FLASH_DIR = ROOT / "docs" / "firmware"  # GitHub Pages serves the live flasher from /docs
 
 
 def sha256(path: Path) -> str:
@@ -42,7 +42,7 @@ def copy_artifact(build_dir: Path, relative_path: str, name: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Copy Bisc8 ESP-IDF binaries into the public web flasher folder.")
+    parser = argparse.ArgumentParser(description="Copy Bisc8 ESP-IDF binaries into the docs/ web flasher folder (served by GitHub Pages).")
     parser.add_argument("--build-dir", required=True, type=Path, help="ESP-IDF build directory.")
     args = parser.parse_args()
 
