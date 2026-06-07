@@ -250,10 +250,12 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
    DEVICE WINDOW — crisp pixel screenshots
    ============================================================ */
 .device .body{padding:1.6rem 1.5rem 1.7rem;}
+/* micro-copy eyebrow: small uppercase ABOVE the big title, +0.3rem, 22px gap below */
 .window-eyebrow{
-  font-family:var(--body);font-size:1.1rem;letter-spacing:normal;text-transform:uppercase;
-  color:var(--mute);margin:0 0 1.1rem;text-align:center;
+  font-family:var(--body);font-size:1.4rem;letter-spacing:normal;text-transform:uppercase;
+  color:var(--mute);margin:0 0 1.375rem;text-align:left;
 }
+.device .window-eyebrow{text-align:center;}  /* screens: centred over the grid */
 .screens{
   display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;justify-items:center;
 }
@@ -316,6 +318,7 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
    ============================================================ */
 .about .body{padding:1.7rem 1.8rem 1.9rem;}
 .about h2{font-family:var(--title);font-size:1.625rem;margin:0 0 .9rem;text-transform:none;}
+.board h2{font-family:var(--title);font-size:1.625rem;margin:0 0 1.3rem;text-transform:none;}
 .about .lede{
   font-family:var(--longbody);font-weight:400;font-size:1.25rem;line-height:1.5;
   color:#3c352d;margin:0 0 1.2rem;
@@ -593,8 +596,8 @@ esp-web-install-button[install-unsupported] .unsupported{display:block;}
     <section class="win flash reveal" style="animation-delay:.2s" aria-labelledby="flash-h">
       <div class="titlebar"><button class="close" type="button" aria-label="Close window"></button><div class="ttl">Installer</div></div>
       <div class="body">
+        <p class="window-eyebrow">three steps · no toolchain · right in the browser</p>
         <h2 id="flash-h">Flash the firmware</h2>
-        <p class="sub">three steps · no toolchain · right in the browser</p>
 
         <ol class="steps">
           <li>
