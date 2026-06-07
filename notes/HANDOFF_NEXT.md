@@ -1,5 +1,81 @@
 # Handoff (next session)
 
+## Latest session: new logo everywhere, email reskin, hardware-verified screens (2026-06-07)
+
+Brand polish across all four surfaces (site, captive portal, on-device e-paper,
+email), plus an on-hardware flash/verify pass. The product is functionally
+complete; this was identity + accuracy.
+
+### New cookie-wizard logo
+- New brand logo (cookie-headed wizard with a crystal-ball "8" + crescent staff).
+  Sources in `assets/logo/`: `bisc8-logo.png` (full-colour master, 3.2MB),
+  `bisc8-logo-portal.png` (small, base64'd into the portal), `logo_min_v2.jpg`
+  (white-bg, the device boot source), `logo_min.png` (derived 128x128 1-bit).
+  The 100-file `assets/fonts/itc-garamond/` kit and `assets/logo/archive/` are
+  deliberately NOT committed (commercial font / scratch).
+- **Site hero**: logo big on the left, copy on the right (`docs/index.html`).
+- **Captive portal**: logo at the top, embedded as `__LOGO_B64__` via
+  `tools/embed_portal.py`. Both site + portal: the logo floats and is framed by
+  twinkling sparkles (`.spark` s1-s4, butter glow).
+- **Device boot logo**: 128x128 1-bit, generated from `logo_min_v2.jpg` (white
+  bg) by `tools/generate_logo_assets.py` (SIZE=128). IMPORTANT: the boot source
+  MUST be white-bg — the old v2 .png had a grey fill that thresholded to a black
+  box. LayoutBoot shows it as big as fits (centred, top padding) with "Bisc8" +
+  "by Netmilk Studio" below, NO "press PWR" (it's booting). LayoutLowPower reuses
+  the same asset at scale 156 (~78px). If the boot asset size ever changes, the
+  low-power scale must be recomputed (78/SIZE*256).
+
+### "Bisc8" branding rule (enforced)
+The brand name is ALWAYS "Bisc8", never "BISC8". Web: `.brand{text-transform:none}`
+utility wraps the name inside any uppercase UI (buttons, menu, footer). Device:
+"Bisc8" is set directly (never via UpperAscii). manifest name = "Bisc8".
+
+### Email full reskin (`server/bisc8-email.php`, deploy-only — host re-uploads)
+Same look & feel as the site: rose desktop, cream card, no pure black (#000 ->
+#23211c), removed the tiny inline mascot. Site typefaces via @font-face base64
+(ChiKareGo2 + Pixolde; serif = Georgia, NOT ITC Garamond — commercial + heavy).
+@font-face renders in Apple Mail/iOS/Outlook-Mac; Gmail/Outlook-Win fall back to
+monospace/serif. Question + answer are equal-size button-style boxes (cream, no
+rose); .wav chips enlarged to web-button proportions; all fonts >=16px (only the
+hidden 1px preheader stays).
+
+### On-hardware flash + verify (SNAP framebuffer dump)
+- Flashed via `idf.py ... -p /dev/cu.usbmodem14201 flash`. Capture: serial
+  `SCREEN <NAME>` (forces a screen) + `SNAP`, decoded by
+  `tools/capture_epaper_snapshot.py` (writes 1-bit 200x200 PNG). Boot screen: no
+  SCREEN cmd, so reset (`esptool ... chip_id`) + capture with ~4.5s settle.
+  SCREEN previews render in ENGLISH (design previews); the SCREEN SPEAK demo
+  answer is a hardcoded Italian string ("Si. Ma non dirlo a nessuno.") — only
+  shown via the debug cmd, swapped to English on the site.
+- BUG FIXED: low-power mascot scale was calibrated for the old asset size and
+  overlapped the wake text after the boot logo grew. Now correct.
+- All site/README device screens refreshed from REAL captures (English):
+  status, reading, low-power, setup. **PRIVACY**: the dev device is connected to
+  a home Wi-Fi whose SSID shows on the status screen — it is REDACTED to
+  "Home Wi-Fi" in the published `docs/img/screen-status.png`. Never publish the
+  real SSID. README points at the same `docs/img` files, so it updates too.
+
+### Misc
+- Captive portal status cells <=60px tall, value text 1.5rem. Title chip fills
+  the bar height (shared top/bottom edges) on portal + site + modals. 1.1rem
+  font floor on portal + site. "The board" hardware section added to the site
+  (real ESP32-C6 photo, 2-column spec grid, ~EUR15-20, AliExpress link). Site
+  describes the **ESP32-C6** (the real board) — the spec sheet that floated
+  around was for the ESP32-S3 variant; don't use it.
+- README de-em-dashed (house style: no em-dashes). NOTE: the SITE copy
+  (`docs/index.html`) still has a few em-dashes — clean those if asked.
+
+### Handy
+- Flash: `export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"; . tools/idf_env.sh;
+  python "$IDF_PATH/tools/idf.py" -C firmware/bisc8_fortune -B "$HOME/bisc8-build" flash`
+- Capture a screen: `python3 tools/capture_epaper_snapshot.py --port
+  /dev/cu.usbmodem14201 --before-command "SCREEN LOWPOWER" --before-delay 3
+  --settle 5` (retry on "SNAP length mismatch").
+- Tests: `.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests/` (96).
+- Site is live at https://enuzzo.github.io/bisc8/ (Pages, main /docs).
+
+---
+
 ## Latest session: "Bisc8 OS" revamp shipped — public Pages site + portal typography v5 + model swap (2026-06-06)
 
 A pure design/distribution session. The product is functionally complete; this was
