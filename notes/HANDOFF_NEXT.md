@@ -54,6 +54,47 @@
 
 ---
 
+## Latest session: model self-heal + email engines/refinements + voice near-realtime (2026-06-08)
+
+All hardware-verified. Commits `1fc4aae` … `4fb440f`.
+
+**Models refresh themselves + engines surfaced.** The device was still running
+deprecated `gpt-4o-*` models from old NVS (the default change only affects fresh
+configs). Added a self-heal migration (`ConfigStore::Load` + `Save`) that rewrites
+stale STT/brain `gpt-4o*` to the lean defaults and heals a classic `tts-1*` speech
+model up to the instant `gpt-4o-mini-tts` — from any source. The email now reports
+the engines per phase (`STT … · brain … · TTS … · voice …`) — a live canary for
+which models actually ran.
+
+**TTS voice bug found via the canary.** NVS held voice `marin`, which `tts-1-hd`
+rejects (HTTP 400 → no audio). `coral` works on tts-1-hd, so there was no real
+gpt-4o-vs-coral conflict — just a stale voice. Then the user asked for the instant
+gpt voice model, so TTS moved to `gpt-4o-mini-tts` (native coral + expressive
+`instructions`).
+
+**Email refinements** (`server/bisc8-email.php`, deploy-only, now re-uploaded by the
+user): question shares the answer's Georgia serif; 21px section titles; the fake
+.wav "buttons" replaced by a plain named-attachments line; fixed a `$MNF`
+ordering bug that would have dropped the engines-line monospace in real mail.
+
+**Voice near-realtime.** Measured the "frozen after the question" complaint: it is
+100% network audio transfer (uploading the question WAV, downloading the ~350–670 KB
+uncompressed answer WAV), NOT GPT (~4 s) or our code (ms). Two fixes: paint the text
+answer right after the brain (perceived latency ~8–18 s instead of waiting out the
+TTS, which hit 112 s once), and default to the instant `gpt-4o-mini-tts`. Verified
+on hardware. Full before/after in `notes/PERF_SESSION_2026-06-08.md`. Tool:
+`tools/measure_oracle.py`.
+
+**Also**: portal Oracle placeholders matched to the new defaults
+(`gpt-4o-mini-tts` / `coral`, `e9d77d2`); the two stale static tests from the
+PWR-wake / battery-icon work realigned; site + portal visual pass (clean).
+
+**Tension to confirm**: "deprecate gpt-4o everywhere" vs "instant gpt voice" conflict
+for TTS — coral + expressive `instructions` are gpt-4o-mini-tts features. Current
+build: TTS = gpt-4o-mini-tts; STT/brain non-4o.
+
+---
+
 ## Latest session: new logo everywhere, email reskin, hardware-verified screens (2026-06-07)
 
 Brand polish across all four surfaces (site, captive portal, on-device e-paper,
@@ -393,30 +434,40 @@ Hold BOOT, speak a question, release: Bisc8 records, transcribes, asks the LLM,
 speaks the answer aloud (coral voice), shows it on screen, and (optionally) emails
 the transcript + answer + the original recording. Confirmed working by the user.
 
-Host tests: `94 passed` (on this Intel box:
+Host tests: `96 passed` (on this Intel box:
 `.espressif/python_env/idf5.5_py3.9_env/bin/python -m pytest tests/` — or any
 python3 that has pytest; the in-tree envs lack it).
 
 ## The voice oracle pipeline
 
-`VoiceOracleService::AskFromRecordedAudio` (`main/voice_oracle_service.cpp`):
+Two phases (`main/voice_oracle_service.cpp`) so the screen shows the text answer
+BEFORE the slow TTS download (the latency is network audio transfer, not GPT —
+see `notes/PERF_SESSION_2026-06-08.md`):
+
+Phase 1 `AskTextAnswer` (worker `oracle_text`):
 1. **STT** -> `POST /v1/audio/transcriptions`, multipart, the WAV streamed straight
-   from the `spool` flash partition (offset 0), model `gpt-4o-mini-transcribe`.
-2. **Brain** -> `POST /v1/chat/completions`, model from settings, returns JSON
+   from the `spool` flash partition (offset 0), model `whisper-1`.
+2. **Brain** -> `POST /v1/chat/completions`, model `gpt-5.4-mini`, returns JSON
    (`detected_language`, `oracle_answer_screen`, `oracle_answer_full`, `tts_text`,
    `voice_direction`). `response_format=json_object`, `max_completion_tokens`,
-   `reasoning_effort` sent only when set (else `temperature`).
-3. **TTS** -> `POST /v1/audio/speech` (wav), streamed to the answer spool region.
+   `reasoning_effort` sent only when set (else `temperature`). Logs `time=`/`free_heap`.
+   -> app_main paints `ShowVoiceSpeaking(answer)` HERE, before phase 2.
+
+Phase 2 `SpeakAnswer` (worker `oracle_tts`):
+3. **TTS** -> `POST /v1/audio/speech` (wav), model `gpt-4o-mini-tts` (instant; honours
+   `instructions`; native `coral`), streamed to the answer spool region.
    `instructions` = a pinned "warm mystical seer" style + the per-answer
    `voice_direction`. Voice defaults to `coral`.
 4. Playback: `AudioService::PlayAnswerAudio` reads the answer WAV from flash.
 
+(`AskFromRecordedAudio` is kept as a convenience wrapper that calls both phases.)
+
 ### Non-obvious things (read before touching audio/config)
 
-- **The flow runs on a dedicated 16 KB-stack worker** (`RunOracleOnWorker` /
-  `RunEmailOnWorker` in `app_main.cpp`). The main task has only 3584 B; the mbedTLS
-  handshake overflows it (stack-protection panic). Any new TLS call must run on a
-  worker too.
+- **The flow runs on dedicated 16 KB-stack workers** (`RunOracleTextOnWorker`,
+  `RunOracleSpeakOnWorker`, `RunEmailOnWorker` in `app_main.cpp`). The main task has
+  only 3584 B; the mbedTLS handshake overflows it (stack-protection panic). Any new
+  TLS call must run on a worker too.
 - **The TTS is 24 kHz but plays at 16 kHz.** The ES8311 is opened in TDM mode and
   reopening the codec to 24 kHz does NOT retune the I2S clock (it would play 1.5x
   slow + an octave low). `PlayAnswerAudio` therefore **resamples 24->16 kHz**
@@ -449,13 +500,19 @@ now logged (`[ORACLE] brain http status=.. body=..`).
 ## Models / voice / language (portal -> OpenAI section)
 
 - All models are portal fields (`transcription_model`, `response_model`,
-  `speech_model`); voice is a dropdown; `reasoning_effort` is a dropdown.
-  Defaults: `gpt-4o-mini` / `gpt-4o-mini-tts` (proven), voice `coral`, reasoning off.
-- Placeholders SUGGEST `gpt-5.4-mini` / `gpt-realtime-1.5` (user's choice) but these
-  are **unverified** by us. `gpt-realtime-1.5` may be a Realtime-API model that does
-  NOT work via `/v1/audio/speech` -> would E05. If the user sets them and it fails,
-  read the logged body and adjust the name/params or rearchitect TTS to the Realtime
-  API. The user's NVS still holds `gpt-4o-mini`; they must TYPE a new model to switch.
+  `speech_model`) + a `voice` and `reasoning_effort` input. Current defaults, all
+  **VERIFIED on hardware at HTTP 200**: `whisper-1` / `gpt-5.4-mini` /
+  `gpt-4o-mini-tts`, voice `coral`, reasoning off. Portal placeholders match.
+- **Self-heal migration** (`ConfigStore::Load` + `Save`): any stored `gpt-4o*` STT or
+  brain model is rewritten to the lean default, and a classic `tts-1*` speech model is
+  healed UP to `gpt-4o-mini-tts`. So a stale config can't run deprecated/wrong engines
+  from any source (boot / portal POST / oracle). gpt-4o survives ONLY as the TTS model
+  (`gpt-4o-mini-tts`) — a deliberate exception for the instant expressive voice;
+  STT/brain stay non-4o.
+- **Why gpt-4o-mini-tts**: it honours the per-answer `instructions` (expressive
+  delivery) and speaks the newer voices (`coral`) natively. The classic tts-1/tts-1-hd
+  silently drop `instructions` and reject the realtime-only voices (`marin`/`cedar`)
+  with HTTP 400 (that was the "no audio" bug). `coral` itself works on both.
 - Reply language follows the **transcript** (the words actually spoken, read by the
   model), not the STT language tag (which mislabels short speech). UI/device language
   is just the menus. User confirmed: reply follows what they speak.
