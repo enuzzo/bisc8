@@ -54,29 +54,38 @@ Two structural problems made it FEEL frozen on top of being slow:
 
 Static tests updated + green (96/96). Firmware builds clean (57% free).
 
-## AFTER — PENDING HARDWARE (port vanished before I could flash)
+## AFTER — measured on hardware (firmware 5572c70, gpt-4o-mini-tts)
 
-The USB-JTAG port (`/dev/cu.usbmodem14201`) re-enumerated and disappeared after a
-reset during testing (known issue: needs a physical replug). I could not flash
-the optimized firmware or take AFTER numbers. The device is NOT bricked — the
-flash failed at connect, so it still runs the previous firmware.
+Flashed + verified the next morning. Query logs confirm the new engines are live
+and the migration healed `tts-1-hd -> gpt-4o-mini-tts`:
+```
+stt   model=whisper-1                          status=200
+brain POST model=gpt-5.4-mini  ... time=3.6-5.8s
+brain ok ... time=Nms                          (brain now timed)
+tts   model=gpt-4o-mini-tts voice=coral        status=200   <- instant model + coral, working
+```
 
-**First thing on next connect:**
-```
-# flash the optimized firmware
-export BISC8_IDF_TOOLS_PATH="$PWD/.espressif"; . tools/idf_env.sh
-python "$IDF_PATH/tools/idf.py" -C firmware/bisc8_fortune -B "$HOME/bisc8-build" -p /dev/cu.usbmodem14201 flash
-# confirm migration: boot log "[CONFIG] healed ... (voice coral)" and speech now gpt-4o-mini-tts
-# measure AFTER:
-python3 tools/measure_oracle.py 3.0 4 after-instant
-```
-Expected AFTER:
-- The **text answer appears in ~STT+brain (~6–28 s)** instead of after TTS — the
-  freeze is gone; you read the answer while the voice is fetched.
-- Total audio time is still network-bound (~same total bytes). Confirm whether
-  `gpt-4o-mini-tts` generation latency differs from `tts-1-hd` (expectation:
-  similar download, but expressive voice restored). If it is SLOWER to start,
-  reconsider.
+| Stage | BEFORE (tts-1-hd) | AFTER (gpt-4o-mini-tts) |
+|-------|-------------------|--------------------------|
+| STT   | 3 – 24 s          | 3.5 – 12.7 s (network) |
+| brain | 3 – 4 s           | 3.6 – 5.8 s |
+| TTS   | 8 – **112** s     | 6.4 – 10.5 s (tight this session; files 456–667 KB) |
+| free heap (flow) | ~29 KB (the old hang) | ~65 KB, no starvation |
+
+**Key win — perceived latency.** The text answer is painted at brain-done, so it
+now appears in **~8–18 s (median ~10 s)** instead of only after the TTS finished
+(which BEFORE could be 50–130 s on a weak network). You read the verdict while the
+voice loads.
+
+Notes:
+- `gpt-4o-mini-tts` honours `instructions` (expressive per-answer delivery) and
+  speaks `coral` natively — both confirmed at status 200. It emits BIGGER WAVs
+  (456–667 KB vs 334–411 KB) but they downloaded in 6–10 s this session (the
+  network was healthier than the 112 s night), so net it felt fast.
+- One transient `stt open failed: ESP_ERR_HTTP_CONNECT` (the home Wi-Fi dropped a
+  connection mid-flow); the next attempt succeeded. Network flakiness, not a device
+  bug — but a reason to add a single retry on a connect failure (see levers).
+- Re-measure anytime: `python3 tools/measure_oracle.py 3.0 4 <tag>`.
 
 ## The real remaining lever (the big one — next session)
 

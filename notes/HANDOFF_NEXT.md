@@ -2,16 +2,13 @@
 
 ## ▶ Open / next round
 
-- **⏳ FLASH + measure AFTER the voice-latency optimization (committed `5572c70`).**
-  Full write-up + before/after in `notes/PERF_SESSION_2026-06-08.md`. TL;DR: the
-  "frozen after the question" wait is NOT GPT or our code — it is network audio
-  transfer (uploading the question WAV, downloading the ~350 KB uncompressed
-  answer WAV; TTS hit 112 s once on the bad home network). Fix: paint the text
-  answer right after the brain (before the slow TTS), and default to the instant
-  `gpt-4o-mini-tts`. Built + 96 tests green but NOT hardware-verified — the
-  USB-JTAG port vanished before I could flash. On next connect: flash, confirm the
-  migration log, then `python3 tools/measure_oracle.py 3.0 4 after-instant`. The
-  big remaining lever is a COMPRESSED TTS format (opus) to shrink the download.
+- **🎤 BIG LEVER (next): compressed TTS audio (opus).** The answer WAV download is
+  the dominant, most variable cost (~350–670 KB uncompressed). `response_format:
+  opus` is ~10× smaller -> seconds even on a weak network. Needs an on-device opus
+  decoder feeding I2S. Full analysis in `notes/PERF_SESSION_2026-06-08.md`.
+- **Add a single retry on an STT/TTS connect failure.** Saw one transient
+  `stt open failed: ESP_ERR_HTTP_CONNECT` on the flaky home Wi-Fi; a one-shot retry
+  would hide it instead of throwing an E03.
 - **⏳ DEPLOY: re-upload `server/bisc8-email.php` to the host.** It is deploy-only
   (not served from the repo); the new email changes (engines line; question in the
   same serif as the answer; 21px section titles; named attachments instead of fake
@@ -36,6 +33,11 @@
 - **PWR-only deep-sleep wake** (commit `2fd4964`): the wake mask is `BIT64(PWR_BUTTON_PIN)`
   alone — BOOT is GPIO9 and cannot wake the C6 from deep sleep (an invalid wake
   pin silently aborts the whole sleep). (Static test updated to match.)
+- **Voice near-realtime + instant TTS — VERIFIED ON HARDWARE** (commit `5572c70`).
+  Diagnosed the "frozen" wait as 100% network audio transfer (not GPT/our code).
+  Now the text answer is painted right after the brain (~8–18 s) instead of after
+  the slow TTS; default TTS is the instant `gpt-4o-mini-tts` (coral + expressive
+  `instructions`, confirmed status 200). Before/after in `notes/PERF_SESSION_2026-06-08.md`.
 - **Models self-heal — VERIFIED ON HARDWARE** (commits `1fc4aae`, `1332a55`, `dd42f56`).
   On the device: `stt model=whisper-1`, `brain POST model=gpt-5.4-mini`,
   `tts model=tts-1-hd voice=coral`, all HTTP 200, no hang. `Save()` also sanitizes,
