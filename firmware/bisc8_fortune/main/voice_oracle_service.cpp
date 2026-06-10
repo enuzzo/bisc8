@@ -1,5 +1,6 @@
 #include "voice_oracle_service.h"
 
+#include <ctype.h>
 #include <string.h>
 
 #include <algorithm>
@@ -35,6 +36,8 @@ constexpr const char *kMultipartBoundary = "----bisc8oracleMUL7boundaryZ9";
 constexpr uint32_t kHttpTimeoutMs = 25000;
 constexpr uint32_t kRealtimeTimeoutMs = 45000;
 constexpr uint32_t kRealtimeAudioRateHz = 24000;
+constexpr size_t kRealtimeReadChunkBytes = 4096;
+constexpr size_t kRealtimeMaxJsonEventBytes = 131072;
 
 // The oracle's voice. Asks for the repo's exact response-contract field names so
 // the JSON maps straight onto OracleResponse.
@@ -164,6 +167,92 @@ bool AppendRealtimePcm(RealtimeAudioSink *sink, const std::string &pcm) {
     return true;
 }
 
+bool PopRealtimeJsonEvent(std::string *pending, cJSON **event) {
+    if (pending == nullptr || event == nullptr) {
+        return false;
+    }
+    *event = nullptr;
+    while (!pending->empty() && isspace(static_cast<unsigned char>((*pending)[0]))) {
+        pending->erase(0, 1);
+    }
+    if (pending->empty()) {
+        return false;
+    }
+
+    const char *parse_end = nullptr;
+    cJSON *parsed = cJSON_ParseWithLengthOpts(pending->data(), pending->size(), &parse_end, false);
+    if (parsed == nullptr) {
+        return false;
+    }
+    size_t consumed = pending->size();
+    if (parse_end != nullptr && parse_end >= pending->data()) {
+        consumed = static_cast<size_t>(parse_end - pending->data());
+    }
+    pending->erase(0, consumed);
+    *event = parsed;
+    return true;
+}
+
+esp_err_t ReadRealtimeJsonEvent(esp_transport_handle_t ws, std::string *pending, char *buf, size_t buf_size,
+                                cJSON **event, bool *closed) {
+    if (event == nullptr || closed == nullptr || pending == nullptr || buf == nullptr || buf_size == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    *event = nullptr;
+    *closed = false;
+    if (PopRealtimeJsonEvent(pending, event)) {
+        return ESP_OK;
+    }
+
+    const int r = esp_transport_read(ws, buf, static_cast<int>(buf_size), 5000);
+    if (r == 0) {
+        return ESP_ERR_TIMEOUT;
+    }
+    if (r < 0) {
+        return ESP_FAIL;
+    }
+
+    const ws_transport_opcodes_t opcode = esp_transport_ws_get_read_opcode(ws);
+    if (opcode == WS_TRANSPORT_OPCODES_CLOSE) {
+        *closed = true;
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+    if (opcode != WS_TRANSPORT_OPCODES_TEXT && opcode != WS_TRANSPORT_OPCODES_CONT) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    pending->append(buf, static_cast<size_t>(r));
+    if (pending->size() > kRealtimeMaxJsonEventBytes) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime event too large pending=%u",
+                               static_cast<unsigned>(pending->size()));
+        pending->clear();
+        return ESP_ERR_INVALID_SIZE;
+    }
+    return PopRealtimeJsonEvent(pending, event) ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
+void LogRealtimeError(cJSON *j) {
+    const cJSON *err_obj = cJSON_GetObjectItemCaseSensitive(j, "error");
+    const std::string code = err_obj != nullptr ? JsonStr(err_obj, "code") : "";
+    const std::string message = err_obj != nullptr ? JsonStr(err_obj, "message") : "";
+    DebugSerial::LogAlways("[ORACLE]", "realtime error code=%s msg=%s",
+                           code.substr(0, 48).c_str(), message.substr(0, 160).c_str());
+}
+
+void LogRealtimeDone(cJSON *j, uint32_t audio_bytes) {
+    const cJSON *response = cJSON_GetObjectItemCaseSensitive(j, "response");
+    const std::string status = response != nullptr ? JsonStr(response, "status") : "";
+    std::string detail;
+    const cJSON *details = response != nullptr ? cJSON_GetObjectItemCaseSensitive(response, "status_details") : nullptr;
+    const cJSON *err_obj = details != nullptr ? cJSON_GetObjectItemCaseSensitive(details, "error") : nullptr;
+    if (err_obj != nullptr) {
+        detail = JsonStr(err_obj, "message");
+    }
+    DebugSerial::LogAlways("[ORACLE]", "realtime done status=%s audio=%u detail=%s",
+                           status.substr(0, 32).c_str(), static_cast<unsigned>(audio_bytes),
+                           detail.substr(0, 120).c_str());
+}
+
 void AddRealtimeOutputModalities(cJSON *object) {
     cJSON *modalities = cJSON_AddArrayToObject(object, "output_modalities");
     cJSON_AddItemToArray(modalities, cJSON_CreateString("audio"));
@@ -272,71 +361,96 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
         DebugSerial::LogAlways("[ORACLE]", "realtime session.update send failed");
         result = ESP_FAIL;
     }
+
+    RealtimeAudioSink sink = {spool, 0, false};
+    std::string pending_event;
+    pending_event.reserve(kRealtimeReadChunkBytes);
+    char buf[kRealtimeReadChunkBytes];
+    bool failed = false;
+    bool session_updated = false;
+    while (result == ESP_OK && !session_updated && !failed) {
+        if ((esp_timer_get_time() - t0) / 1000 > kRealtimeTimeoutMs) {
+            DebugSerial::LogAlways("[ORACLE]", "realtime session.update timed out after %ums",
+                                   static_cast<unsigned>(kRealtimeTimeoutMs));
+            result = ESP_ERR_TIMEOUT;
+            break;
+        }
+        cJSON *j = nullptr;
+        bool closed = false;
+        const esp_err_t err = ReadRealtimeJsonEvent(ws, &pending_event, buf, sizeof(buf), &j, &closed);
+        if (err == ESP_ERR_TIMEOUT) {
+            continue;
+        }
+        if (err != ESP_OK) {
+            DebugSerial::LogAlways("[ORACLE]", closed ? "realtime ws closed during setup"
+                                                      : "realtime setup read failed: %s",
+                                   esp_err_to_name(err));
+            result = err;
+            break;
+        }
+
+        const std::string type = JsonStr(j, "type");
+        if (type == "session.updated") {
+            session_updated = true;
+            DebugSerial::LogAlways("[ORACLE]", "realtime session.updated model=%s voice=%s",
+                                   openai.speech_model.c_str(), voice);
+        } else if (type == "error") {
+            LogRealtimeError(j);
+            failed = true;
+        } else if (type == "session.created") {
+            DebugSerial::LogAlways("[ORACLE]", "realtime session.created");
+        }
+        cJSON_Delete(j);
+    }
+
+    if (result == ESP_OK && !session_updated) {
+        result = ESP_ERR_INVALID_RESPONSE;
+    }
     if (result == ESP_OK && !WsSendText(ws, BuildRealtimeResponseCreate(tts_text, voice_direction, voice))) {
         DebugSerial::LogAlways("[ORACLE]", "realtime response.create send failed");
         result = ESP_FAIL;
     }
 
-    RealtimeAudioSink sink = {spool, 0, false};
-    std::string event;
-    event.reserve(4096);
     bool done = false;
-    bool failed = false;
-    char buf[4096];
+    unsigned audio_chunks = 0;
     while (result == ESP_OK && !done && !failed && !sink.error) {
         if ((esp_timer_get_time() - t0) / 1000 > kRealtimeTimeoutMs) {
             DebugSerial::LogAlways("[ORACLE]", "realtime timed out after %ums", static_cast<unsigned>(kRealtimeTimeoutMs));
             result = ESP_ERR_TIMEOUT;
             break;
         }
-        const int r = esp_transport_read(ws, buf, sizeof(buf), 5000);
-        if (r == 0) {
+        cJSON *j = nullptr;
+        bool closed = false;
+        const esp_err_t err = ReadRealtimeJsonEvent(ws, &pending_event, buf, sizeof(buf), &j, &closed);
+        if (err == ESP_ERR_TIMEOUT) {
             continue;
         }
-        if (r < 0) {
-            DebugSerial::LogAlways("[ORACLE]", "realtime read failed: %d", r);
-            result = ESP_FAIL;
-            break;
-        }
-
-        const ws_transport_opcodes_t opcode = esp_transport_ws_get_read_opcode(ws);
-        if (opcode == WS_TRANSPORT_OPCODES_CLOSE) {
+        if (err != ESP_OK) {
+            DebugSerial::LogAlways("[ORACLE]", closed ? "realtime ws closed before response.done"
+                                                      : "realtime read failed: %s",
+                                   esp_err_to_name(err));
             failed = true;
             break;
         }
-        if (opcode != WS_TRANSPORT_OPCODES_TEXT && opcode != WS_TRANSPORT_OPCODES_CONT) {
-            continue;
-        }
-        event.append(buf, static_cast<size_t>(r));
-        if (!esp_transport_ws_get_fin_flag(ws)) {
-            if (event.size() > 65536) {
-                DebugSerial::LogAlways("[ORACLE]", "realtime event too large");
-                result = ESP_ERR_INVALID_SIZE;
-                break;
-            }
-            continue;
-        }
 
-        cJSON *j = cJSON_Parse(event.c_str());
-        event.clear();
-        if (j == nullptr) {
-            DebugSerial::LogAlways("[ORACLE]", "realtime JSON parse failed");
-            failed = true;
-            break;
-        }
         const std::string type = JsonStr(j, "type");
         if (type == "response.audio.delta" || type == "response.output_audio.delta") {
             const std::string delta = JsonStr(j, "delta");
             std::string pcm;
             if (!DecodeBase64(delta, &pcm) || !AppendRealtimePcm(&sink, pcm)) {
                 failed = true;
+            } else if (++audio_chunks == 1) {
+                DebugSerial::LogAlways("[ORACLE]", "realtime first audio chunk=%uB",
+                                       static_cast<unsigned>(pcm.size()));
             }
         } else if (type == "response.done") {
+            LogRealtimeDone(j, sink.written);
             done = true;
+        } else if (type == "response.output_audio.done" || type == "response.audio.done") {
+            DebugSerial::LogAlways("[ORACLE]", "realtime audio.done chunks=%u bytes=%u",
+                                   audio_chunks, static_cast<unsigned>(sink.written));
         } else if (type == "error") {
-            const cJSON *err_obj = cJSON_GetObjectItemCaseSensitive(j, "error");
-            const std::string message = err_obj != nullptr ? JsonStr(err_obj, "message") : "";
-            DebugSerial::LogAlways("[ORACLE]", "realtime error: %s", message.substr(0, 180).c_str());
+            LogRealtimeError(j);
             failed = true;
         }
         cJSON_Delete(j);

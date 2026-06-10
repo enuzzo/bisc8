@@ -77,6 +77,8 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
+The spoken answer uses OpenAI Realtime over WebSocket. The firmware waits for `session.updated` before creating the response, buffers split JSON frames before parsing them, and logs the useful milestones as `[ORACLE] realtime session.updated`, `first audio chunk`, `audio.done`, and `done status=... audio=...`.
+
 ## Flash it (the easy way)
 
 The whole point of the [**browser flasher**](https://enuzzo.github.io/bisc8/) is that there is no hard way unless you want one.
@@ -117,7 +119,7 @@ Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` c
 Run the host tests:
 
 ```sh
-python -m pytest tests/        # 96 passing
+python -m pytest tests/        # 102 passing
 ```
 
 ## Design: "Bisc8 OS"

@@ -126,6 +126,10 @@ def test_realtime_speech_path_uses_websocket_audio_deltas():
     assert '"output_modalities"' in src
     assert '"response.audio.delta"' in src
     assert '"response.output_audio.delta"' in src
+    assert '"session.updated"' in src
+    assert "cJSON_ParseWithLengthOpts" in src
+    assert "kRealtimeMaxJsonEventBytes" in src
+    assert '"response.output_audio.done"' in src
     assert "mbedtls_base64_decode" in src
     assert "tcp_transport" in cmake
 
