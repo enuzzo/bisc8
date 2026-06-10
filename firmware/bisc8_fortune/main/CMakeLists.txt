@@ -31,6 +31,7 @@ idf_component_register(
     json
     lwip
     mbedtls
+    tcp_transport
     espressif__esp_io_expander
     espressif__esp_io_expander_tca9554
     REQUIRES

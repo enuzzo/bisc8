@@ -68,10 +68,10 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
    [ EARS ]   whisper-1            → your words, transcribed
         │
         ▼
-   [ BRAIN ]  chat-completions     → a lyrical answer, in the language you spoke
+   [ BRAIN ]  gpt-5.4-mini         → a lyrical answer, in the language you spoke
         │
         ├──▶  FACE    e-paper, ≤55 chars, full-refresh reveal (the deliberate e-ink flash beat)
-        ├──▶  VOICE   TTS "coral", theatrical-seer style, 24 kHz → 16 kHz, spoken aloud
+        ├──▶  VOICE   gpt-realtime-2 "cedar", deep diviner style, 24 kHz → 16 kHz, spoken aloud
         └──▶  POST    optional email: transcript + answer + the question & answer .wav
 ```
 

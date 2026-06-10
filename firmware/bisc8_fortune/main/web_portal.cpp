@@ -295,13 +295,14 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
       <form data-api="/api/openai">
         <div class="field"><label class="fld" data-i18n="api_key">Chiave API</label><span class="pwd"><input name="api_key" type="password" data-i18n-placeholder="keep_key"><button class="eye" type="button" aria-pressed="false" aria-label="show"><svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true"><path d="M2 8 Q12 1 22 8 Q12 15 2 8 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="8" r="3.1" fill="currentColor"/></svg></button></span></div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" placeholder="whisper-1"></div>
-          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" placeholder="gpt-5.4-mini"></div>
+          <div class="field"><label class="fld" data-i18n="stt">Voce a testo</label><input name="transcription_model" data-fill="openai_transcription_model" placeholder="whisper-1"></div>
+          <div class="field"><label class="fld" data-i18n="model">Modello oracolo</label><input name="response_model" data-fill="openai_response_model" placeholder="gpt-5.4-mini"></div>
         </div>
         <div class="two">
-          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" placeholder="gpt-4o-mini-tts"></div>
-          <div class="field"><label class="fld" data-i18n="voice">Voce</label><input name="voice" placeholder="coral"></div>
+          <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" data-fill="openai_speech_model" placeholder="gpt-realtime-2"></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><select name="voice" data-fill="openai_voice"><option value="" data-i18n="voice_keep">&mdash; mantieni attuale &mdash;</option><optgroup label="Timbri maschili / profondi"><option value="cedar">cedar - maschile, profondo</option><option value="echo">echo - maschile, narrativo</option><option value="ash">ash - maschile, asciutto</option><option value="verse">verse - maschile, poetico</option></optgroup><optgroup label="Timbri femminili / chiari"><option value="marin">marin - femminile, naturale</option><option value="coral">coral - femminile, calda</option><option value="sage">sage - femminile, calma</option><option value="shimmer">shimmer - femminile, luminosa</option></optgroup><optgroup label="Timbri neutri / caratteristici"><option value="alloy">alloy - neutro, equilibrato</option><option value="ballad">ballad - neutro, teatrale</option></optgroup></select></div>
         </div>
+        <div class="field"><label class="fld" data-i18n="reasoning">Ragionamento</label><select name="reasoning_effort" data-fill="openai_reasoning_effort"><option value="off" data-i18n="reasoning_off">off</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option></select></div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>
       </form>
       <p class="hint below"><span data-i18n="key_stored">Chiave salvata:</span> <span data-bind="openai_key">missing</span></p>
@@ -358,7 +359,7 @@ const I18N={
  ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
  lang_label:"Lingua",lang_hint:"La lingua in cui vaticina l'oracolo. Scegline una: i responsi seguono.",
  oracle_label:"Oracolo",oracle_hint:"La chiave resta sul biscotto e da nessun'altra parte. Acqua in bocca.",
- api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",
+ api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",voice_keep:"— mantieni attuale —",reasoning:"Ragionamento",reasoning_off:"spento",
  save_oracle:"Salva Oracolo",key_stored:"Chiave salvata:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@esempio.it",send_resp:"Manda i responsi",yes:"Sì",no:"No",
  relay_adv:"Relay (avanzato)",relay_url:"URL relay",relay_token:"Token relay",keep_token:"lascia vuoto per non toccarlo",save_email:"Salva Email",
@@ -376,7 +377,7 @@ const I18N={
  ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
  lang_label:"Language",lang_hint:"The tongue the oracle prophesies in. Pick one — the readings follow.",
  oracle_label:"Oracle",oracle_hint:"Your key stays on the biscuit and nowhere else. We don't kiss and tell.",
- api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",
+ api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",voice_keep:"— keep current —",reasoning:"Reasoning",reasoning_off:"off",
  save_oracle:"Save Oracle",key_stored:"Stored key:",
  email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the readings",yes:"Yes",no:"No",
  relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
@@ -394,7 +395,7 @@ const I18N={
  ssid:"SSID",password:"Contraseña",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
  lang_label:"Idioma",lang_hint:"La lengua en que vaticina el oráculo. Elige una: las lecturas la siguen.",
  oracle_label:"Oráculo",oracle_hint:"Tu clave se queda en la galleta y en ningún otro sitio. Boca sellada.",
- api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",
+ api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",voice_keep:"— mantener actual —",reasoning:"Razonamiento",reasoning_off:"apagado",
  save_oracle:"Guardar Oráculo",key_stored:"Clave guardada:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda las lecturas",yes:"Sí",no:"No",
  relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"déjalo vacío para no tocarlo",save_email:"Guardar Email",
@@ -426,6 +427,7 @@ function setEmailEnabled(on){document.getElementById('emailEnabled').value=on?'1
  document.querySelectorAll('#emailSeg b').forEach(function(b){var sel=(b.dataset.val==='1')===!!on;b.classList.toggle('on',sel);b.setAttribute('aria-pressed',sel)});}
 function fill(s){if(s.language)applyLanguage(s.language);
  for(const k in s){document.querySelectorAll('[data-bind="'+k+'"]').forEach(function(el){el.textContent=valueText(k,s[k])})}
+ document.querySelectorAll('[data-fill]').forEach(function(el){var v=s[el.dataset.fill];if(v==null)return;if(el.tagName==='SELECT'){var ok=false;Array.prototype.forEach.call(el.options,function(o){if(o.value===v)ok=true});el.value=ok?v:'';}else{el.value=v;}});
  var _wm=document.querySelector('[data-bind="wifi_mode"]');if(_wm&&s.wifi_mode==='online'){_wm.innerHTML='<span class="dot-on"></span>'+_wm.textContent;}
  if(typeof s.email_enabled!=='undefined')setEmailEnabled(s.email_enabled);
  document.getElementById('rebar').classList.toggle('show',!!s.reboot_required);}
@@ -878,6 +880,11 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
 
     std::string language = "en";
     std::string openai_key;
+    std::string openai_transcription_model;
+    std::string openai_response_model;
+    std::string openai_speech_model;
+    std::string openai_voice;
+    std::string openai_reasoning_effort;
     std::string email_recipient;
     std::string email_relay;
     bool email_enabled = false;
@@ -885,6 +892,11 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
     if (settings_ != nullptr) {
         language = settings_->language;
         openai_key = settings_->openai.api_key.empty() ? "missing" : MaskSecret(settings_->openai.api_key);
+        openai_transcription_model = settings_->openai.transcription_model;
+        openai_response_model = settings_->openai.response_model;
+        openai_speech_model = settings_->openai.speech_model;
+        openai_voice = settings_->openai.voice;
+        openai_reasoning_effort = settings_->openai.reasoning_effort.empty() ? "off" : settings_->openai.reasoning_effort;
         email_recipient = settings_->email.recipient.empty() ? "missing" : MaskSecret(settings_->email.recipient);
         email_relay = settings_->email.relay_url.empty() ? "missing" : "configured";
         email_enabled = settings_->email.enabled;
@@ -910,6 +922,11 @@ esp_err_t WebPortal::SendStatusJson(httpd_req_t *req) const {
     json += ",\"wifi_count\":" + std::to_string(wifi_count);
     json += ",\"reboot_required\":" + std::string(reboot_required_ ? "true" : "false");
     json += ",\"openai_key\":" + JsonString(openai_key);
+    json += ",\"openai_transcription_model\":" + JsonString(openai_transcription_model);
+    json += ",\"openai_response_model\":" + JsonString(openai_response_model);
+    json += ",\"openai_speech_model\":" + JsonString(openai_speech_model);
+    json += ",\"openai_voice\":" + JsonString(openai_voice);
+    json += ",\"openai_reasoning_effort\":" + JsonString(openai_reasoning_effort);
     json += ",\"email_enabled\":" + std::string(email_enabled ? "true" : "false");
     json += ",\"email_recipient\":" + JsonString(email_recipient);
     json += ",\"email_relay\":" + JsonString(email_relay);

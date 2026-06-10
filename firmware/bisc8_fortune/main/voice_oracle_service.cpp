@@ -2,14 +2,20 @@
 
 #include <string.h>
 
+#include <algorithm>
 #include <string>
 
 #include <cJSON.h>
+#include <esp_check.h>
 #include <esp_crt_bundle.h>
 #include <esp_http_client.h>
 #include <esp_partition.h>
 #include <esp_system.h>
 #include <esp_timer.h>
+#include <esp_transport.h>
+#include <esp_transport_ssl.h>
+#include <esp_transport_ws.h>
+#include <mbedtls/base64.h>
 
 #include "app_config.h"
 #include "debug_serial.h"
@@ -21,10 +27,14 @@ namespace {
 constexpr const char *kChatUrl = "https://api.openai.com/v1/chat/completions";
 constexpr const char *kTranscribeUrl = "https://api.openai.com/v1/audio/transcriptions";
 constexpr const char *kSpeechUrl = "https://api.openai.com/v1/audio/speech";
+constexpr const char *kRealtimeHost = "api.openai.com";
+constexpr const char *kRealtimePathPrefix = "/v1/realtime?model=";
 constexpr const char *kAnswerSpoolUri = "spool://answer.wav";
 constexpr const char *kSpoolPartition = "spool";
 constexpr const char *kMultipartBoundary = "----bisc8oracleMUL7boundaryZ9";
 constexpr uint32_t kHttpTimeoutMs = 25000;
+constexpr uint32_t kRealtimeTimeoutMs = 45000;
+constexpr uint32_t kRealtimeAudioRateHz = 24000;
 
 // The oracle's voice. Asks for the repo's exact response-contract field names so
 // the JSON maps straight onto OracleResponse.
@@ -47,6 +57,311 @@ constexpr const char *kBrainSystemPrompt =
     "Rules: same language as the user; always speak to their specific question, even through metaphor; never say you are an AI; "
     "do not give medical, legal, financial or safety-critical advice as certainty; poetic and evocative, never nonsense; "
     "concise. Avoid long dashes.";
+
+bool SpeechModelSupportsInstructions(const std::string &model) {
+    return !model.empty() && model.rfind("tts-1", 0) != 0;
+}
+
+std::string JsonStr(const cJSON *obj, const char *key);
+
+bool IsRealtimeSpeechModel(const std::string &model) {
+    return model.rfind("gpt-realtime", 0) == 0;
+}
+
+bool IsRealtimeVoice(const std::string &voice) {
+    return voice == "alloy" || voice == "ash" || voice == "ballad" || voice == "coral" ||
+           voice == "echo" || voice == "sage" || voice == "shimmer" || voice == "verse" ||
+           voice == "marin" || voice == "cedar";
+}
+
+bool IsRequestSpeechVoice(const std::string &voice) {
+    return voice == "alloy" || voice == "ash" || voice == "coral" || voice == "echo" ||
+           voice == "fable" || voice == "nova" || voice == "onyx" || voice == "sage" ||
+           voice == "shimmer";
+}
+
+const char *SpeechVoiceForModel(const OpenAiSettings &openai) {
+    if (IsRealtimeSpeechModel(openai.speech_model)) {
+        return IsRealtimeVoice(openai.voice) ? openai.voice.c_str() : "marin";
+    }
+    return IsRequestSpeechVoice(openai.voice) ? openai.voice.c_str() : "coral";
+}
+
+void PutLe16(uint8_t *p, uint16_t v) {
+    p[0] = static_cast<uint8_t>(v & 0xff);
+    p[1] = static_cast<uint8_t>((v >> 8) & 0xff);
+}
+
+void PutLe32(uint8_t *p, uint32_t v) {
+    p[0] = static_cast<uint8_t>(v & 0xff);
+    p[1] = static_cast<uint8_t>((v >> 8) & 0xff);
+    p[2] = static_cast<uint8_t>((v >> 16) & 0xff);
+    p[3] = static_cast<uint8_t>((v >> 24) & 0xff);
+}
+
+esp_err_t WritePcm16WavHeader(const esp_partition_t *spool, uint32_t offset, uint32_t pcm_bytes) {
+    uint8_t header[44] = {};
+    memcpy(header, "RIFF", 4);
+    PutLe32(header + 4, 36 + pcm_bytes);
+    memcpy(header + 8, "WAVEfmt ", 8);
+    PutLe32(header + 16, 16);
+    PutLe16(header + 20, 1);
+    PutLe16(header + 22, 1);
+    PutLe32(header + 24, kRealtimeAudioRateHz);
+    PutLe32(header + 28, kRealtimeAudioRateHz * 2);
+    PutLe16(header + 32, 2);
+    PutLe16(header + 34, 16);
+    memcpy(header + 36, "data", 4);
+    PutLe32(header + 40, pcm_bytes);
+    return esp_partition_write(spool, offset, header, sizeof(header));
+}
+
+bool DecodeBase64(const std::string &input, std::string *decoded) {
+    if (decoded == nullptr) {
+        return false;
+    }
+    const size_t cap = (input.size() * 3) / 4 + 4;
+    decoded->assign(cap, '\0');
+    size_t written = 0;
+    const int rc = mbedtls_base64_decode(reinterpret_cast<unsigned char *>(decoded->data()), decoded->size(), &written,
+                                         reinterpret_cast<const unsigned char *>(input.data()), input.size());
+    if (rc != 0) {
+        decoded->clear();
+        return false;
+    }
+    decoded->resize(written);
+    return true;
+}
+
+bool WsSendText(esp_transport_handle_t ws, const std::string &body) {
+    std::string mutable_body = body;
+    const int written = esp_transport_ws_send_raw(ws, WS_TRANSPORT_OPCODES_TEXT, mutable_body.data(),
+                                                  static_cast<int>(mutable_body.size()), kHttpTimeoutMs);
+    return written == static_cast<int>(mutable_body.size());
+}
+
+struct RealtimeAudioSink {
+    const esp_partition_t *spool;
+    uint32_t written;
+    bool error;
+};
+
+bool AppendRealtimePcm(RealtimeAudioSink *sink, const std::string &pcm) {
+    if (sink == nullptr || sink->error || pcm.empty()) {
+        return sink != nullptr && !sink->error;
+    }
+    if (sink->written + pcm.size() > kVoiceAnswerSpoolMaxBytes - 44) {
+        sink->error = true;
+        return false;
+    }
+    const esp_err_t err =
+        esp_partition_write(sink->spool, kVoiceAnswerSpoolOffset + 44 + sink->written, pcm.data(), pcm.size());
+    if (err != ESP_OK) {
+        sink->error = true;
+        return false;
+    }
+    sink->written += static_cast<uint32_t>(pcm.size());
+    return true;
+}
+
+void AddRealtimeOutputModalities(cJSON *object) {
+    cJSON *modalities = cJSON_AddArrayToObject(object, "output_modalities");
+    cJSON_AddItemToArray(modalities, cJSON_CreateString("audio"));
+}
+
+void AddRealtimeAudioOutput(cJSON *object, const char *voice) {
+    cJSON *audio = cJSON_AddObjectToObject(object, "audio");
+    cJSON *output = cJSON_AddObjectToObject(audio, "output");
+    cJSON *format = cJSON_AddObjectToObject(output, "format");
+    cJSON_AddStringToObject(format, "type", "audio/pcm");
+    cJSON_AddStringToObject(output, "voice", voice);
+}
+
+std::string PrintJson(cJSON *root) {
+    char *body_cstr = cJSON_PrintUnformatted(root);
+    const std::string body = body_cstr != nullptr ? body_cstr : "";
+    cJSON_free(body_cstr);
+    cJSON_Delete(root);
+    return body;
+}
+
+std::string RealtimeVoiceInstructions(const std::string &voice_direction) {
+    std::string instructions =
+        "Speak exactly the provided text and do not add, omit, translate, or summarize any words. "
+        "Perform it as a theatrical seer in the throes of a vision: dramatic and expressive, with a voice that "
+        "rises and falls, swelling on the key words and hushing on the secrets. Keep it intelligible and at a "
+        "normal speaking volume, not a whisper.";
+    if (!voice_direction.empty()) {
+        instructions = voice_direction + ". " + instructions;
+    }
+    return instructions;
+}
+
+std::string BuildRealtimeSessionUpdate(const OpenAiSettings &openai, const char *voice) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", "session.update");
+    cJSON *session = cJSON_AddObjectToObject(root, "session");
+    cJSON_AddStringToObject(session, "type", "realtime");
+    cJSON_AddStringToObject(session, "model", openai.speech_model.c_str());
+    AddRealtimeOutputModalities(session);
+    AddRealtimeAudioOutput(session, voice);
+    return PrintJson(root);
+}
+
+std::string BuildRealtimeResponseCreate(const std::string &tts_text, const std::string &voice_direction,
+                                        const char *voice) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", "response.create");
+    cJSON *response = cJSON_AddObjectToObject(root, "response");
+    cJSON_AddStringToObject(response, "conversation", "none");
+    AddRealtimeOutputModalities(response);
+    AddRealtimeAudioOutput(response, voice);
+    cJSON_AddStringToObject(response, "instructions", RealtimeVoiceInstructions(voice_direction).c_str());
+
+    cJSON *input = cJSON_AddArrayToObject(response, "input");
+    cJSON *message = cJSON_CreateObject();
+    cJSON_AddStringToObject(message, "type", "message");
+    cJSON_AddStringToObject(message, "role", "user");
+    cJSON *content = cJSON_AddArrayToObject(message, "content");
+    cJSON *part = cJSON_CreateObject();
+    cJSON_AddStringToObject(part, "type", "input_text");
+    cJSON_AddStringToObject(part, "text", tts_text.c_str());
+    cJSON_AddItemToArray(content, part);
+    cJSON_AddItemToArray(input, message);
+    return PrintJson(root);
+}
+
+esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tts_text,
+                             const std::string &voice_direction, const esp_partition_t *spool,
+                             uint32_t *answer_audio_bytes) {
+    if (answer_audio_bytes == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    *answer_audio_bytes = 0;
+    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, 0), "ORACLE",
+                        "realtime initial wav header");
+
+    esp_transport_handle_t ssl = esp_transport_ssl_init();
+    if (ssl == nullptr) {
+        return ESP_ERR_NO_MEM;
+    }
+    esp_transport_ssl_crt_bundle_attach(ssl, esp_crt_bundle_attach);
+
+    esp_transport_handle_t ws = esp_transport_ws_init(ssl);
+    if (ws == nullptr) {
+        esp_transport_destroy(ssl);
+        return ESP_ERR_NO_MEM;
+    }
+
+    const std::string path = std::string(kRealtimePathPrefix) + openai.speech_model;
+    const std::string auth = "Bearer " + openai.api_key;
+    const char *voice = SpeechVoiceForModel(openai);
+    esp_transport_ws_set_path(ws, path.c_str());
+    esp_transport_ws_set_auth(ws, auth.c_str());
+    esp_transport_ws_set_user_agent(ws, "bisc8/1.0");
+
+    esp_err_t result = ESP_OK;
+    const int64_t t0 = esp_timer_get_time();
+    if (esp_transport_connect(ws, kRealtimeHost, 443, kHttpTimeoutMs) < 0) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime ws connect failed status=%d",
+                               esp_transport_ws_get_upgrade_request_status(ws));
+        result = ESP_FAIL;
+    }
+
+    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeSessionUpdate(openai, voice))) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime session.update send failed");
+        result = ESP_FAIL;
+    }
+    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeResponseCreate(tts_text, voice_direction, voice))) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime response.create send failed");
+        result = ESP_FAIL;
+    }
+
+    RealtimeAudioSink sink = {spool, 0, false};
+    std::string event;
+    event.reserve(4096);
+    bool done = false;
+    bool failed = false;
+    char buf[4096];
+    while (result == ESP_OK && !done && !failed && !sink.error) {
+        if ((esp_timer_get_time() - t0) / 1000 > kRealtimeTimeoutMs) {
+            DebugSerial::LogAlways("[ORACLE]", "realtime timed out after %ums", static_cast<unsigned>(kRealtimeTimeoutMs));
+            result = ESP_ERR_TIMEOUT;
+            break;
+        }
+        const int r = esp_transport_read(ws, buf, sizeof(buf), 5000);
+        if (r == 0) {
+            continue;
+        }
+        if (r < 0) {
+            DebugSerial::LogAlways("[ORACLE]", "realtime read failed: %d", r);
+            result = ESP_FAIL;
+            break;
+        }
+
+        const ws_transport_opcodes_t opcode = esp_transport_ws_get_read_opcode(ws);
+        if (opcode == WS_TRANSPORT_OPCODES_CLOSE) {
+            failed = true;
+            break;
+        }
+        if (opcode != WS_TRANSPORT_OPCODES_TEXT && opcode != WS_TRANSPORT_OPCODES_CONT) {
+            continue;
+        }
+        event.append(buf, static_cast<size_t>(r));
+        if (!esp_transport_ws_get_fin_flag(ws)) {
+            if (event.size() > 65536) {
+                DebugSerial::LogAlways("[ORACLE]", "realtime event too large");
+                result = ESP_ERR_INVALID_SIZE;
+                break;
+            }
+            continue;
+        }
+
+        cJSON *j = cJSON_Parse(event.c_str());
+        event.clear();
+        if (j == nullptr) {
+            DebugSerial::LogAlways("[ORACLE]", "realtime JSON parse failed");
+            failed = true;
+            break;
+        }
+        const std::string type = JsonStr(j, "type");
+        if (type == "response.audio.delta" || type == "response.output_audio.delta") {
+            const std::string delta = JsonStr(j, "delta");
+            std::string pcm;
+            if (!DecodeBase64(delta, &pcm) || !AppendRealtimePcm(&sink, pcm)) {
+                failed = true;
+            }
+        } else if (type == "response.done") {
+            done = true;
+        } else if (type == "error") {
+            const cJSON *err_obj = cJSON_GetObjectItemCaseSensitive(j, "error");
+            const std::string message = err_obj != nullptr ? JsonStr(err_obj, "message") : "";
+            DebugSerial::LogAlways("[ORACLE]", "realtime error: %s", message.substr(0, 180).c_str());
+            failed = true;
+        }
+        cJSON_Delete(j);
+    }
+
+    esp_transport_close(ws);
+    esp_transport_destroy(ws);
+    esp_transport_destroy(ssl);
+
+    if (result != ESP_OK) {
+        return result;
+    }
+    if (failed || sink.error || !done || sink.written == 0) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime failed done=%d audio=%u sink_error=%d",
+                               done ? 1 : 0, static_cast<unsigned>(sink.written), sink.error ? 1 : 0);
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written), "ORACLE",
+                        "realtime final wav header");
+    *answer_audio_bytes = 44 + sink.written;
+    const long long ms = (esp_timer_get_time() - t0) / 1000;
+    DebugSerial::LogAlways("[ORACLE]", "realtime tts model=%s voice=%s wav=%uB time=%lldms",
+                           openai.speech_model.c_str(), voice, static_cast<unsigned>(*answer_audio_bytes), ms);
+    return ESP_OK;
+}
 
 // Append response bytes into the std::string handed in via user_data.
 esp_err_t HttpCollect(esp_http_client_event_t *evt) {
@@ -428,22 +743,28 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
         return err;
     }
 
+    if (IsRealtimeSpeechModel(openai.speech_model)) {
+        return SynthesizeRealtime(openai, tts_text_, voice_direction_, spool, &answer_audio_bytes_);
+    }
+
+    const char *voice = SpeechVoiceForModel(openai);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "model", openai.speech_model.c_str());
-    cJSON_AddStringToObject(root, "voice", openai.voice.empty() ? "coral" : openai.voice.c_str());
+    cJSON_AddStringToObject(root, "voice", voice);
     cJSON_AddStringToObject(root, "input", tts_text_.c_str());
-    // The oracle's spoken style is pinned here so it stays consistent: a hushed,
-    // mystical diviner revealing a vision. voice_direction_ adds the per-answer
-    // emotional colour on top.
-    std::string instructions =
-        "Speak as a theatrical seer in the throes of a vision: dramatic and expressive, with a voice that "
-        "rises and falls -- swelling on the key words, hushing on the secrets. Bold emphasis, pregnant "
-        "pauses, a medium half in trance, yet always intelligible and at a normal speaking volume, NOT a "
-        "whisper. Let the prophecy breathe and build.";
-    if (!voice_direction_.empty()) {
-        instructions = voice_direction_ + ". " + instructions;
+    if (SpeechModelSupportsInstructions(openai.speech_model)) {
+        // The oracle's spoken style is pinned here so it stays consistent when
+        // the selected speech model accepts expressive directions.
+        std::string instructions =
+            "Speak as a theatrical seer in the throes of a vision: dramatic and expressive, with a voice that "
+            "rises and falls -- swelling on the key words, hushing on the secrets. Bold emphasis, pregnant "
+            "pauses, a medium half in trance, yet always intelligible and at a normal speaking volume, NOT a "
+            "whisper. Let the prophecy breathe and build.";
+        if (!voice_direction_.empty()) {
+            instructions = voice_direction_ + ". " + instructions;
+        }
+        cJSON_AddStringToObject(root, "instructions", instructions.c_str());
     }
-    cJSON_AddStringToObject(root, "instructions", instructions.c_str());
     cJSON_AddStringToObject(root, "response_format", "wav");
     char *body_cstr = cJSON_PrintUnformatted(root);
     const std::string body = body_cstr != nullptr ? body_cstr : "";
@@ -475,7 +796,7 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     esp_http_client_cleanup(client);
     const long long ms = (esp_timer_get_time() - t0) / 1000;
     DebugSerial::LogAlways("[ORACLE]", "tts model=%s voice=%s status=%d bytes=%u time=%lldms",
-                           openai.speech_model.c_str(), openai.voice.c_str(), status,
+                           openai.speech_model.c_str(), voice, status,
                            static_cast<unsigned>(sink.written), ms);
     if (err != ESP_OK) {
         return err;

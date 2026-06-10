@@ -10,6 +10,9 @@ ORACLE_CPP = MAIN / "voice_oracle_service.cpp"
 ORACLE_H = MAIN / "voice_oracle_service.h"
 APP_MAIN = MAIN / "app_main.cpp"
 APP_CONFIG_H = MAIN / "app_config.h"
+APP_CONFIG_CPP = MAIN / "app_config.cpp"
+WEB_PORTAL_CPP = MAIN / "web_portal.cpp"
+WEB_PORTAL_HTML = MAIN / "web_portal.html"
 CMAKE = MAIN / "CMakeLists.txt"
 PORT_CODEC_H = PORT / "port_codec.h"
 PORT_CODEC_CPP = PORT / "port_codec.cpp"
@@ -35,6 +38,96 @@ def test_voice_oracle_uses_tls_http_client_and_endpoints():
     assert "v1/chat/completions" in src
     assert "v1/audio/transcriptions" in src
     assert "v1/audio/speech" in src
+
+
+def test_live_openai_defaults_and_portal_are_legacy_4o_free():
+    config = read(APP_CONFIG_CPP)
+    portal = read(WEB_PORTAL_CPP)
+    template = read(WEB_PORTAL_HTML)
+    legacy_marker = "gpt-" + "4o"
+
+    assert 'settings.transcription_model = "whisper-1"' in config
+    assert 'settings.response_model = "gpt-5.4-mini"' in config
+    assert 'settings.speech_model = "gpt-realtime-2"' in config
+    assert 'settings.voice = "cedar"' in config
+
+    for live_source in (config, portal, template):
+        assert legacy_marker + "-mini-" + "tts" not in live_source
+        assert f'placeholder="{legacy_marker}' not in live_source
+        assert "gpt-realtime-2" in live_source
+        assert "gpt-5.4-mini" in live_source
+
+
+def test_openai_voice_dropdown_uses_real_realtime_voice_options():
+    portal = read(WEB_PORTAL_CPP)
+    template = read(WEB_PORTAL_HTML)
+    expected = ("alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar")
+    unsupported_for_realtime = ("fable", "nova", "onyx")
+
+    for source in (portal, template):
+        assert 'select name="voice"' in source
+        assert '<optgroup label="Timbri maschili / profondi">' in source
+        assert '<optgroup label="Timbri femminili / chiari">' in source
+        assert '<optgroup label="Timbri neutri / caratteristici">' in source
+        assert '<option value="cedar">cedar - maschile, profondo</option>' in source
+        assert '<option value="marin">marin - femminile, naturale</option>' in source
+        for voice in expected:
+            assert f'<option value="{voice}">' in source
+        for voice in unsupported_for_realtime:
+            assert f'<option value="{voice}">' not in source
+
+
+def test_portal_status_exposes_current_openai_settings_for_prefill():
+    portal = read(WEB_PORTAL_CPP)
+
+    for key in (
+        "openai_transcription_model",
+        "openai_response_model",
+        "openai_speech_model",
+        "openai_voice",
+        "openai_reasoning_effort",
+    ):
+        assert f'"{key}"' in portal
+        assert f'data-fill="{key}"' in portal
+
+    assert "document.querySelectorAll('[data-fill]')" in portal
+    assert "el.tagName==='SELECT'" in portal
+
+
+def test_config_sanitizes_deprecated_openai_models_and_voices():
+    config = read(APP_CONFIG_CPP)
+
+    assert "MigrateDeprecatedOpenAiSettings" in config
+    assert "DeprecatedOpenAiModelNeedle" in config
+    assert 'std::string("gpt-") + "4o"' in config
+    assert "openai.speech_model" in config
+    assert "IsSupportedOpenAiVoice" in config
+    assert 'settings->openai.voice = defaults.voice' in config
+
+
+def test_tts1_speech_request_omits_expressive_instructions():
+    src = read(ORACLE_CPP)
+
+    assert "SpeechModelSupportsInstructions" in src
+    assert 'model.rfind("tts-1", 0) != 0' in src
+    assert 'if (SpeechModelSupportsInstructions(openai.speech_model))' in src
+    assert 'cJSON_AddStringToObject(root, "instructions", instructions.c_str())' in src
+
+
+def test_realtime_speech_path_uses_websocket_audio_deltas():
+    src = read(ORACLE_CPP)
+    cmake = read(ROOT / "firmware/bisc8_fortune/main/CMakeLists.txt")
+
+    assert "SynthesizeRealtime" in src
+    assert "esp_transport_ws_init" in src
+    assert "wss://api.openai.com/v1/realtime?model=" not in src
+    assert '"/v1/realtime?model="' in src
+    assert '"response.create"' in src
+    assert '"output_modalities"' in src
+    assert '"response.audio.delta"' in src
+    assert '"response.output_audio.delta"' in src
+    assert "mbedtls_base64_decode" in src
+    assert "tcp_transport" in cmake
 
 
 def test_voice_oracle_signature_and_response_contract():

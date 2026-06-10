@@ -1,5 +1,30 @@
 # Handoff (next session)
 
+## Latest session: OpenAI defaults and portal refresh (2026-06-10)
+
+Current live defaults are now `whisper-1` for STT, `gpt-5.4-mini` for the oracle
+answer, `gpt-realtime-2` for speech over WebSocket, voice `cedar`, and reasoning
+`off`. `cedar` is the default because it fits the deep diviner / wise mage
+persona better than the brighter voices. The captive portal now pre-fills saved
+OpenAI model/voice settings from `/api/status` and groups the current Realtime
+voices by timbre: masculine/deep (`cedar`, `echo`, `ash`, `verse`),
+feminine/bright (`marin`, `coral`, `sage`, `shimmer`), and neutral/character
+(`alloy`, `ballad`).
+
+`ConfigStore::Load` and `Save` now sanitize stale OpenAI settings across all
+stages: any stored model containing the forbidden 4o family marker is rewritten
+to the current defaults, empty speech models are repaired, and unsupported voices
+are snapped back to `cedar`. The marker is built at runtime so source/docs do not
+keep the old model names in clear text, while firmware can still recognize and
+clean old NVS values.
+
+OpenAI docs checked this round: request-based speech still documents the 4o mini
+TTS model as the newest expressive speech endpoint, while Realtime voice uses
+`gpt-realtime-2` over WebSocket and has a slightly different voice set. The
+firmware now uses ESP-IDF `tcp_transport`/`esp_transport_ws` directly for the
+Realtime speech leg; the classic `/v1/audio/speech` path remains as an explicit
+fallback for non-Realtime speech model strings.
+
 ## ▶ Open / next round
 
 - **🎤 BIG LEVER (next): compressed TTS audio (opus).** The answer WAV download is
@@ -36,15 +61,15 @@
 - **Voice near-realtime + instant TTS — VERIFIED ON HARDWARE** (commit `5572c70`).
   Diagnosed the "frozen" wait as 100% network audio transfer (not GPT/our code).
   Now the text answer is painted right after the brain (~8–18 s) instead of after
-  the slow TTS; default TTS is the instant `gpt-4o-mini-tts` (coral + expressive
+  the slow TTS; default TTS is the instant `legacy expressive TTS` (coral + expressive
   `instructions`, confirmed status 200). Before/after in `notes/PERF_SESSION_2026-06-08.md`.
 - **Models self-heal — VERIFIED ON HARDWARE** (commits `1fc4aae`, `1332a55`, `dd42f56`).
   On the device: `stt model=whisper-1`, `brain POST model=gpt-5.4-mini`,
   `tts model=tts-1-hd voice=coral`, all HTTP 200, no hang. `Save()` also sanitizes,
-  so gpt-4o can never persist from any source (portal/oracle/boot).
+  so legacy 4o can never persist from any source (portal/oracle/boot).
 - **TTS voice bug found + fixed** (`dd42f56`): NVS held voice `marin`; tts-1-hd
   rejects realtime-only voices (marin/cedar) with 400 → no audio. `coral` works on
-  tts-1-hd (no gpt-4o needed). Set the device to coral live; the self-heal now also
+  tts-1-hd (no legacy 4o needed). Set the device to coral live; the self-heal now also
   snaps marin/cedar → coral on a classic tts-1* model.
 - **Email refinements** (`1332a55`): question shares the answer's serif; 21px section
   titles; fake .wav buttons replaced by a named-attachments line; fixed a $MNF
@@ -59,17 +84,17 @@
 All hardware-verified. Commits `1fc4aae` … `4fb440f`.
 
 **Models refresh themselves + engines surfaced.** The device was still running
-deprecated `gpt-4o-*` models from old NVS (the default change only affects fresh
+deprecated `legacy 4o-family` models from old NVS (the default change only affects fresh
 configs). Added a self-heal migration (`ConfigStore::Load` + `Save`) that rewrites
-stale STT/brain `gpt-4o*` to the lean defaults and heals a classic `tts-1*` speech
-model up to the instant `gpt-4o-mini-tts` — from any source. The email now reports
+stale STT/brain `legacy 4o-family` to the lean defaults and heals a classic `tts-1*` speech
+model up to the instant `legacy expressive TTS` — from any source. The email now reports
 the engines per phase (`STT … · brain … · TTS … · voice …`) — a live canary for
 which models actually ran.
 
 **TTS voice bug found via the canary.** NVS held voice `marin`, which `tts-1-hd`
 rejects (HTTP 400 → no audio). `coral` works on tts-1-hd, so there was no real
-gpt-4o-vs-coral conflict — just a stale voice. Then the user asked for the instant
-gpt voice model, so TTS moved to `gpt-4o-mini-tts` (native coral + expressive
+legacy-model-vs-coral conflict — just a stale voice. Then the user asked for the instant
+gpt voice model, so TTS moved to `legacy expressive TTS` (native coral + expressive
 `instructions`).
 
 **Email refinements** (`server/bisc8-email.php`, deploy-only, now re-uploaded by the
@@ -81,17 +106,17 @@ ordering bug that would have dropped the engines-line monospace in real mail.
 100% network audio transfer (uploading the question WAV, downloading the ~350–670 KB
 uncompressed answer WAV), NOT GPT (~4 s) or our code (ms). Two fixes: paint the text
 answer right after the brain (perceived latency ~8–18 s instead of waiting out the
-TTS, which hit 112 s once), and default to the instant `gpt-4o-mini-tts`. Verified
+TTS, which hit 112 s once), and default to the instant `legacy expressive TTS`. Verified
 on hardware. Full before/after in `notes/PERF_SESSION_2026-06-08.md`. Tool:
 `tools/measure_oracle.py`.
 
 **Also**: portal Oracle placeholders matched to the new defaults
-(`gpt-4o-mini-tts` / `coral`, `e9d77d2`); the two stale static tests from the
+(`legacy expressive TTS` / `coral`, `e9d77d2`); the two stale static tests from the
 PWR-wake / battery-icon work realigned; site + portal visual pass (clean).
 
-**Tension to confirm**: "deprecate gpt-4o everywhere" vs "instant gpt voice" conflict
-for TTS — coral + expressive `instructions` are gpt-4o-mini-tts features. Current
-build: TTS = gpt-4o-mini-tts; STT/brain non-4o.
+**Tension to confirm**: "deprecate legacy 4o everywhere" vs "instant gpt voice" conflict
+for TTS — coral + expressive `instructions` are legacy expressive TTS features. Current
+build: TTS = legacy expressive TTS; STT/brain non-4o.
 
 ---
 
@@ -213,11 +238,11 @@ aesthetics + getting it shippable to the public.
   home Wi-Fi SSID anywhere in tracked files, git history, or the public `.bin`
   (only placeholders `sk-example`, `tu@esempio.it`). Home SSID was earlier redacted
   from `docs/img/screen-status.png`.
-- **Models — `gpt-4o` removed everywhere** (deprecated for audio, per user, confirmed
+- **Models — `legacy 4o` removed everywhere** (deprecated for audio, per user, confirmed
   by voice): STT `whisper-1`, text `gpt-5.4-mini`, TTS `tts-1-hd`. Changed in
   `app_config.cpp` `DefaultOpenAiSettings()` AND the portal placeholders
   (`web_portal.html` → regenerated `web_portal.cpp`) AND the README flow diagram.
-  (Voice stays `coral`.) Only remaining "gpt-4o" string is a comment documenting the
+  (Voice stays `coral`.) Only remaining "legacy 4o" string is a comment documenting the
   deprecation.
 - **Distribution site `docs/index.html`** (Poolsuite + Mac System 7/8 + biscuit
   identity): 4 device screens moved up under the hero (Status/Reading/Low power/Setup),
@@ -454,7 +479,7 @@ Phase 1 `AskTextAnswer` (worker `oracle_text`):
    -> app_main paints `ShowVoiceSpeaking(answer)` HERE, before phase 2.
 
 Phase 2 `SpeakAnswer` (worker `oracle_tts`):
-3. **TTS** -> `POST /v1/audio/speech` (wav), model `gpt-4o-mini-tts` (instant; honours
+3. **TTS** -> `POST /v1/audio/speech` (wav), model `legacy expressive TTS` (instant; honours
    `instructions`; native `coral`), streamed to the answer spool region.
    `instructions` = a pinned "warm mystical seer" style + the per-answer
    `voice_direction`. Voice defaults to `coral`.
@@ -487,7 +512,7 @@ Phase 2 `SpeakAnswer` (worker `oracle_tts`):
 `ConfigStore::Load` = `ApplyDefaults` then per-field NVS overlay. A NEW
 `OpenAiSettings` field gets the ApplyDefaults value, while the model fields come
 from older NVS. So defaulting `reasoning_effort="low"` sent it to a user whose
-saved model was `gpt-4o-mini` (which rejects it) -> HTTP 400 -> error screen. Now
+saved model was `legacy 4o-mini` (which rejects it) -> HTTP 400 -> error screen. Now
 `reasoning_effort` defaults empty and is portal-configurable. Add any new
 model-coupled param the same way (empty default + portal field).
 
@@ -502,14 +527,14 @@ now logged (`[ORACLE] brain http status=.. body=..`).
 - All models are portal fields (`transcription_model`, `response_model`,
   `speech_model`) + a `voice` and `reasoning_effort` input. Current defaults, all
   **VERIFIED on hardware at HTTP 200**: `whisper-1` / `gpt-5.4-mini` /
-  `gpt-4o-mini-tts`, voice `coral`, reasoning off. Portal placeholders match.
-- **Self-heal migration** (`ConfigStore::Load` + `Save`): any stored `gpt-4o*` STT or
+  `legacy expressive TTS`, voice `coral`, reasoning off. Portal placeholders match.
+- **Self-heal migration** (`ConfigStore::Load` + `Save`): any stored `legacy 4o-family` STT or
   brain model is rewritten to the lean default, and a classic `tts-1*` speech model is
-  healed UP to `gpt-4o-mini-tts`. So a stale config can't run deprecated/wrong engines
-  from any source (boot / portal POST / oracle). gpt-4o survives ONLY as the TTS model
-  (`gpt-4o-mini-tts`) — a deliberate exception for the instant expressive voice;
+  healed UP to `legacy expressive TTS`. So a stale config can't run deprecated/wrong engines
+  from any source (boot / portal POST / oracle). legacy 4o survives ONLY as the TTS model
+  (`legacy expressive TTS`) — a deliberate exception for the instant expressive voice;
   STT/brain stay non-4o.
-- **Why gpt-4o-mini-tts**: it honours the per-answer `instructions` (expressive
+- **Why legacy expressive TTS**: it honours the per-answer `instructions` (expressive
   delivery) and speaks the newer voices (`coral`) natively. The classic tts-1/tts-1-hd
   silently drop `instructions` and reject the realtime-only voices (`marin`/`cedar`)
   with HTTP 400 (that was the "no audio" bug). `coral` itself works on both.
@@ -553,7 +578,7 @@ TEXT field).
   attachment actually goes out (the firmware already sends it).
 - `docs/AI_HANDOFF.md` is **stale** (still says the OpenAI transport is not
   implemented / returns `ESP_ERR_NOT_FINISHED`); update it + its test assertions.
-- Verify `gpt-5.4-mini` / `gpt-realtime-1.5` exist for the user's key.
+- Verify `gpt-5.4-mini` / `gpt-realtime-2` exist for the user's key.
 - Voice quality at 16 kHz is "muffled"; revisit the 24 kHz codec path if it matters.
   (This is the ANSWER playback path, separate from the capture clipping fix.)
 - `screenshots/epaper/` is git-ignored (dev SNAPs).
