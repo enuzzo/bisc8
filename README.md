@@ -99,7 +99,7 @@ The whole point of the [**browser flasher**](https://enuzzo.github.io/bisc8/) is
 | **PWR button** | click/hold | The mortal controls. Click for Wi-Fi/status, long-press to sleep, triple-click to wipe it back to factory. |
 | **16 MB flash** | 6 MB app · 5 MB `assets` · raw `spool` | Room to think, room to remember, and a scratchpad for voice WAVs. |
 
-Idle for three minutes and Bisc8 drifts into deep sleep, wakeable with a press of **PWR**. A low battery (≤12%) shows a big battery glyph; at **≤10%** it writes a goodbye on screen and powers itself off completely, a cookie that knows when to stop, to spare the cell.
+Idle for three minutes on battery and Bisc8 drifts into deep sleep, wakeable with a press of **PWR**. When it is attached to a USB host for debugging or flashing, it stays awake instead. A low battery (≤12%) shows a big battery glyph; at **≤10%** it writes a goodbye on screen and powers itself off completely, a cookie that knows when to stop, to spare the cell.
 
 ## Build from source
 

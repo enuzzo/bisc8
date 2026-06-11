@@ -194,6 +194,20 @@ def test_idle_timeout_enters_deep_sleep_wakeable_by_pwr_only():
     assert "board.EnterDeepSleep(\"idle-timeout\", kAnyButtonWakeMask)" in source
 
 
+def test_usb_host_connection_blocks_deep_sleep_paths():
+    source = APP_MAIN_CPP.read_text(encoding="utf-8")
+
+    assert "#include <driver/usb_serial_jtag.h>" in source
+    assert "usb_serial_jtag_is_connected()" in source
+    assert "usb_serial_jtag_is_driver_installed()" in source
+    assert "UsbHostConnected()" in source
+    assert "StayAwakeForUsb(\"idle-timeout\")" in source
+    assert "StayAwakeForUsb(\"fortune\")" in source
+    assert "StayAwakeForUsb(\"power-off\")" in source
+    assert "StayAwakeForUsb(\"low-battery\")" in source
+    assert "USB host connected; staying awake reason=%s" in source
+
+
 def test_pwr_long_press_shows_power_off_prompt_and_wakes_only_from_pwr():
     source = APP_MAIN_CPP.read_text(encoding="utf-8")
     display_header = DISPLAY_H.read_text(encoding="utf-8")

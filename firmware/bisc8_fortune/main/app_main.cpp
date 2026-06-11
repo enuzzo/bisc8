@@ -9,6 +9,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <driver/gpio.h>
+#include <driver/usb_serial_jtag.h>
 
 #include "app_events.h"
 #include "app_config.h"
@@ -176,6 +177,24 @@ bool battery_is_critical() {
     const uint8_t level = BatteryLevel();
     return level != 255 && level <= kCriticalBatteryShutdownPct;
 }
+
+bool UsbHostConnected() {
+#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+    return usb_serial_jtag_is_driver_installed() && usb_serial_jtag_is_connected();
+#else
+    return false;
+#endif
+}
+
+bool StayAwakeForUsb(const char *reason) {
+    if (!UsbHostConnected()) {
+        return false;
+    }
+    DebugSerial::LogAlways("[POWER]", "USB host connected; staying awake reason=%s",
+                           reason == nullptr ? "unknown" : reason);
+    return true;
+}
+
 QueueHandle_t g_event_queue = nullptr;
 const char *g_state = "boot";
 bool g_board_ready = false;
@@ -398,11 +417,13 @@ extern "C" void app_main(void) {
     }
 
     // Hard battery cutoff: at/below kCriticalBatteryShutdownPct, write it on
-    // screen and power off completely (deep sleep) to protect the cell. Used at
-    // boot (covers wake-from-deep-sleep) and on every event below. EnterDeepSleep
-    // never returns, so this is a one-way door whenever the charge is critical.
+    // screen and power off completely (deep sleep) to protect the cell. USB host
+    // sessions are kept awake so development/flash loops do not lose the board.
     auto power_off_if_critical = [&]() {
         if (!battery_is_critical()) {
+            return;
+        }
+        if (StayAwakeForUsb("low-battery")) {
             return;
         }
         const uint8_t level = BatteryLevel();
@@ -440,6 +461,9 @@ extern "C" void app_main(void) {
     for (;;) {
 #if CONFIG_BISC8_IDLE_DEEP_SLEEP_ENABLED
         if (xQueueReceive(g_event_queue, &event, pdMS_TO_TICKS(CONFIG_BISC8_IDLE_SLEEP_DELAY_MS)) != pdTRUE) {
+            if (StayAwakeForUsb("idle-timeout")) {
+                continue;
+            }
             if (portal.Running() && portal.ConsumeActivity()) {
                 // Someone is configuring over the network: stay awake instead of
                 // deep-sleeping (which would kill the portal mid-session and play
@@ -476,11 +500,13 @@ extern "C" void app_main(void) {
                 display.ShowFortune(pick.text, pick.index, pick.count);
                 audio.PlayCue(AudioCue::OracleButton);
 #if CONFIG_BISC8_AUTO_SLEEP_AFTER_FORTUNE
-                g_state = "sleep";
-                DebugSerial::LogAlways("[POWER]", "auto sleep after fortune in %d ms", CONFIG_BISC8_AUTO_SLEEP_DELAY_MS);
-                print_status();
-                vTaskDelay(pdMS_TO_TICKS(CONFIG_BISC8_AUTO_SLEEP_DELAY_MS));
-                board.EnterDeepSleep("fortune", kAnyButtonWakeMask);
+                if (!StayAwakeForUsb("fortune")) {
+                    g_state = "sleep";
+                    DebugSerial::LogAlways("[POWER]", "auto sleep after fortune in %d ms", CONFIG_BISC8_AUTO_SLEEP_DELAY_MS);
+                    print_status();
+                    vTaskDelay(pdMS_TO_TICKS(CONFIG_BISC8_AUTO_SLEEP_DELAY_MS));
+                    board.EnterDeepSleep("fortune", kAnyButtonWakeMask);
+                }
 #endif
                 g_state = "idle";
                 break;
@@ -637,6 +663,11 @@ extern "C" void app_main(void) {
                 break;
 
             case AppEvent::Sleep:
+                if (StayAwakeForUsb("power-off")) {
+                    g_state = "idle";
+                    print_status();
+                    break;
+                }
                 g_state = "power-off";
                 display.ShowPowerOff(ParseLanguage(settings.language.c_str()));
                 audio.PlayCueAsync(AudioCue::Shutdown);
