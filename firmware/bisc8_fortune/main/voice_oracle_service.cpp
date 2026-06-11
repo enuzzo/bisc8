@@ -38,6 +38,7 @@ constexpr const char *kTranscriptionPrompt =
     "The speaker usually asks short oracle questions in Italian, English, or Spanish. "
     "Transcribe only clear foreground speech. If the audio is quiet, clipped, or mostly silence, "
     "do not invent subtitles, captions, music lyrics, or background language.";
+constexpr const char *kSpeechInstructions = "Parla come fossi un mago che recita una profezia misteriosa.";
 constexpr uint32_t kHttpTimeoutMs = 25000;
 constexpr uint32_t kRealtimeTimeoutMs = 45000;
 constexpr uint32_t kRealtimeAudioRateHz = 24000;
@@ -85,6 +86,13 @@ bool IsRealtimeVoice(const std::string &voice) {
 }
 
 bool IsRequestSpeechVoice(const std::string &voice) {
+    return voice == "alloy" || voice == "ash" || voice == "ballad" || voice == "cedar" ||
+           voice == "coral" || voice == "echo" || voice == "fable" || voice == "marin" ||
+           voice == "nova" || voice == "onyx" || voice == "sage" || voice == "shimmer" ||
+           voice == "verse";
+}
+
+bool IsLegacySpeechVoice(const std::string &voice) {
     return voice == "alloy" || voice == "ash" || voice == "coral" || voice == "echo" ||
            voice == "fable" || voice == "nova" || voice == "onyx" || voice == "sage" ||
            voice == "shimmer";
@@ -94,7 +102,10 @@ const char *SpeechVoiceForModel(const OpenAiSettings &openai) {
     if (IsRealtimeSpeechModel(openai.speech_model)) {
         return IsRealtimeVoice(openai.voice) ? openai.voice.c_str() : "marin";
     }
-    return IsRequestSpeechVoice(openai.voice) ? openai.voice.c_str() : "coral";
+    if (openai.speech_model == "tts-1" || openai.speech_model == "tts-1-hd") {
+        return IsLegacySpeechVoice(openai.voice) ? openai.voice.c_str() : "ash";
+    }
+    return IsRequestSpeechVoice(openai.voice) ? openai.voice.c_str() : "ash";
 }
 
 void PutLe16(uint8_t *p, uint16_t v) {
@@ -1459,17 +1470,7 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     cJSON_AddStringToObject(root, "voice", voice);
     cJSON_AddStringToObject(root, "input", tts_text_.c_str());
     if (SpeechModelSupportsInstructions(openai.speech_model)) {
-        // The oracle's spoken style is pinned here so it stays consistent when
-        // the selected speech model accepts expressive directions.
-        std::string instructions =
-            "Speak as a theatrical seer in the throes of a vision: dramatic and expressive, with a voice that "
-            "rises and falls -- swelling on the key words, hushing on the secrets. Bold emphasis, pregnant "
-            "pauses, a medium half in trance, yet always intelligible and at a normal speaking volume, NOT a "
-            "whisper. Let the prophecy breathe and build.";
-        if (!voice_direction_.empty()) {
-            instructions = voice_direction_ + ". " + instructions;
-        }
-        cJSON_AddStringToObject(root, "instructions", instructions.c_str());
+        cJSON_AddStringToObject(root, "instructions", kSpeechInstructions);
     }
     cJSON_AddStringToObject(root, "response_format", "wav");
     char *body_cstr = cJSON_PrintUnformatted(root);

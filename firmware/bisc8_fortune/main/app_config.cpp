@@ -32,8 +32,13 @@ constexpr const char *kLegacyEmailRecipientKey = "smtp_recipient";
 
 bool IsSupportedOpenAiVoice(const std::string &voice) {
     return voice == "alloy" || voice == "ash" || voice == "ballad" || voice == "coral" ||
-           voice == "echo" || voice == "sage" || voice == "shimmer" || voice == "verse" ||
-           voice == "marin" || voice == "cedar";
+           voice == "echo" || voice == "fable" || voice == "nova" || voice == "onyx" ||
+           voice == "sage" || voice == "shimmer" || voice == "verse" || voice == "marin" ||
+           voice == "cedar";
+}
+
+bool IsRealtimeSpeechModel(const std::string &model) {
+    return model.rfind("gpt-realtime", 0) == 0;
 }
 
 void ApplyDefaults(DeviceSettings *settings) {
@@ -133,8 +138,8 @@ OpenAiSettings DefaultOpenAiSettings() {
     OpenAiSettings settings;
     settings.transcription_model = "whisper-1";       // request-based STT fallback path
     settings.response_model = "gpt-5.4-mini";          // simple oracle query model
-    settings.speech_model = "gpt-realtime-2";          // current Realtime voice model via WebSocket
-    settings.voice = "cedar";
+    settings.speech_model = "gpt-4o-mini-tts";         // Speech API TTS with expressive instructions
+    settings.voice = "ash";
     settings.reasoning_effort = "";  // off by default; set per reasoning-capable model in the portal
     return settings;
 }
@@ -170,34 +175,22 @@ esp_err_t ConfigStore::Init() {
 }
 
 namespace {
-std::string DeprecatedOpenAiModelNeedle() {
-    return std::string("gpt-") + "4o";
-}
-
-// One-time self-heal: any saved OpenAI model still on the forbidden legacy
-// model family is upgraded to the current lean default. Runs on every Load;
-// once a config is clean it's a no-op. The caller persists the result, so a
-// device with stale models upgrades itself the first time it boots this firmware.
-bool MigrateDeprecatedOpenAiSettings(DeviceSettings *settings) {
+// One-time self-heal for saved voice settings. Runs on every Load; once a
+// config is clean it's a no-op. The caller persists the result, so a device with
+// stale Realtime defaults upgrades itself the first time it boots this firmware.
+bool MigrateOpenAiSettings(DeviceSettings *settings, bool migrate_realtime_defaults) {
     const OpenAiSettings defaults = DefaultOpenAiSettings();
-    const std::string deprecated_model_needle = DeprecatedOpenAiModelNeedle();
     bool changed = false;
-    auto upgrade = [&](std::string *model, const std::string &fresh) {
-        if (model->find(deprecated_model_needle) != std::string::npos) {
-            *model = fresh;
-            changed = true;
-        }
-    };
-    // The live firmware keeps that legacy family out of persisted config.
-    upgrade(&settings->openai.transcription_model, defaults.transcription_model);
-    upgrade(&settings->openai.response_model, defaults.response_model);
-    upgrade(&settings->openai.speech_model, defaults.speech_model);
+    bool migrated_realtime_speech = false;
 
-    if (settings->openai.speech_model.empty()) {
+    if (settings->openai.speech_model.empty() ||
+        (migrate_realtime_defaults && IsRealtimeSpeechModel(settings->openai.speech_model))) {
         settings->openai.speech_model = defaults.speech_model;
+        migrated_realtime_speech = true;
         changed = true;
     }
-    if (settings->openai.voice.empty() || !IsSupportedOpenAiVoice(settings->openai.voice)) {
+    if (settings->openai.voice.empty() || !IsSupportedOpenAiVoice(settings->openai.voice) ||
+        (migrated_realtime_speech && settings->openai.voice == "cedar")) {
         settings->openai.voice = defaults.voice;
         changed = true;
     }
@@ -292,8 +285,8 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     }
     err = LoadWifi(handle, settings);
     nvs_close(handle);
-    if (err == ESP_OK && MigrateDeprecatedOpenAiSettings(settings)) {
-        printf("[CONFIG] healed deprecated model(s)/voice -> %s / %s / %s (voice %s)\n",
+    if (err == ESP_OK && MigrateOpenAiSettings(settings, true)) {
+        printf("[CONFIG] healed OpenAI model(s)/voice -> %s / %s / %s (voice %s)\n",
                settings->openai.transcription_model.c_str(),
                settings->openai.response_model.c_str(),
                settings->openai.speech_model.c_str(),
@@ -304,11 +297,11 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
 }
 
 esp_err_t ConfigStore::Save(const DeviceSettings &settings_in) {
-    // Sanitize before persisting so the deprecated model family can never reach
-    // NVS, no matter the source: portal POST, oracle flow, or boot self-heal.
+    // Sanitize before persisting so stale/unsupported voice settings cannot
+    // reach NVS, no matter the source: portal POST, oracle flow, or boot self-heal.
     DeviceSettings settings = settings_in;
-    if (MigrateDeprecatedOpenAiSettings(&settings)) {
-        printf("[CONFIG] refused to persist deprecated model/voice; using %s / %s / %s (voice %s)\n",
+    if (MigrateOpenAiSettings(&settings, false)) {
+        printf("[CONFIG] refused to persist unsupported model/voice; using %s / %s / %s (voice %s)\n",
                settings.openai.transcription_model.c_str(),
                settings.openai.response_model.c_str(),
                settings.openai.speech_model.c_str(),

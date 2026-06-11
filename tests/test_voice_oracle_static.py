@@ -40,41 +40,52 @@ def test_voice_oracle_uses_tls_http_client_and_endpoints():
     assert "v1/audio/speech" in src
 
 
-def test_live_openai_defaults_and_portal_are_legacy_4o_free():
+def test_live_openai_defaults_and_portal_use_gpt4o_mini_tts():
     config = read(APP_CONFIG_CPP)
     portal = read(WEB_PORTAL_CPP)
     template = read(WEB_PORTAL_HTML)
-    legacy_marker = "gpt-" + "4o"
 
     assert 'settings.transcription_model = "whisper-1"' in config
     assert 'settings.response_model = "gpt-5.4-mini"' in config
-    assert 'settings.speech_model = "gpt-realtime-2"' in config
-    assert 'settings.voice = "cedar"' in config
+    assert 'settings.speech_model = "gpt-4o-mini-tts"' in config
+    assert 'settings.voice = "ash"' in config
 
     for live_source in (config, portal, template):
-        assert legacy_marker + "-mini-" + "tts" not in live_source
-        assert f'placeholder="{legacy_marker}' not in live_source
-        assert "gpt-realtime-2" in live_source
+        assert "gpt-4o-mini-tts" in live_source
         assert "gpt-5.4-mini" in live_source
+    for web_source in (portal, template):
+        assert 'placeholder="gpt-4o-mini-tts"' in web_source
 
 
-def test_openai_voice_dropdown_uses_real_realtime_voice_options():
+def test_openai_voice_dropdown_uses_real_speech_voice_options():
     portal = read(WEB_PORTAL_CPP)
     template = read(WEB_PORTAL_HTML)
-    expected = ("alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar")
-    unsupported_for_realtime = ("fable", "nova", "onyx")
+    expected = (
+        "alloy",
+        "ash",
+        "ballad",
+        "cedar",
+        "coral",
+        "echo",
+        "fable",
+        "marin",
+        "nova",
+        "onyx",
+        "sage",
+        "shimmer",
+        "verse",
+    )
 
     for source in (portal, template):
         assert 'select name="voice"' in source
-        assert '<optgroup label="Timbri maschili / profondi">' in source
-        assert '<optgroup label="Timbri femminili / chiari">' in source
-        assert '<optgroup label="Timbri neutri / caratteristici">' in source
-        assert '<option value="cedar">cedar - maschile, profondo</option>' in source
-        assert '<option value="marin">marin - femminile, naturale</option>' in source
+        assert '<optgroup label="Voci maschili / profonde">' in source
+        assert '<optgroup label="Voci femminili / chiare">' in source
+        assert '<optgroup label="Voci neutre / narrative">' in source
+        assert '<option value="ash">maschile - ash, profonda</option>' in source
+        assert '<option value="nova">femminile - nova, brillante</option>' in source
+        assert '<option value="fable">neutra - fable, narrativa</option>' in source
         for voice in expected:
             assert f'<option value="{voice}">' in source
-        for voice in unsupported_for_realtime:
-            assert f'<option value="{voice}">' not in source
 
 
 def test_portal_status_exposes_current_openai_settings_for_prefill():
@@ -94,12 +105,14 @@ def test_portal_status_exposes_current_openai_settings_for_prefill():
     assert "el.tagName==='SELECT'" in portal
 
 
-def test_config_sanitizes_deprecated_openai_models_and_voices():
+def test_config_migrates_realtime_tts_defaults_and_sanitizes_voices():
     config = read(APP_CONFIG_CPP)
 
-    assert "MigrateDeprecatedOpenAiSettings" in config
-    assert "DeprecatedOpenAiModelNeedle" in config
-    assert 'std::string("gpt-") + "4o"' in config
+    assert "MigrateOpenAiSettings" in config
+    assert "IsRealtimeSpeechModel" in config
+    assert "MigrateOpenAiSettings(settings, true)" in config
+    assert "MigrateOpenAiSettings(&settings, false)" in config
+    assert 'settings->openai.speech_model = defaults.speech_model' in config
     assert "openai.speech_model" in config
     assert "IsSupportedOpenAiVoice" in config
     assert 'settings->openai.voice = defaults.voice' in config
@@ -109,9 +122,11 @@ def test_tts1_speech_request_omits_expressive_instructions():
     src = read(ORACLE_CPP)
 
     assert "SpeechModelSupportsInstructions" in src
+    assert "kSpeechInstructions" in src
+    assert "Parla come fossi un mago che recita una profezia misteriosa." in src
     assert 'model.rfind("tts-1", 0) != 0' in src
     assert 'if (SpeechModelSupportsInstructions(openai.speech_model))' in src
-    assert 'cJSON_AddStringToObject(root, "instructions", instructions.c_str())' in src
+    assert 'cJSON_AddStringToObject(root, "instructions", kSpeechInstructions)' in src
 
 
 def test_realtime_speech_path_uses_websocket_audio_deltas():
