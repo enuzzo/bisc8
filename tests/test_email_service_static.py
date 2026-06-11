@@ -23,8 +23,7 @@ def read(path):
 
 def test_email_signature_takes_the_answer_audio_byte_count():
     header = read(EMAIL_H)
-    # The TTS answer WAV lives in the spool with a known real length (the WAV
-    # header's size field is an OpenAI "unknown length" placeholder), so the
+    # The TTS answer WAV lives in the spool with a known real length, so the
     # caller must hand the true byte count in.
     assert "answer_audio_bytes" in header
     assert "SendOracleEmail" in header
@@ -44,8 +43,8 @@ def test_firmware_attaches_both_question_and_answer_wavs():
 
 def test_firmware_repairs_the_answer_wav_length_header_for_players():
     src = read(EMAIL_CPP)
-    # OpenAI streams the WAV with a 0xFFFFFFFF "unknown length" data size; the
-    # attached file must carry real RIFF + data sizes or desktop players choke.
+    # The attached file must carry real RIFF + data sizes or desktop players
+    # choke on a placeholder or stale header.
     assert "answer_audio_bytes" in src
     assert "RIFF" in src and "data" in src
     # A patched copy of the header is what gets sent (real sizes written in).

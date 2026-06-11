@@ -15,10 +15,13 @@ constexpr uint32_t kWifiAttemptTimeoutMs = 10000;
 constexpr uint32_t kVoiceRecordLimitMs = 15000;
 constexpr uint32_t kConfigSchemaVersion = 2;
 
-// Generated answer audio lives high in the spool partition, well past the
-// question region (first ~512 KB), so STT input and TTS output never collide.
+// Generated answer audio lives high in the 0x4f0000-byte spool partition, well
+// past the question region (first ~512 KB), so STT input and TTS output never
+// collide. gpt-4o-mini-tts PCM can exceed 1 MB for normal oracle answers, so
+// reserve from 0x200000 through the end of the partition and wrap it in a local
+// WAV header after download.
 constexpr uint32_t kVoiceAnswerSpoolOffset = 0x200000;        // 2 MB into spool
-constexpr uint32_t kVoiceAnswerSpoolMaxBytes = 0x100000;      // up to 1 MB of WAV
+constexpr uint32_t kVoiceAnswerSpoolMaxBytes = 0x2f0000;      // up to ~3 MB of WAV
 
 struct WifiCredential {
     std::string ssid;

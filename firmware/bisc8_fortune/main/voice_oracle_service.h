@@ -58,8 +58,7 @@ public:
     bool HasAnswerAudio() const { return answer_audio_ready_; }
 
     // Bytes actually written to the answer spool (the whole WAV, header
-    // included). OpenAI streams the WAV with an "unknown length" placeholder in
-    // its header, so playback must trust this count, not the header's size field.
+    // included). Playback must trust this count, not any header field.
     uint32_t AnswerAudioBytes() const { return answer_audio_bytes_; }
 
     // Reason the last ask failed (valid after AskFromRecordedAudio returns != OK).

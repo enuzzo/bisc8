@@ -65,10 +65,9 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     }
     const bool attach_question = (wav_total > 0);
 
-    // Answer audio (TTS) from the reserved answer region. OpenAI streams the WAV
-    // with a 0xFFFFFFFF "unknown length" data size, so the stored header lies;
-    // we send a patched copy with the real RIFF + data sizes (computed from the
-    // true byte count the caller passes), or desktop players refuse the file.
+    // Answer audio (TTS) from the reserved answer region. The oracle may build
+    // this WAV around raw PCM, and older builds accepted streamed WAVs with an
+    // unknown data size. Always send a patched copy with the true byte count.
     uint8_t ans_hdr[128] = {};
     uint32_t ans_hdr_len = 0;      // patched header bytes sent before the payload
     uint32_t ans_payload_off = 0;  // where audio data begins inside the answer WAV

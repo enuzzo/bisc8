@@ -25,6 +25,9 @@ assets/sounds/full-reboot.mp3
 *.log
 *.tmp
 *.swp
+.env
+.env.*
+!.env.example
 
 # Email relay secret config (token + recipient live here, never commit)
 server/bisc8-email.config.php

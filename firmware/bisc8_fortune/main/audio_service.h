@@ -46,9 +46,8 @@ public:
     // (parses its header, reopens the codec at its sample rate, mono->stereo as
     // needed, restores 16 kHz after). Drives the playback observer so the
     // speaking glyph animates. Blocks until done. `wav_total_bytes` is the byte
-    // count actually written to the spool: OpenAI streams the WAV with an
-    // "unknown length" placeholder in its header, so the real length must come
-    // from the caller, not from the data-chunk size field.
+    // count actually written to the spool. The oracle may synthesize the WAV
+    // header locally around streamed PCM, so playback trusts this count.
     esp_err_t PlayAnswerAudio(uint32_t wav_total_bytes);
     void RunMicTest(DisplayService &display, Language language);
 

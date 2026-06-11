@@ -77,7 +77,7 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
-Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses the OpenAI Speech endpoint with `gpt-4o-mini-tts`, the built-in `ash` voice, and the voice instruction `Parla come fossi un mago che recita una profezia misteriosa.` The firmware asks for WAV, streams the response straight into the flash spool, then plays it back through the 16 kHz codec. Useful milestones show up as `[ORACLE] tts model=... voice=... status=200 bytes=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
+Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses the OpenAI Speech endpoint with `gpt-4o-mini-tts`, the built-in `ash` voice, and the voice instruction `Parla come fossi un mago che recita una profezia misteriosa.` The firmware asks for raw 24 kHz PCM, streams it straight into the flash spool after a local WAV header, patches that header with the final byte count, then plays it back through the 16 kHz codec. Useful milestones show up as `[ORACLE] tts model=... voice=... status=200 bytes=...`, `[ORACLE] tts ok pcm=... wav=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
 
 ## Flash it (the easy way)
 
@@ -122,14 +122,14 @@ Run the host tests:
 python -m pytest tests/        # 105 passing
 ```
 
-Smoke-test the OpenAI Speech TTS payload from the host before flashing firmware changes:
+Smoke-test the OpenAI Speech TTS payload from the host before flashing firmware changes. The helper reads
+`OPENAI_API_KEY` from the environment or from local `.env.local`:
 
 ```sh
-curl https://api.openai.com/v1/audio/speech \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4o-mini-tts","voice":"ash","input":"The oracle speaks in one short line.","instructions":"Parla come fossi un mago che recita una profezia misteriosa.","response_format":"wav"}' \
-  --output /tmp/bisc8-answer.wav
+node tools/speech_tts_smoke.mjs \
+  --model gpt-4o-mini-tts \
+  --voice ash \
+  --input "The oracle speaks in one short line."
 ```
 
 ## Design: "Bisc8 OS"

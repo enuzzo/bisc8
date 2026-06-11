@@ -1464,6 +1464,8 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
         return SynthesizeRealtime(openai, tts_text_, voice_direction_, spool, &answer_audio_bytes_);
     }
 
+    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, 0), "ORACLE",
+                        "speech initial wav header");
     const char *voice = SpeechVoiceForModel(openai);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "model", openai.speech_model.c_str());
@@ -1472,13 +1474,13 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     if (SpeechModelSupportsInstructions(openai.speech_model)) {
         cJSON_AddStringToObject(root, "instructions", kSpeechInstructions);
     }
-    cJSON_AddStringToObject(root, "response_format", "wav");
+    cJSON_AddStringToObject(root, "response_format", "pcm");
     char *body_cstr = cJSON_PrintUnformatted(root);
     const std::string body = body_cstr != nullptr ? body_cstr : "";
     cJSON_free(body_cstr);
     cJSON_Delete(root);
 
-    FlashSink sink = {spool, kVoiceAnswerSpoolOffset, kVoiceAnswerSpoolMaxBytes, 0, false};
+    FlashSink sink = {spool, kVoiceAnswerSpoolOffset + 44, kVoiceAnswerSpoolMaxBytes - 44, 0, false};
     esp_http_client_config_t cfg = {};
     cfg.url = kSpeechUrl;
     cfg.method = HTTP_METHOD_POST;
@@ -1508,18 +1510,20 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     if (err != ESP_OK) {
         return err;
     }
-    if (status != 200 || sink.error || sink.written < 44) {
+    if (sink.error) {
+        DebugSerial::LogAlways("[ORACLE]", "tts response exceeded answer spool cap cap=%u written=%u",
+                               static_cast<unsigned>(sink.cap), static_cast<unsigned>(sink.written));
+    }
+    if (status != 200 || sink.error || sink.written == 0) {
         return ESP_ERR_INVALID_RESPONSE;
     }
 
-    uint8_t hd[12] = {};
-    esp_partition_read(spool, kVoiceAnswerSpoolOffset, hd, sizeof(hd));
-    if (memcmp(hd, "RIFF", 4) != 0 || memcmp(hd + 8, "WAVE", 4) != 0) {
-        DebugSerial::LogAlways("[ORACLE]", "tts: response is not a WAV");
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-    answer_audio_bytes_ = sink.written;
-    DebugSerial::LogAlways("[ORACLE]", "tts ok wav=%uB -> %s", static_cast<unsigned>(sink.written), kAnswerSpoolUri);
+    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written), "ORACLE",
+                        "speech final wav header");
+    answer_audio_bytes_ = 44 + sink.written;
+    DebugSerial::LogAlways("[ORACLE]", "tts ok pcm=%uB wav=%uB -> %s",
+                           static_cast<unsigned>(sink.written),
+                           static_cast<unsigned>(answer_audio_bytes_), kAnswerSpoolUri);
     return ESP_OK;
 }
 

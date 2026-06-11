@@ -449,10 +449,9 @@ esp_err_t AudioService::PlayAnswerAudio(uint32_t wav_total_bytes) {
         }
         p += 8 + csize + (csize & 1);
     }
-    // OpenAI streams the answer WAV with an "unknown length" placeholder in the
-    // data-chunk size (seen as 0xFFFFFFFF), so it cannot be trusted. Use the
-    // bytes actually written to the spool, and guard every bound against
-    // uint32 overflow (data_off + 0xFFFFFFFF would wrap and defeat the clamp).
+    // The answer is stored as a WAV built around OpenAI's raw PCM response.
+    // Older builds also accepted streamed WAVs with an "unknown length"
+    // placeholder, so keep using the trusted byte count passed by the oracle.
     const uint32_t avail = (wav_total_bytes > data_off) ? (wav_total_bytes - data_off) : 0;
     if (data_size == 0 || data_size == 0xFFFFFFFFu || data_size > avail) {
         data_size = avail;

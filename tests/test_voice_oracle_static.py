@@ -237,12 +237,21 @@ def test_oracle_uses_device_language_when_transcript_looks_ambiguous():
 def test_tts_requests_wav_and_streams_to_the_answer_spool():
     src = read(ORACLE_CPP)
     config = read(APP_CONFIG_H)
-    assert '"response_format"' in src and '"wav"' in src
+    partitions = read(ROOT / "firmware/bisc8_fortune/partitions.csv")
+    assert '"response_format"' in src and '"pcm"' in src
     assert "kVoiceAnswerSpoolOffset" in src
     assert "esp_partition_write" in src  # streamed to flash
+    assert "WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, 0)" in src
+    assert "WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written)" in src
+    assert "FlashSink sink = {spool, kVoiceAnswerSpoolOffset + 44" in src
+    assert "answer_audio_bytes_ = 44 + sink.written" in src
     # The answer region is reserved away from the question region.
     assert "kVoiceAnswerSpoolOffset" in config
     assert "kVoiceAnswerSpoolMaxBytes" in config
+    assert "0x200000" in config
+    assert "0x2f0000" in config
+    assert "spool,    data, 0x40,    0xb10000,  0x4f0000" in partitions
+    assert "tts response exceeded answer spool cap" in src
 
 
 def test_generated_audio_playback_resamples_to_codec_rate():
