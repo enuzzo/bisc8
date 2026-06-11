@@ -286,6 +286,8 @@ def test_voice_flow_is_wired_and_guards_on_audio_and_key():
     assert "pausing portal during voice flow to free heap" in app
     assert "portal.Stop()" in app
     assert "portal resume after voice flow" in app
+    assert "constexpr uint32_t kOracleTtsTaskStackBytes = 5120;" in app
+    assert 'xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", kOracleTtsTaskStackBytes' in app
     # No key -> clean error, no crash.
     assert "openai.api_key.empty()" in src
 
@@ -345,15 +347,14 @@ def test_mic_gain_is_below_the_es8311_clipping_ceiling():
 def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     # The OpenAI HTTPS calls (mbedTLS handshake) need far more stack than the
     # main task carries; running them inline panicked with a stack-protection
-    # fault. They must run on a dedicated worker with a generous stack, so the
-    # main task stays small and the 64 KB mic buffer still fits contiguous heap.
+    # fault. The text phase stays high-stack, while TTS is dedicated but compact:
+    # mbedTLS needs the contiguous heap more than this phase needs stack.
     app = read(APP_MAIN)
     m = re.search(r'xTaskCreate\(\s*OracleTextTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
     assert m is not None, "oracle text phase must run on a dedicated xTaskCreate worker"
     assert int(m.group(1)) >= 12288
-    m2 = re.search(r'xTaskCreate\(\s*OracleSpeakTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
+    stack = re.search(r"constexpr uint32_t kOracleTtsTaskStackBytes = (\d+);", app)
+    assert stack is not None
+    m2 = re.search(r'xTaskCreate\(\s*OracleSpeakTaskEntry\s*,\s*"[^"]*"\s*,\s*kOracleTtsTaskStackBytes', app)
     assert m2 is not None, "oracle speak (TTS) phase must run on a dedicated xTaskCreate worker"
-    # The Realtime TTS path streams audio to flash and uses a 2 KB read buffer;
-    # keeping this stack compact leaves mbedTLS a >16 KB contiguous heap block
-    # for TLS reads during long audio responses.
-    assert 8192 <= int(m2.group(1)) <= 10240
+    assert int(stack.group(1)) <= 6144

@@ -50,6 +50,9 @@ constexpr uint8_t kLowBatteryWarnPct = 12;
 // on screen) to protect the cell from a deep over-discharge. Checked at boot AND
 // on every event, so it triggers from any screen.
 constexpr uint8_t kCriticalBatteryShutdownPct = 10;
+// TTS spends most heap on mbedTLS' 16 KB receive record. Keep this worker lean:
+// measured high-water marks left >6 KB unused on the old 9 KB stack.
+constexpr uint32_t kOracleTtsTaskStackBytes = 5120;
 
 void LogHeapCheckpoint(const char *label) {
     DebugSerial::LogAlways("[HEAP]", "%s free=%u largest=%u",
@@ -131,7 +134,7 @@ void OracleSpeakTaskEntry(void *arg) {
 esp_err_t RunOracleSpeakOnWorker(VoiceOracleService &oracle, const OpenAiSettings &openai) {
     LogHeapCheckpoint("before oracle tts worker");
     OracleSpeakJob job{&oracle, &openai, ESP_FAIL, xTaskGetCurrentTaskHandle()};
-    if (xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", 9216, &job, 5, nullptr) != pdPASS) {
+    if (xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", kOracleTtsTaskStackBytes, &job, 5, nullptr) != pdPASS) {
         DebugSerial::LogAlways("[ORACLE]", "tts worker task create failed (no mem)");
         return ESP_ERR_NO_MEM;
     }
