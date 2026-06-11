@@ -219,6 +219,9 @@ def test_stt_streams_the_wav_from_spool_as_multipart():
     # Streamed from flash, not held in RAM.
     assert "esp_partition_read" in src
     assert "esp_http_client_write" in src
+    assert "constexpr int kSpeechSttMaxAttempts = 3;" in src
+    assert "speech stt retry attempt=" in src
+    assert "for (int attempt = 1; attempt <= kSpeechSttMaxAttempts; ++attempt)" in src
 
 
 def test_oracle_uses_device_language_when_transcript_looks_ambiguous():
@@ -245,6 +248,9 @@ def test_tts_requests_wav_and_streams_to_the_answer_spool():
     assert "WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written)" in src
     assert "FlashSink sink = {spool, kVoiceAnswerSpoolOffset + 44" in src
     assert "answer_audio_bytes_ = 44 + sink.written" in src
+    assert "constexpr int kSpeechTtsMaxAttempts = 3;" in src
+    assert "speech tts retry attempt=" in src
+    assert "for (int attempt = 1; attempt <= kSpeechTtsMaxAttempts; ++attempt)" in src
     # The answer region is reserved away from the question region.
     assert "kVoiceAnswerSpoolOffset" in config
     assert "kVoiceAnswerSpoolMaxBytes" in config

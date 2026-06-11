@@ -41,6 +41,14 @@ def test_firmware_attaches_both_question_and_answer_wavs():
     assert "kVoiceAnswerSpoolOffset" in src
 
 
+def test_firmware_retries_the_relay_post_when_status_is_missing():
+    src = read(EMAIL_CPP)
+    assert "constexpr int kEmailMaxAttempts = 3;" in src
+    assert "relay retry attempt=" in src
+    assert "for (int attempt = 1; attempt <= kEmailMaxAttempts; ++attempt)" in src
+    assert "status >= 200 && status < 300" in src
+
+
 def test_firmware_repairs_the_answer_wav_length_header_for_players():
     src = read(EMAIL_CPP)
     # The attached file must carry real RIFF + data sizes or desktop players
@@ -66,3 +74,11 @@ def test_relay_php_forwards_the_answer_attachment():
     assert "risposta.wav" in php
     # And keep the question attachment.
     assert "domanda.wav" in php
+
+
+def test_relay_email_keeps_the_mime_lightweight():
+    php = read(RELAY_PHP)
+    # Audio attachments already dominate message size; embedding whole web fonts
+    # made the synchronous PHP mail() handoff much more fragile.
+    assert "data:font/woff2;base64" not in php
+    assert "No inline images and no embedded fonts" in php

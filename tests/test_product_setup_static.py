@@ -137,16 +137,16 @@ def test_partition_table_reserves_audio_spool_storage():
     assert "0x4f0000" in partitions
     assert 'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"' in sdkconfig
     assert "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y" in sdkconfig_defaults
-    assert "CONFIG_MBEDTLS_DYNAMIC_BUFFER=y" in sdkconfig
-    assert "CONFIG_MBEDTLS_DYNAMIC_BUFFER=y" in sdkconfig_defaults
+    assert "# CONFIG_MBEDTLS_DYNAMIC_BUFFER is not set" in sdkconfig
+    assert "CONFIG_MBEDTLS_DYNAMIC_BUFFER=y" not in sdkconfig_defaults
     assert "CONFIG_MBEDTLS_SSL_IN_CONTENT_LEN=16384" in sdkconfig
     assert "CONFIG_MBEDTLS_SSL_IN_CONTENT_LEN=16384" in sdkconfig_defaults
     assert "CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=4096" in sdkconfig
     assert "CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=4096" in sdkconfig_defaults
-    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y" in sdkconfig
-    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y" in sdkconfig_defaults
-    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y" in sdkconfig
-    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y" in sdkconfig_defaults
+    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y" not in sdkconfig
+    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y" not in sdkconfig_defaults
+    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y" not in sdkconfig
+    assert "CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y" not in sdkconfig_defaults
 
 
 def test_localization_exposes_required_languages_and_display_states():

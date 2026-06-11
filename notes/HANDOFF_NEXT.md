@@ -1,5 +1,43 @@
 # Handoff (next session)
 
+## Latest session: speech TTS stability and relay hardening (2026-06-11)
+
+The live product default is back on request-based Speech TTS:
+`gpt-4o-mini-tts`, voice `ash`, instructions
+`Parla come fossi un mago che recita una profezia misteriosa.` The portal still
+offers the real Speech voices in the dropdown.
+
+Root cause for "text answer but no return voice": the Speech API PCM stream was
+fine, but ESP-IDF mbedTLS dynamic RX buffering sometimes tried to allocate a
+fresh ~16 KB TLS buffer mid-download after heap fragmentation, causing
+`Dynamic Impl: alloc(16749 bytes) failed` and an incomplete chunked response.
+Fix: keep mbedTLS RX static at 16 KB, TX at 4 KB, shrink the TTS worker stack,
+and retry Speech TTS with a fresh connection when needed.
+
+The stress test then exposed two separate transient issues:
+
+- STT could return `status=0` or `ESP_ERR_HTTP_CONNECT` after a previous network
+  operation. Firmware now retries STT up to three times with a fresh multipart
+  upload from the question spool.
+- The email relay POST had answer WAV bytes attached, but the relay often timed
+  out from the device as `status=0`. Firmware now retries the relay POST and uses
+  a 60 s timeout. The relay PHP was also made lighter by removing embedded WOFF2
+  fonts from the HTML email, which keeps the MIME smaller alongside the WAV
+  attachments.
+
+Hardware evidence before the relay PHP deploy: 5 consecutive voice cycles
+produced TTS WAVs and played them successfully on device with voice `ash`; some
+STT retries were exercised and recovered. The final stricter test still failed
+only on remote relay status because the host copy of `server/bisc8-email.php` is
+deploy-only and had not been replaced during the session.
+
+## Open / next round
+
+- **DEPLOY: re-upload `server/bisc8-email.php` to the host.** The repo copy is
+  now lightweight and accepts `answer_audio`, but the device talks to the hosted
+  PHP file. After upload, rerun one device query and require `[EMAIL] relay POST
+  status=200 ... answer=...B`.
+
 ## Latest session: OpenAI defaults and portal refresh (2026-06-10)
 
 Current live defaults are now `whisper-1` for STT, `gpt-5.4-mini` for the oracle
@@ -25,20 +63,12 @@ firmware now uses ESP-IDF `tcp_transport`/`esp_transport_ws` directly for the
 Realtime speech leg; the classic `/v1/audio/speech` path remains as an explicit
 fallback for non-Realtime speech model strings.
 
-## ▶ Open / next round
+## Older open items from 2026-06-10
 
 - **🎤 BIG LEVER (next): compressed TTS audio (opus).** The answer WAV download is
   the dominant, most variable cost (~350–670 KB uncompressed). `response_format:
   opus` is ~10× smaller -> seconds even on a weak network. Needs an on-device opus
   decoder feeding I2S. Full analysis in `notes/PERF_SESSION_2026-06-08.md`.
-- **Add a single retry on an STT/TTS connect failure.** Saw one transient
-  `stt open failed: ESP_ERR_HTTP_CONNECT` on the flaky home Wi-Fi; a one-shot retry
-  would hide it instead of throwing an E03.
-- **⏳ DEPLOY: re-upload `server/bisc8-email.php` to the host.** It is deploy-only
-  (not served from the repo); the new email changes (engines line; question in the
-  same serif as the answer; 21px section titles; named attachments instead of fake
-  buttons) only appear in real mail once the host copy is replaced. Preview verified
-  in-browser; sample render is correct.
 - **🛡️ Possible extra hardening for the brain step (no longer urgent).** The
   original "thinking" hang was heap starvation (free_heap≈29KB) + a slow network;
   after the model migration the device idles at ~86KB and real queries COMPLETE

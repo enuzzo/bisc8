@@ -17,6 +17,8 @@
 #include <esp_transport.h>
 #include <esp_transport_ssl.h>
 #include <esp_transport_ws.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <mbedtls/base64.h>
 
 #include "app_config.h"
@@ -45,6 +47,10 @@ constexpr uint32_t kRealtimeAudioRateHz = 24000;
 constexpr size_t kRealtimeReadChunkBytes = 2048;
 constexpr size_t kRealtimeMaxJsonEventBytes = 12288;
 constexpr size_t kRealtimeBase64SliceChars = 1024;  // must stay divisible by 4
+constexpr int kSpeechSttMaxAttempts = 3;
+constexpr uint32_t kSpeechSttRetryDelayMs = 350;
+constexpr int kSpeechTtsMaxAttempts = 3;
+constexpr uint32_t kSpeechTtsRetryDelayMs = 350;
 
 // The oracle's voice. Asks for the repo's exact response-contract field names so
 // the JSON maps straight onto OracleResponse.
@@ -1239,102 +1245,127 @@ esp_err_t VoiceOracleService::Transcribe(const OpenAiSettings &openai) {
     const std::string epilogue = "\r\n--" + boundary + "--\r\n";
     const int content_length = static_cast<int>(preamble.size() + wav_total + epilogue.size());
 
-    esp_http_client_config_t cfg = {};
-    cfg.url = kTranscribeUrl;
-    cfg.method = HTTP_METHOD_POST;
-    cfg.crt_bundle_attach = esp_crt_bundle_attach;
-    cfg.timeout_ms = kHttpTimeoutMs;
-    cfg.buffer_size = 2048;
-    cfg.buffer_size_tx = 2048;
-    esp_http_client_handle_t client = esp_http_client_init(&cfg);
-    if (client == nullptr) {
-        return ESP_FAIL;
-    }
     const std::string auth = "Bearer " + openai.api_key;
     const std::string content_type = "multipart/form-data; boundary=" + boundary;
-    esp_http_client_set_header(client, "Authorization", auth.c_str());
-    esp_http_client_set_header(client, "Content-Type", content_type.c_str());
-
-    auto write_all = [&](const char *data, size_t len) -> bool {
-        size_t done = 0;
-        while (done < len) {
-            const int w = esp_http_client_write(client, data + done, len - done);
-            if (w <= 0) {
-                return false;
-            }
-            done += static_cast<size_t>(w);
-        }
-        return true;
-    };
-
-    const int64_t t0 = esp_timer_get_time();
-    err = esp_http_client_open(client, content_length);
-    if (err != ESP_OK) {
-        esp_http_client_cleanup(client);
-        DebugSerial::LogAlways("[ORACLE]", "stt open failed: %s", esp_err_to_name(err));
-        return err;
-    }
-
-    bool ok = write_all(preamble.data(), preamble.size());
     static uint8_t chunk[4096];
-    size_t off = 0;
-    size_t remaining = wav_total;
-    while (ok && remaining > 0) {
-        const size_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
-        if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
-            ok = false;
-            break;
-        }
-        ok = write_all(reinterpret_cast<const char *>(chunk), n);
-        off += n;
-        remaining -= n;
-    }
-    if (ok) {
-        ok = write_all(epilogue.data(), epilogue.size());
-    }
 
-    int status = 0;
-    std::string resp;
-    if (ok) {
-        esp_http_client_fetch_headers(client);
-        status = esp_http_client_get_status_code(client);
-        char rbuf[512];
-        int r = 0;
-        while ((r = esp_http_client_read(client, rbuf, sizeof(rbuf))) > 0) {
-            resp.append(rbuf, static_cast<size_t>(r));
+    esp_err_t last_err = ESP_FAIL;
+    for (int attempt = 1; attempt <= kSpeechSttMaxAttempts; ++attempt) {
+        esp_http_client_config_t cfg = {};
+        cfg.url = kTranscribeUrl;
+        cfg.method = HTTP_METHOD_POST;
+        cfg.crt_bundle_attach = esp_crt_bundle_attach;
+        cfg.timeout_ms = kHttpTimeoutMs;
+        cfg.buffer_size = 2048;
+        cfg.buffer_size_tx = 2048;
+        esp_http_client_handle_t client = esp_http_client_init(&cfg);
+        if (client == nullptr) {
+            last_err = ESP_ERR_NO_MEM;
+        } else {
+            esp_http_client_set_header(client, "Authorization", auth.c_str());
+            esp_http_client_set_header(client, "Content-Type", content_type.c_str());
+
+            auto write_all = [&](const char *data, size_t len) -> bool {
+                size_t done = 0;
+                while (done < len) {
+                    const int w = esp_http_client_write(client, data + done, len - done);
+                    if (w <= 0) {
+                        return false;
+                    }
+                    done += static_cast<size_t>(w);
+                }
+                return true;
+            };
+
+            const int64_t t0 = esp_timer_get_time();
+            err = esp_http_client_open(client, content_length);
+            if (err != ESP_OK) {
+                esp_http_client_cleanup(client);
+                DebugSerial::LogAlways("[ORACLE]", "stt open failed: %s attempt=%d", esp_err_to_name(err),
+                                       attempt);
+                last_err = err;
+            } else {
+                bool ok = write_all(preamble.data(), preamble.size());
+                size_t off = 0;
+                size_t remaining = wav_total;
+                while (ok && remaining > 0) {
+                    const size_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
+                    if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
+                        ok = false;
+                        err = ESP_FAIL;
+                        break;
+                    }
+                    ok = write_all(reinterpret_cast<const char *>(chunk), n);
+                    off += n;
+                    remaining -= n;
+                }
+                if (ok) {
+                    ok = write_all(epilogue.data(), epilogue.size());
+                }
+
+                int status = 0;
+                std::string resp;
+                if (ok) {
+                    const int header_len = esp_http_client_fetch_headers(client);
+                    if (header_len < 0) {
+                        ok = false;
+                        err = ESP_FAIL;
+                        DebugSerial::LogAlways("[ORACLE]", "stt headers failed: %d", header_len);
+                    } else {
+                        status = esp_http_client_get_status_code(client);
+                        char rbuf[512];
+                        int r = 0;
+                        while ((r = esp_http_client_read(client, rbuf, sizeof(rbuf))) > 0) {
+                            resp.append(rbuf, static_cast<size_t>(r));
+                        }
+                        if (r < 0) {
+                            ok = false;
+                            err = ESP_FAIL;
+                            DebugSerial::LogAlways("[ORACLE]", "stt read failed: %d", r);
+                        }
+                    }
+                }
+                esp_http_client_close(client);
+                esp_http_client_cleanup(client);
+                const long long ms = (esp_timer_get_time() - t0) / 1000;
+                DebugSerial::LogAlways("[ORACLE]", "stt model=%s wav=%uB status=%d time=%lldms attempt=%d",
+                                       openai.transcription_model.c_str(), static_cast<unsigned>(wav_total), status,
+                                       ms, attempt);
+                if (!ok) {
+                    last_err = (err != ESP_OK) ? err : ESP_FAIL;
+                } else if (status != 200) {
+                    DebugSerial::LogAlways("[ORACLE]", "stt http status=%d body=%s", status,
+                                           resp.substr(0, 400).c_str());
+                    last_err = ESP_ERR_INVALID_RESPONSE;
+                } else {
+                    cJSON *j = cJSON_Parse(resp.c_str());
+                    if (j == nullptr) {
+                        return ESP_ERR_INVALID_RESPONSE;
+                    }
+                    transcript_ = JsonStr(j, "text");
+                    const std::string lang = JsonStr(j, "language");
+                    if (!lang.empty()) {
+                        detected_language_ = lang;
+                    }
+                    cJSON_Delete(j);
+                    if (transcript_.empty()) {
+                        DebugSerial::LogAlways("[ORACLE]", "stt produced an empty transcript");
+                        last_failure_ = OracleFailure::NoSpeech;  // ...except nothing was heard
+                        return ESP_ERR_INVALID_RESPONSE;
+                    }
+                    DebugSerial::LogAlways("[ORACLE]", "stt ok transcript='%s'", transcript_.c_str());
+                    last_failure_ = OracleFailure::None;
+                    return ESP_OK;
+                }
+            }
+        }
+        if (attempt < kSpeechSttMaxAttempts) {
+            DebugSerial::LogAlways("[ORACLE]", "speech stt retry attempt=%d err=%s", attempt + 1,
+                                   esp_err_to_name(last_err));
+            vTaskDelay(pdMS_TO_TICKS(kSpeechSttRetryDelayMs));
         }
     }
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
-    const long long ms = (esp_timer_get_time() - t0) / 1000;
-    DebugSerial::LogAlways("[ORACLE]", "stt model=%s wav=%uB status=%d time=%lldms",
-                           openai.transcription_model.c_str(), static_cast<unsigned>(wav_total), status, ms);
-    if (!ok) {
-        return ESP_FAIL;
-    }
-    if (status != 200) {
-        DebugSerial::LogAlways("[ORACLE]", "stt http status=%d body=%s", status, resp.substr(0, 400).c_str());
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-
-    cJSON *j = cJSON_Parse(resp.c_str());
-    if (j == nullptr) {
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-    transcript_ = JsonStr(j, "text");
-    const std::string lang = JsonStr(j, "language");
-    if (!lang.empty()) {
-        detected_language_ = lang;
-    }
-    cJSON_Delete(j);
-    if (transcript_.empty()) {
-        DebugSerial::LogAlways("[ORACLE]", "stt produced an empty transcript");
-        last_failure_ = OracleFailure::NoSpeech;  // ...except nothing was heard
-        return ESP_ERR_INVALID_RESPONSE;
-    }
-    DebugSerial::LogAlways("[ORACLE]", "stt ok transcript='%s'", transcript_.c_str());
-    last_failure_ = OracleFailure::None;
-    return ESP_OK;
+    return last_err;
 }
 
 esp_err_t VoiceOracleService::GenerateAnswer(const OpenAiSettings &openai, const std::string &device_language) {
@@ -1454,18 +1485,15 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     if (spool == nullptr) {
         return ESP_ERR_NOT_FOUND;
     }
-    esp_err_t err = esp_partition_erase_range(spool, kVoiceAnswerSpoolOffset, kVoiceAnswerSpoolMaxBytes);
-    if (err != ESP_OK) {
-        DebugSerial::LogAlways("[ORACLE]", "tts erase failed: %s", esp_err_to_name(err));
-        return err;
-    }
-
     if (IsRealtimeSpeechModel(openai.speech_model)) {
+        esp_err_t err = esp_partition_erase_range(spool, kVoiceAnswerSpoolOffset, kVoiceAnswerSpoolMaxBytes);
+        if (err != ESP_OK) {
+            DebugSerial::LogAlways("[ORACLE]", "tts erase failed: %s", esp_err_to_name(err));
+            return err;
+        }
         return SynthesizeRealtime(openai, tts_text_, voice_direction_, spool, &answer_audio_bytes_);
     }
 
-    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, 0), "ORACLE",
-                        "speech initial wav header");
     const char *voice = SpeechVoiceForModel(openai);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "model", openai.speech_model.c_str());
@@ -1480,51 +1508,65 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
     cJSON_free(body_cstr);
     cJSON_Delete(root);
 
-    FlashSink sink = {spool, kVoiceAnswerSpoolOffset + 44, kVoiceAnswerSpoolMaxBytes - 44, 0, false};
-    esp_http_client_config_t cfg = {};
-    cfg.url = kSpeechUrl;
-    cfg.method = HTTP_METHOD_POST;
-    cfg.event_handler = HttpToFlash;
-    cfg.user_data = &sink;
-    cfg.crt_bundle_attach = esp_crt_bundle_attach;
-    cfg.timeout_ms = kHttpTimeoutMs;
-    cfg.buffer_size = 4096;
-    cfg.buffer_size_tx = 1024;
-    esp_http_client_handle_t client = esp_http_client_init(&cfg);
-    if (client == nullptr) {
-        return ESP_FAIL;
-    }
     const std::string auth = "Bearer " + openai.api_key;
-    esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_header(client, "Authorization", auth.c_str());
-    esp_http_client_set_post_field(client, body.c_str(), static_cast<int>(body.size()));
+    esp_err_t last_err = ESP_FAIL;
+    for (int attempt = 1; attempt <= kSpeechTtsMaxAttempts; ++attempt) {
+        esp_err_t err = esp_partition_erase_range(spool, kVoiceAnswerSpoolOffset, kVoiceAnswerSpoolMaxBytes);
+        if (err != ESP_OK) {
+            DebugSerial::LogAlways("[ORACLE]", "tts erase failed: %s", esp_err_to_name(err));
+            return err;
+        }
+        ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, 0), "ORACLE",
+                            "speech initial wav header");
 
-    const int64_t t0 = esp_timer_get_time();
-    err = esp_http_client_perform(client);
-    const int status = (err == ESP_OK) ? esp_http_client_get_status_code(client) : 0;
-    esp_http_client_cleanup(client);
-    const long long ms = (esp_timer_get_time() - t0) / 1000;
-    DebugSerial::LogAlways("[ORACLE]", "tts model=%s voice=%s status=%d bytes=%u time=%lldms",
-                           openai.speech_model.c_str(), voice, status,
-                           static_cast<unsigned>(sink.written), ms);
-    if (err != ESP_OK) {
-        return err;
-    }
-    if (sink.error) {
-        DebugSerial::LogAlways("[ORACLE]", "tts response exceeded answer spool cap cap=%u written=%u",
-                               static_cast<unsigned>(sink.cap), static_cast<unsigned>(sink.written));
-    }
-    if (status != 200 || sink.error || sink.written == 0) {
-        return ESP_ERR_INVALID_RESPONSE;
-    }
+        FlashSink sink = {spool, kVoiceAnswerSpoolOffset + 44, kVoiceAnswerSpoolMaxBytes - 44, 0, false};
+        esp_http_client_config_t cfg = {};
+        cfg.url = kSpeechUrl;
+        cfg.method = HTTP_METHOD_POST;
+        cfg.event_handler = HttpToFlash;
+        cfg.user_data = &sink;
+        cfg.crt_bundle_attach = esp_crt_bundle_attach;
+        cfg.timeout_ms = kHttpTimeoutMs;
+        cfg.buffer_size = 4096;
+        cfg.buffer_size_tx = 1024;
+        esp_http_client_handle_t client = esp_http_client_init(&cfg);
+        if (client == nullptr) {
+            last_err = ESP_ERR_NO_MEM;
+        } else {
+            esp_http_client_set_header(client, "Content-Type", "application/json");
+            esp_http_client_set_header(client, "Authorization", auth.c_str());
+            esp_http_client_set_post_field(client, body.c_str(), static_cast<int>(body.size()));
 
-    ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written), "ORACLE",
-                        "speech final wav header");
-    answer_audio_bytes_ = 44 + sink.written;
-    DebugSerial::LogAlways("[ORACLE]", "tts ok pcm=%uB wav=%uB -> %s",
-                           static_cast<unsigned>(sink.written),
-                           static_cast<unsigned>(answer_audio_bytes_), kAnswerSpoolUri);
-    return ESP_OK;
+            const int64_t t0 = esp_timer_get_time();
+            err = esp_http_client_perform(client);
+            const int status = (err == ESP_OK) ? esp_http_client_get_status_code(client) : 0;
+            esp_http_client_cleanup(client);
+            const long long ms = (esp_timer_get_time() - t0) / 1000;
+            DebugSerial::LogAlways("[ORACLE]", "tts model=%s voice=%s status=%d bytes=%u time=%lldms attempt=%d",
+                                   openai.speech_model.c_str(), voice, status,
+                                   static_cast<unsigned>(sink.written), ms, attempt);
+            if (sink.error) {
+                DebugSerial::LogAlways("[ORACLE]", "tts response exceeded answer spool cap cap=%u written=%u",
+                                       static_cast<unsigned>(sink.cap), static_cast<unsigned>(sink.written));
+            }
+            if (err == ESP_OK && status == 200 && !sink.error && sink.written > 0) {
+                ESP_RETURN_ON_ERROR(WritePcm16WavHeader(spool, kVoiceAnswerSpoolOffset, sink.written), "ORACLE",
+                                    "speech final wav header");
+                answer_audio_bytes_ = 44 + sink.written;
+                DebugSerial::LogAlways("[ORACLE]", "tts ok pcm=%uB wav=%uB -> %s",
+                                       static_cast<unsigned>(sink.written),
+                                       static_cast<unsigned>(answer_audio_bytes_), kAnswerSpoolUri);
+                return ESP_OK;
+            }
+            last_err = (err != ESP_OK) ? err : ESP_ERR_INVALID_RESPONSE;
+        }
+        if (attempt < kSpeechTtsMaxAttempts) {
+            DebugSerial::LogAlways("[ORACLE]", "speech tts retry attempt=%d err=%s",
+                                   attempt + 1, esp_err_to_name(last_err));
+            vTaskDelay(pdMS_TO_TICKS(kSpeechTtsRetryDelayMs));
+        }
+    }
+    return last_err;
 }
 
 esp_err_t VoiceOracleService::AskTextAnswer(const char *wav_path, const OpenAiSettings &openai,

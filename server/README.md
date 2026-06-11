@@ -47,6 +47,10 @@ By default it uses PHP `mail()`, which hands off to the host's own mail server
 explicit SMTP relay instead, swap the `mail()` call at the bottom for your SMTP
 client — the rest (auth, MIME, attachment) stays the same.
 
+The relay intentionally does not embed web fonts in the HTML email. The two WAV
+attachments already dominate message size, and keeping the MIME light makes the
+synchronous PHP `mail()` handoff much less fragile on shared hosting.
+
 ## Notes
 
 - The recipient is fixed server-side (`mail_to`), so a leaked token can only ever
