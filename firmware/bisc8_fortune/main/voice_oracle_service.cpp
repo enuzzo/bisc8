@@ -13,6 +13,7 @@
 #include <esp_partition.h>
 #include <esp_system.h>
 #include <esp_timer.h>
+#include <esp_tls.h>
 #include <esp_transport.h>
 #include <esp_transport_ssl.h>
 #include <esp_transport_ws.h>
@@ -36,8 +37,9 @@ constexpr const char *kMultipartBoundary = "----bisc8oracleMUL7boundaryZ9";
 constexpr uint32_t kHttpTimeoutMs = 25000;
 constexpr uint32_t kRealtimeTimeoutMs = 45000;
 constexpr uint32_t kRealtimeAudioRateHz = 24000;
-constexpr size_t kRealtimeReadChunkBytes = 4096;
-constexpr size_t kRealtimeMaxJsonEventBytes = 131072;
+constexpr size_t kRealtimeReadChunkBytes = 2048;
+constexpr size_t kRealtimeMaxJsonEventBytes = 12288;
+constexpr size_t kRealtimeBase64SliceChars = 1024;  // must stay divisible by 4
 
 // The oracle's voice. Asks for the repo's exact response-contract field names so
 // the JSON maps straight onto OracleResponse.
@@ -119,26 +121,23 @@ esp_err_t WritePcm16WavHeader(const esp_partition_t *spool, uint32_t offset, uin
     return esp_partition_write(spool, offset, header, sizeof(header));
 }
 
-bool DecodeBase64(const std::string &input, std::string *decoded) {
-    if (decoded == nullptr) {
+bool DecodeBase64Slice(const char *input, size_t input_len, uint8_t *decoded, size_t decoded_cap,
+                       size_t *written) {
+    if (input == nullptr || decoded == nullptr || written == nullptr) {
         return false;
     }
-    const size_t cap = (input.size() * 3) / 4 + 4;
-    decoded->assign(cap, '\0');
-    size_t written = 0;
-    const int rc = mbedtls_base64_decode(reinterpret_cast<unsigned char *>(decoded->data()), decoded->size(), &written,
-                                         reinterpret_cast<const unsigned char *>(input.data()), input.size());
-    if (rc != 0) {
-        decoded->clear();
-        return false;
-    }
-    decoded->resize(written);
-    return true;
+    *written = 0;
+    return mbedtls_base64_decode(decoded, decoded_cap, written,
+                                 reinterpret_cast<const unsigned char *>(input), input_len) == 0;
 }
 
 bool WsSendText(esp_transport_handle_t ws, const std::string &body) {
     std::string mutable_body = body;
-    const int written = esp_transport_ws_send_raw(ws, WS_TRANSPORT_OPCODES_TEXT, mutable_body.data(),
+    // esp_transport_ws_send_raw() expects the caller to include FIN in the
+    // opcode. Without it the server waits for a continuation frame, then closes
+    // with WebSocket protocol error 1002 when the next TEXT event arrives.
+    const auto opcode = static_cast<ws_transport_opcodes_t>(WS_TRANSPORT_OPCODES_TEXT | WS_TRANSPORT_OPCODES_FIN);
+    const int written = esp_transport_ws_send_raw(ws, opcode, mutable_body.data(),
                                                   static_cast<int>(mutable_body.size()), kHttpTimeoutMs);
     return written == static_cast<int>(mutable_body.size());
 }
@@ -149,60 +148,466 @@ struct RealtimeAudioSink {
     bool error;
 };
 
-bool AppendRealtimePcm(RealtimeAudioSink *sink, const std::string &pcm) {
-    if (sink == nullptr || sink->error || pcm.empty()) {
+bool AppendRealtimePcm(RealtimeAudioSink *sink, const void *pcm, size_t len) {
+    if (sink == nullptr || sink->error || pcm == nullptr || len == 0) {
         return sink != nullptr && !sink->error;
     }
-    if (sink->written + pcm.size() > kVoiceAnswerSpoolMaxBytes - 44) {
+    if (sink->written + len > kVoiceAnswerSpoolMaxBytes - 44) {
         sink->error = true;
         return false;
     }
     const esp_err_t err =
-        esp_partition_write(sink->spool, kVoiceAnswerSpoolOffset + 44 + sink->written, pcm.data(), pcm.size());
+        esp_partition_write(sink->spool, kVoiceAnswerSpoolOffset + 44 + sink->written, pcm, len);
     if (err != ESP_OK) {
         sink->error = true;
         return false;
     }
-    sink->written += static_cast<uint32_t>(pcm.size());
+    sink->written += static_cast<uint32_t>(len);
     return true;
 }
 
-bool PopRealtimeJsonEvent(std::string *pending, cJSON **event) {
-    if (pending == nullptr || event == nullptr) {
+bool DecodeAndAppendRealtimeBase64(RealtimeAudioSink *sink, const char *delta, size_t delta_len) {
+    if (sink == nullptr || delta == nullptr || delta_len == 0) {
         return false;
     }
-    *event = nullptr;
-    while (!pending->empty() && isspace(static_cast<unsigned char>((*pending)[0]))) {
-        pending->erase(0, 1);
+    uint8_t pcm[768];
+    size_t off = 0;
+    while (off < delta_len) {
+        size_t slice = std::min(kRealtimeBase64SliceChars, delta_len - off);
+        if (slice < delta_len - off) {
+            slice -= slice % 4;
+        }
+        if (slice == 0) {
+            return false;
+        }
+        size_t written = 0;
+        if (!DecodeBase64Slice(delta + off, slice, pcm, sizeof(pcm), &written)) {
+            return false;
+        }
+        if (!AppendRealtimePcm(sink, pcm, written)) {
+            return false;
+        }
+        off += slice;
     }
-    if (pending->empty()) {
+    return true;
+}
+
+struct RealtimeEventBuffer {
+    char data[kRealtimeMaxJsonEventBytes + 1];
+    size_t len;
+    size_t expected_len;
+};
+
+struct RealtimeEvent {
+    cJSON *json;
+    const char *type;
+    size_t type_len;
+    const char *delta;
+    size_t delta_len;
+    bool raw_audio_delta;
+    uint32_t streamed_audio_bytes;
+};
+
+void ResetRealtimeEventBuffer(RealtimeEventBuffer *pending) {
+    if (pending == nullptr) {
+        return;
+    }
+    pending->len = 0;
+    pending->expected_len = 0;
+    pending->data[0] = '\0';
+}
+
+void CleanupRealtimeEvent(RealtimeEventBuffer *pending, RealtimeEvent *event) {
+    if (event != nullptr && event->json != nullptr) {
+        cJSON_Delete(event->json);
+        event->json = nullptr;
+    }
+    ResetRealtimeEventBuffer(pending);
+}
+
+bool JsonRawStringValue(const char *json, size_t len, const char *key, const char **value, size_t *value_len) {
+    if (json == nullptr || key == nullptr || value == nullptr || value_len == nullptr) {
         return false;
+    }
+    const size_t key_len = strlen(key);
+    for (size_t i = 0; i + key_len + 2 < len; ++i) {
+        if (json[i] != '"' || memcmp(json + i + 1, key, key_len) != 0 || json[i + key_len + 1] != '"') {
+            continue;
+        }
+        size_t p = i + key_len + 2;
+        while (p < len && isspace(static_cast<unsigned char>(json[p]))) {
+            ++p;
+        }
+        if (p >= len || json[p++] != ':') {
+            continue;
+        }
+        while (p < len && isspace(static_cast<unsigned char>(json[p]))) {
+            ++p;
+        }
+        if (p >= len || json[p++] != '"') {
+            continue;
+        }
+        const char *start = json + p;
+        bool escaped = false;
+        while (p < len) {
+            const char c = json[p];
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                *value = start;
+                *value_len = static_cast<size_t>((json + p) - start);
+                return true;
+            }
+            ++p;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool RawEquals(const char *value, size_t value_len, const char *expected) {
+    return value != nullptr && expected != nullptr && strlen(expected) == value_len &&
+           memcmp(value, expected, value_len) == 0;
+}
+
+bool RealtimeEventIs(const RealtimeEvent &event, const char *type) {
+    return RawEquals(event.type, event.type_len, type);
+}
+
+bool RealtimeEventTypeIsAudioDelta(const char *type, size_t type_len) {
+    return RawEquals(type, type_len, "response.audio.delta") ||
+           RawEquals(type, type_len, "response.output_audio.delta");
+}
+
+bool PendingRealtimeEventIsAudioDelta(const RealtimeEventBuffer *pending) {
+    if (pending == nullptr || pending->len == 0) {
+        return false;
+    }
+    const char *type = nullptr;
+    size_t type_len = 0;
+    return JsonRawStringValue(pending->data, pending->len, "type", &type, &type_len) &&
+           RealtimeEventTypeIsAudioDelta(type, type_len);
+}
+
+struct RealtimeAudioDeltaReader {
+    RealtimeAudioSink *sink;
+    char b64[kRealtimeBase64SliceChars];
+    size_t b64_len;
+    size_t key_match;
+    enum class State {
+        SearchKey,
+        AfterKey,
+        BeforeValue,
+        InValue,
+        Done,
+    } state;
+    bool escaped;
+    bool error;
+};
+
+bool FlushRealtimeAudioDeltaBase64(RealtimeAudioDeltaReader *reader) {
+    if (reader == nullptr || reader->error || reader->b64_len == 0) {
+        return reader != nullptr && !reader->error;
+    }
+    if (reader->b64_len % 4 != 0) {
+        reader->error = true;
+        return false;
+    }
+    uint8_t pcm[768];
+    size_t written = 0;
+    if (!DecodeBase64Slice(reader->b64, reader->b64_len, pcm, sizeof(pcm), &written)) {
+        reader->error = true;
+        return false;
+    }
+    reader->b64_len = 0;
+    if (!AppendRealtimePcm(reader->sink, pcm, written)) {
+        reader->error = true;
+        return false;
+    }
+    return true;
+}
+
+bool PushRealtimeAudioDeltaChar(RealtimeAudioDeltaReader *reader, char c) {
+    if (reader == nullptr || reader->error) {
+        return false;
+    }
+    reader->b64[reader->b64_len++] = c;
+    if (reader->b64_len == sizeof(reader->b64)) {
+        return FlushRealtimeAudioDeltaBase64(reader);
+    }
+    return true;
+}
+
+bool ConsumeRealtimeAudioDeltaJson(RealtimeAudioDeltaReader *reader, const char *data, size_t len) {
+    if (reader == nullptr || data == nullptr || reader->error) {
+        return false;
+    }
+    constexpr const char *kDeltaKey = "\"delta\"";
+    constexpr size_t kDeltaKeyLen = 7;
+    for (size_t i = 0; i < len; ++i) {
+        const char c = data[i];
+        switch (reader->state) {
+            case RealtimeAudioDeltaReader::State::SearchKey:
+                if (c == kDeltaKey[reader->key_match]) {
+                    ++reader->key_match;
+                    if (reader->key_match == kDeltaKeyLen) {
+                        reader->state = RealtimeAudioDeltaReader::State::AfterKey;
+                        reader->key_match = 0;
+                    }
+                } else {
+                    reader->key_match = (c == kDeltaKey[0]) ? 1 : 0;
+                }
+                break;
+            case RealtimeAudioDeltaReader::State::AfterKey:
+                if (isspace(static_cast<unsigned char>(c))) {
+                    break;
+                }
+                if (c != ':') {
+                    reader->error = true;
+                    return false;
+                }
+                reader->state = RealtimeAudioDeltaReader::State::BeforeValue;
+                break;
+            case RealtimeAudioDeltaReader::State::BeforeValue:
+                if (isspace(static_cast<unsigned char>(c))) {
+                    break;
+                }
+                if (c != '"') {
+                    reader->error = true;
+                    return false;
+                }
+                reader->state = RealtimeAudioDeltaReader::State::InValue;
+                reader->escaped = false;
+                break;
+            case RealtimeAudioDeltaReader::State::InValue:
+                if (reader->escaped) {
+                    reader->escaped = false;
+                    if (c == 'u') {
+                        reader->error = true;
+                        return false;
+                    }
+                    const char decoded = (c == '/') ? '/' : c;
+                    if (!PushRealtimeAudioDeltaChar(reader, decoded)) {
+                        return false;
+                    }
+                } else if (c == '\\') {
+                    reader->escaped = true;
+                } else if (c == '"') {
+                    if (!FlushRealtimeAudioDeltaBase64(reader)) {
+                        return false;
+                    }
+                    reader->state = RealtimeAudioDeltaReader::State::Done;
+                } else if (!PushRealtimeAudioDeltaChar(reader, c)) {
+                    return false;
+                }
+                break;
+            case RealtimeAudioDeltaReader::State::Done:
+                break;
+        }
+    }
+    return !reader->error;
+}
+
+bool RealtimeEventTypeNeedsFullJson(const char *type, size_t type_len) {
+    return RawEquals(type, type_len, "error") || RawEquals(type, type_len, "response.done");
+}
+
+esp_err_t SkipOversizedRealtimeEvent(esp_transport_handle_t ws, RealtimeEventBuffer *pending, char *buf,
+                                     size_t buf_size, size_t already_consumed, RealtimeEvent *event,
+                                     bool *closed) {
+    if (ws == nullptr || pending == nullptr || buf == nullptr || event == nullptr ||
+        closed == nullptr || already_consumed > pending->expected_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    const char *type = nullptr;
+    size_t type_len = 0;
+    if (!JsonRawStringValue(pending->data, pending->len, "type", &type, &type_len)) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime oversized event without early type pending=%u expected=%u",
+                               static_cast<unsigned>(already_consumed),
+                               static_cast<unsigned>(pending->expected_len));
+        ResetRealtimeEventBuffer(pending);
+        return ESP_ERR_INVALID_SIZE;
+    }
+    if (RealtimeEventTypeIsAudioDelta(type, type_len) || RealtimeEventTypeNeedsFullJson(type, type_len)) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime critical event too large type=%.*s pending=%u expected=%u",
+                               static_cast<int>(type_len), type, static_cast<unsigned>(already_consumed),
+                               static_cast<unsigned>(pending->expected_len));
+        ResetRealtimeEventBuffer(pending);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    size_t consumed = already_consumed;
+    int timeout_reads = 0;
+    while (consumed < pending->expected_len) {
+        const int r = esp_transport_read(ws, buf, static_cast<int>(buf_size), 5000);
+        if (r == 0) {
+            if (++timeout_reads < 3) {
+                continue;
+            }
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_TIMEOUT;
+        }
+        timeout_reads = 0;
+        if (r < 0) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_FAIL;
+        }
+        const ws_transport_opcodes_t opcode = esp_transport_ws_get_read_opcode(ws);
+        if (opcode == WS_TRANSPORT_OPCODES_CLOSE) {
+            *closed = true;
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        if (opcode != WS_TRANSPORT_OPCODES_TEXT && opcode != WS_TRANSPORT_OPCODES_CONT) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_TIMEOUT;
+        }
+        consumed += static_cast<size_t>(r);
+        if (consumed > pending->expected_len) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_INVALID_SIZE;
+        }
+    }
+
+    DebugSerial::LogAlways("[ORACLE]", "realtime skipped oversized event type=%.*s bytes=%u",
+                           static_cast<int>(type_len), type, static_cast<unsigned>(pending->expected_len));
+    *event = RealtimeEvent{};
+    event->type = type;
+    event->type_len = type_len;
+    ResetRealtimeEventBuffer(pending);
+    return ESP_OK;
+}
+
+esp_err_t ParseRealtimeBufferedEvent(RealtimeEventBuffer *pending, RealtimeEvent *event) {
+    if (pending == nullptr || event == nullptr || pending->len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    pending->data[pending->len] = '\0';
+    *event = RealtimeEvent{};
+
+    const char *type = nullptr;
+    size_t type_len = 0;
+    if (!JsonRawStringValue(pending->data, pending->len, "type", &type, &type_len)) {
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+    event->type = type;
+    event->type_len = type_len;
+
+    if (RawEquals(type, type_len, "response.audio.delta") ||
+        RawEquals(type, type_len, "response.output_audio.delta")) {
+        const char *delta = nullptr;
+        size_t delta_len = 0;
+        if (!JsonRawStringValue(pending->data, pending->len, "delta", &delta, &delta_len)) {
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        event->delta = delta;
+        event->delta_len = delta_len;
+        event->raw_audio_delta = true;
+        return ESP_OK;
     }
 
     const char *parse_end = nullptr;
-    cJSON *parsed = cJSON_ParseWithLengthOpts(pending->data(), pending->size(), &parse_end, false);
+    cJSON *parsed = cJSON_ParseWithLengthOpts(pending->data, pending->len, &parse_end, false);
     if (parsed == nullptr) {
-        return false;
+        return ESP_ERR_INVALID_RESPONSE;
     }
-    size_t consumed = pending->size();
-    if (parse_end != nullptr && parse_end >= pending->data()) {
-        consumed = static_cast<size_t>(parse_end - pending->data());
-    }
-    pending->erase(0, consumed);
-    *event = parsed;
-    return true;
+    event->json = parsed;
+    return ESP_OK;
 }
 
-esp_err_t ReadRealtimeJsonEvent(esp_transport_handle_t ws, std::string *pending, char *buf, size_t buf_size,
-                                cJSON **event, bool *closed) {
+esp_err_t StreamRealtimeAudioDeltaEvent(esp_transport_handle_t ws, RealtimeEventBuffer *pending, char *buf,
+                                        size_t buf_size, RealtimeEvent *event, bool *closed,
+                                        RealtimeAudioSink *audio_sink) {
+    if (ws == nullptr || pending == nullptr || buf == nullptr || event == nullptr ||
+        closed == nullptr || audio_sink == nullptr || pending->len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const char *type = nullptr;
+    size_t type_len = 0;
+    if (!JsonRawStringValue(pending->data, pending->len, "type", &type, &type_len) ||
+        !RealtimeEventTypeIsAudioDelta(type, type_len)) {
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    const uint32_t before = audio_sink->written;
+    RealtimeAudioDeltaReader reader = {
+        audio_sink,
+        {},
+        0,
+        0,
+        RealtimeAudioDeltaReader::State::SearchKey,
+        false,
+        false,
+    };
+    if (!ConsumeRealtimeAudioDeltaJson(&reader, pending->data, pending->len)) {
+        ResetRealtimeEventBuffer(pending);
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    size_t consumed = pending->len;
+    int timeout_reads = 0;
+    while (consumed < pending->expected_len) {
+        const int r = esp_transport_read(ws, buf, static_cast<int>(buf_size), 5000);
+        if (r == 0) {
+            if (++timeout_reads < 3) {
+                continue;
+            }
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_TIMEOUT;
+        }
+        timeout_reads = 0;
+        if (r < 0) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_FAIL;
+        }
+
+        const ws_transport_opcodes_t opcode = esp_transport_ws_get_read_opcode(ws);
+        if (opcode == WS_TRANSPORT_OPCODES_CLOSE) {
+            *closed = true;
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        if (opcode != WS_TRANSPORT_OPCODES_TEXT && opcode != WS_TRANSPORT_OPCODES_CONT) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_TIMEOUT;
+        }
+
+        const size_t chunk_len = static_cast<size_t>(r);
+        if (consumed + chunk_len > pending->expected_len) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_INVALID_SIZE;
+        }
+        if (!ConsumeRealtimeAudioDeltaJson(&reader, buf, chunk_len)) {
+            ResetRealtimeEventBuffer(pending);
+            return ESP_ERR_INVALID_RESPONSE;
+        }
+        consumed += chunk_len;
+    }
+
+    if (reader.state != RealtimeAudioDeltaReader::State::Done || audio_sink->error) {
+        ResetRealtimeEventBuffer(pending);
+        return ESP_ERR_INVALID_RESPONSE;
+    }
+
+    *event = RealtimeEvent{};
+    event->type = "response.audio.delta";
+    event->type_len = strlen(event->type);
+    event->raw_audio_delta = true;
+    event->streamed_audio_bytes = audio_sink->written - before;
+    ResetRealtimeEventBuffer(pending);
+    return ESP_OK;
+}
+
+esp_err_t ReadRealtimeEvent(esp_transport_handle_t ws, RealtimeEventBuffer *pending, char *buf, size_t buf_size,
+                            RealtimeEvent *event, bool *closed, RealtimeAudioSink *audio_sink = nullptr) {
     if (event == nullptr || closed == nullptr || pending == nullptr || buf == nullptr || buf_size == 0) {
         return ESP_ERR_INVALID_ARG;
     }
-    *event = nullptr;
+    *event = RealtimeEvent{};
     *closed = false;
-    if (PopRealtimeJsonEvent(pending, event)) {
-        return ESP_OK;
-    }
 
     const int r = esp_transport_read(ws, buf, static_cast<int>(buf_size), 5000);
     if (r == 0) {
@@ -221,14 +626,29 @@ esp_err_t ReadRealtimeJsonEvent(esp_transport_handle_t ws, std::string *pending,
         return ESP_ERR_TIMEOUT;
     }
 
-    pending->append(buf, static_cast<size_t>(r));
-    if (pending->size() > kRealtimeMaxJsonEventBytes) {
+    if (pending->len == 0) {
+        pending->expected_len = static_cast<size_t>(std::max(esp_transport_ws_get_read_payload_len(ws), r));
+    }
+    const size_t next_len = pending->len + static_cast<size_t>(r);
+    if (next_len > kRealtimeMaxJsonEventBytes) {
+        if (audio_sink != nullptr) {
+            return SkipOversizedRealtimeEvent(ws, pending, buf, buf_size, next_len, event, closed);
+        }
         DebugSerial::LogAlways("[ORACLE]", "realtime event too large pending=%u",
-                               static_cast<unsigned>(pending->size()));
-        pending->clear();
+                               static_cast<unsigned>(next_len));
+        ResetRealtimeEventBuffer(pending);
         return ESP_ERR_INVALID_SIZE;
     }
-    return PopRealtimeJsonEvent(pending, event) ? ESP_OK : ESP_ERR_TIMEOUT;
+    memcpy(pending->data + pending->len, buf, static_cast<size_t>(r));
+    pending->len = next_len;
+    if (pending->expected_len > kRealtimeMaxJsonEventBytes && audio_sink != nullptr &&
+        PendingRealtimeEventIsAudioDelta(pending)) {
+        return StreamRealtimeAudioDeltaEvent(ws, pending, buf, buf_size, event, closed, audio_sink);
+    }
+    if (pending->len < pending->expected_len) {
+        return ESP_ERR_TIMEOUT;
+    }
+    return ParseRealtimeBufferedEvent(pending, event);
 }
 
 void LogRealtimeError(cJSON *j) {
@@ -263,6 +683,7 @@ void AddRealtimeAudioOutput(cJSON *object, const char *voice) {
     cJSON *output = cJSON_AddObjectToObject(audio, "output");
     cJSON *format = cJSON_AddObjectToObject(output, "format");
     cJSON_AddStringToObject(format, "type", "audio/pcm");
+    cJSON_AddNumberToObject(format, "rate", kRealtimeAudioRateHz);
     cJSON_AddStringToObject(output, "voice", voice);
 }
 
@@ -286,37 +707,27 @@ std::string RealtimeVoiceInstructions(const std::string &voice_direction) {
     return instructions;
 }
 
-std::string BuildRealtimeSessionUpdate(const OpenAiSettings &openai, const char *voice) {
+std::string BuildRealtimeConversationItemCreate(const std::string &tts_text) {
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "type", "session.update");
-    cJSON *session = cJSON_AddObjectToObject(root, "session");
-    cJSON_AddStringToObject(session, "type", "realtime");
-    cJSON_AddStringToObject(session, "model", openai.speech_model.c_str());
-    AddRealtimeOutputModalities(session);
-    AddRealtimeAudioOutput(session, voice);
-    return PrintJson(root);
-}
-
-std::string BuildRealtimeResponseCreate(const std::string &tts_text, const std::string &voice_direction,
-                                        const char *voice) {
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "type", "response.create");
-    cJSON *response = cJSON_AddObjectToObject(root, "response");
-    cJSON_AddStringToObject(response, "conversation", "none");
-    AddRealtimeOutputModalities(response);
-    AddRealtimeAudioOutput(response, voice);
-    cJSON_AddStringToObject(response, "instructions", RealtimeVoiceInstructions(voice_direction).c_str());
-
-    cJSON *input = cJSON_AddArrayToObject(response, "input");
-    cJSON *message = cJSON_CreateObject();
-    cJSON_AddStringToObject(message, "type", "message");
-    cJSON_AddStringToObject(message, "role", "user");
-    cJSON *content = cJSON_AddArrayToObject(message, "content");
+    cJSON_AddStringToObject(root, "type", "conversation.item.create");
+    cJSON *item = cJSON_AddObjectToObject(root, "item");
+    cJSON_AddStringToObject(item, "type", "message");
+    cJSON_AddStringToObject(item, "role", "user");
+    cJSON *content = cJSON_AddArrayToObject(item, "content");
     cJSON *part = cJSON_CreateObject();
     cJSON_AddStringToObject(part, "type", "input_text");
     cJSON_AddStringToObject(part, "text", tts_text.c_str());
     cJSON_AddItemToArray(content, part);
-    cJSON_AddItemToArray(input, message);
+    return PrintJson(root);
+}
+
+std::string BuildRealtimeResponseCreate(const std::string &voice_direction, const char *voice) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", "response.create");
+    cJSON *response = cJSON_AddObjectToObject(root, "response");
+    AddRealtimeOutputModalities(response);
+    AddRealtimeAudioOutput(response, voice);
+    cJSON_AddStringToObject(response, "instructions", RealtimeVoiceInstructions(voice_direction).c_str());
     return PrintJson(root);
 }
 
@@ -335,6 +746,11 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
         return ESP_ERR_NO_MEM;
     }
     esp_transport_ssl_crt_bundle_attach(ssl, esp_crt_bundle_attach);
+#if CONFIG_MBEDTLS_DYNAMIC_BUFFER
+    // Realtime streams many TLS records. Keeping RX static after handshake avoids
+    // repeated 16 KB dynamic reallocations after audio writes fragment the heap.
+    esp_transport_ssl_set_esp_tls_dyn_buf_strategy(ssl, ESP_TLS_DYN_BUF_RX_STATIC);
+#endif
 
     esp_transport_handle_t ws = esp_transport_ws_init(ssl);
     if (ws == nullptr) {
@@ -357,56 +773,58 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
         result = ESP_FAIL;
     }
 
-    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeSessionUpdate(openai, voice))) {
-        DebugSerial::LogAlways("[ORACLE]", "realtime session.update send failed");
-        result = ESP_FAIL;
-    }
-
     RealtimeAudioSink sink = {spool, 0, false};
-    std::string pending_event;
-    pending_event.reserve(kRealtimeReadChunkBytes);
+    static RealtimeEventBuffer pending_event;
+    ResetRealtimeEventBuffer(&pending_event);
     char buf[kRealtimeReadChunkBytes];
     bool failed = false;
-    bool session_updated = false;
-    while (result == ESP_OK && !session_updated && !failed) {
+
+    // The Realtime server first emits session.created to signal the session is
+    // ready. Sending session.update before that point can be ignored by the
+    // server, leaving us waiting forever for session.updated.
+    bool session_created = false;
+    while (result == ESP_OK && !session_created && !failed) {
         if ((esp_timer_get_time() - t0) / 1000 > kRealtimeTimeoutMs) {
-            DebugSerial::LogAlways("[ORACLE]", "realtime session.update timed out after %ums",
+            DebugSerial::LogAlways("[ORACLE]", "realtime session.created timed out after %ums",
                                    static_cast<unsigned>(kRealtimeTimeoutMs));
             result = ESP_ERR_TIMEOUT;
             break;
         }
-        cJSON *j = nullptr;
+        RealtimeEvent event = {};
         bool closed = false;
-        const esp_err_t err = ReadRealtimeJsonEvent(ws, &pending_event, buf, sizeof(buf), &j, &closed);
+        const esp_err_t err = ReadRealtimeEvent(ws, &pending_event, buf, sizeof(buf), &event, &closed, &sink);
         if (err == ESP_ERR_TIMEOUT) {
             continue;
         }
         if (err != ESP_OK) {
-            DebugSerial::LogAlways("[ORACLE]", closed ? "realtime ws closed during setup"
-                                                      : "realtime setup read failed: %s",
+            DebugSerial::LogAlways("[ORACLE]", closed ? "realtime ws closed before session.created"
+                                                      : "realtime session.created read failed: %s",
                                    esp_err_to_name(err));
             result = err;
             break;
         }
 
-        const std::string type = JsonStr(j, "type");
-        if (type == "session.updated") {
-            session_updated = true;
-            DebugSerial::LogAlways("[ORACLE]", "realtime session.updated model=%s voice=%s",
-                                   openai.speech_model.c_str(), voice);
-        } else if (type == "error") {
-            LogRealtimeError(j);
-            failed = true;
-        } else if (type == "session.created") {
+        if (RealtimeEventIs(event, "session.created")) {
+            session_created = true;
             DebugSerial::LogAlways("[ORACLE]", "realtime session.created");
+        } else if (RealtimeEventIs(event, "error")) {
+            LogRealtimeError(event.json);
+            failed = true;
         }
-        cJSON_Delete(j);
+        CleanupRealtimeEvent(&pending_event, &event);
     }
 
-    if (result == ESP_OK && !session_updated) {
+    if (result == ESP_OK && !session_created) {
         result = ESP_ERR_INVALID_RESPONSE;
     }
-    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeResponseCreate(tts_text, voice_direction, voice))) {
+    // This one-shot TTS path configures output modality, format, and voice on
+    // response.create. The text to read is first added as a canonical
+    // conversation item, then response.create asks the model to speak it.
+    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeConversationItemCreate(tts_text))) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime conversation.item.create send failed");
+        result = ESP_FAIL;
+    }
+    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeResponseCreate(voice_direction, voice))) {
         DebugSerial::LogAlways("[ORACLE]", "realtime response.create send failed");
         result = ESP_FAIL;
     }
@@ -419,9 +837,9 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
             result = ESP_ERR_TIMEOUT;
             break;
         }
-        cJSON *j = nullptr;
+        RealtimeEvent event = {};
         bool closed = false;
-        const esp_err_t err = ReadRealtimeJsonEvent(ws, &pending_event, buf, sizeof(buf), &j, &closed);
+        const esp_err_t err = ReadRealtimeEvent(ws, &pending_event, buf, sizeof(buf), &event, &closed, &sink);
         if (err == ESP_ERR_TIMEOUT) {
             continue;
         }
@@ -433,27 +851,34 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
             break;
         }
 
-        const std::string type = JsonStr(j, "type");
-        if (type == "response.audio.delta" || type == "response.output_audio.delta") {
-            const std::string delta = JsonStr(j, "delta");
-            std::string pcm;
-            if (!DecodeBase64(delta, &pcm) || !AppendRealtimePcm(&sink, pcm)) {
+        if (RealtimeEventIs(event, "response.audio.delta") ||
+            RealtimeEventIs(event, "response.output_audio.delta")) {
+            const uint32_t before = sink.written;
+            if (event.streamed_audio_bytes > 0) {
+                ++audio_chunks;
+                if (audio_chunks == 1) {
+                    DebugSerial::LogAlways("[ORACLE]", "realtime first audio chunk=%uB",
+                                           static_cast<unsigned>(event.streamed_audio_bytes));
+                }
+            } else if (event.delta == nullptr ||
+                !DecodeAndAppendRealtimeBase64(&sink, event.delta, event.delta_len)) {
                 failed = true;
             } else if (++audio_chunks == 1) {
                 DebugSerial::LogAlways("[ORACLE]", "realtime first audio chunk=%uB",
-                                       static_cast<unsigned>(pcm.size()));
+                                       static_cast<unsigned>(sink.written - before));
             }
-        } else if (type == "response.done") {
-            LogRealtimeDone(j, sink.written);
+        } else if (RealtimeEventIs(event, "response.done")) {
+            LogRealtimeDone(event.json, sink.written);
             done = true;
-        } else if (type == "response.output_audio.done" || type == "response.audio.done") {
+        } else if (RealtimeEventIs(event, "response.output_audio.done") ||
+                   RealtimeEventIs(event, "response.audio.done")) {
             DebugSerial::LogAlways("[ORACLE]", "realtime audio.done chunks=%u bytes=%u",
                                    audio_chunks, static_cast<unsigned>(sink.written));
-        } else if (type == "error") {
-            LogRealtimeError(j);
+        } else if (RealtimeEventIs(event, "error")) {
+            LogRealtimeError(event.json);
             failed = true;
         }
-        cJSON_Delete(j);
+        CleanupRealtimeEvent(&pending_event, &event);
     }
 
     esp_transport_close(ws);

@@ -49,6 +49,13 @@ constexpr uint8_t kLowBatteryWarnPct = 12;
 // on every event, so it triggers from any screen.
 constexpr uint8_t kCriticalBatteryShutdownPct = 10;
 
+void LogHeapCheckpoint(const char *label) {
+    DebugSerial::LogAlways("[HEAP]", "%s free=%u largest=%u",
+                           label == nullptr ? "unknown" : label,
+                           static_cast<unsigned>(esp_get_free_heap_size()),
+                           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)));
+}
+
 // Audio -> display state trampolines: AudioService fires these from its
 // playback/record threads; DisplayService takes the LVGL lock internally.
 void OnAudioPlayback(void *ctx, bool active) {
@@ -78,13 +85,18 @@ struct OracleTextJob {
 
 void OracleTextTaskEntry(void *arg) {
     auto *job = static_cast<OracleTextJob *>(arg);
+    LogHeapCheckpoint("oracle text start");
     job->result = job->oracle->AskTextAnswer(job->wav_path, *job->openai, job->response);
+    DebugSerial::LogAlways("[HEAP]", "oracle_text stack_free=%u",
+                           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+    LogHeapCheckpoint("oracle text end");
     xTaskNotifyGive(job->caller);
     vTaskDelete(nullptr);
 }
 
 esp_err_t RunOracleTextOnWorker(VoiceOracleService &oracle, const char *wav_path,
                                 const OpenAiSettings &openai, OracleResponse *response) {
+    LogHeapCheckpoint("before oracle text worker");
     OracleTextJob job{&oracle, wav_path, &openai, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
     if (xTaskCreate(OracleTextTaskEntry, "oracle_text", 16384, &job, 5, nullptr) != pdPASS) {
         DebugSerial::LogAlways("[ORACLE]", "text worker task create failed (no mem)");
@@ -103,14 +115,19 @@ struct OracleSpeakJob {
 
 void OracleSpeakTaskEntry(void *arg) {
     auto *job = static_cast<OracleSpeakJob *>(arg);
+    LogHeapCheckpoint("oracle tts start");
     job->result = job->oracle->SpeakAnswer(*job->openai);
+    DebugSerial::LogAlways("[HEAP]", "oracle_tts stack_free=%u",
+                           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+    LogHeapCheckpoint("oracle tts end");
     xTaskNotifyGive(job->caller);
     vTaskDelete(nullptr);
 }
 
 esp_err_t RunOracleSpeakOnWorker(VoiceOracleService &oracle, const OpenAiSettings &openai) {
+    LogHeapCheckpoint("before oracle tts worker");
     OracleSpeakJob job{&oracle, &openai, ESP_FAIL, xTaskGetCurrentTaskHandle()};
-    if (xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", 16384, &job, 5, nullptr) != pdPASS) {
+    if (xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", 9216, &job, 5, nullptr) != pdPASS) {
         DebugSerial::LogAlways("[ORACLE]", "tts worker task create failed (no mem)");
         return ESP_ERR_NO_MEM;
     }
@@ -132,8 +149,12 @@ struct EmailJob {
 
 void EmailTaskEntry(void *arg) {
     auto *job = static_cast<EmailJob *>(arg);
+    LogHeapCheckpoint("email start");
     job->result = job->email->SendOracleEmail(*job->settings, *job->response, job->audio_path,
                                               job->answer_audio_bytes);
+    DebugSerial::LogAlways("[HEAP]", "email stack_free=%u",
+                           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+    LogHeapCheckpoint("email end");
     xTaskNotifyGive(job->caller);
     vTaskDelete(nullptr);
 }
@@ -141,6 +162,7 @@ void EmailTaskEntry(void *arg) {
 esp_err_t RunEmailOnWorker(EmailService &email, const EmailSettings &settings,
                            const OracleResponse &response, const char *audio_path,
                            uint32_t answer_audio_bytes) {
+    LogHeapCheckpoint("before email worker");
     EmailJob job{&email, &settings, &response, audio_path, answer_audio_bytes, ESP_FAIL,
                  xTaskGetCurrentTaskHandle()};
     if (xTaskCreate(EmailTaskEntry, "email", 16384, &job, 5, nullptr) != pdPASS) {
@@ -538,6 +560,12 @@ extern "C" void app_main(void) {
                     g_state = "idle";
                     break;
                 }
+                const bool resume_portal_after_voice = portal.Running();
+                if (resume_portal_after_voice) {
+                    DebugSerial::LogAlways("[WEB]", "pausing portal during voice flow to free heap");
+                    portal.Stop();
+                    LogHeapCheckpoint("after portal pause");
+                }
                 display.ShowVoiceThinking(language);
                 OracleResponse response;
                 // Phase 1 (STT + brain): get the text answer fast.
@@ -567,6 +595,12 @@ extern "C" void app_main(void) {
                 // Question WAV no longer needed (STT + email done); pre-erase the
                 // spool now so the next recording starts instantly.
                 audio.RearmQuestionSpool();
+                if (resume_portal_after_voice) {
+                    const esp_err_t portal_err = portal.Start();
+                    DebugSerial::LogAlways("[WEB]", "portal resume after voice flow: %s",
+                                           esp_err_to_name(portal_err));
+                    LogHeapCheckpoint("after portal resume");
+                }
                 g_state = "idle";
                 break;
             }

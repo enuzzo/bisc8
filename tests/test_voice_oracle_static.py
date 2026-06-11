@@ -122,11 +122,35 @@ def test_realtime_speech_path_uses_websocket_audio_deltas():
     assert "esp_transport_ws_init" in src
     assert "wss://api.openai.com/v1/realtime?model=" not in src
     assert '"/v1/realtime?model="' in src
+    assert '"conversation.item.create"' in src
     assert '"response.create"' in src
     assert '"output_modalities"' in src
+    assert 'cJSON_AddStringToObject(format, "type", "audio/pcm")' in src
+    assert 'cJSON_AddNumberToObject(format, "rate", kRealtimeAudioRateHz)' in src
     assert '"response.audio.delta"' in src
     assert '"response.output_audio.delta"' in src
-    assert '"session.updated"' in src
+    assert "session_created" in src
+    assert "session.created timed out" in src
+    assert "WS_TRANSPORT_OPCODES_TEXT | WS_TRANSPORT_OPCODES_FIN" in src
+    assert "ESP_TLS_DYN_BUF_RX_STATIC" in src
+    assert "esp_transport_ssl_set_esp_tls_dyn_buf_strategy" in src
+    assert "DecodeAndAppendRealtimeBase64" in src
+    assert "StreamRealtimeAudioDeltaEvent" in src
+    assert "ConsumeRealtimeAudioDeltaJson" in src
+    assert "PendingRealtimeEventIsAudioDelta" in src
+    assert "SkipOversizedRealtimeEvent" in src
+    assert "RealtimeEventTypeNeedsFullJson" in src
+    assert "realtime skipped oversized event" in src
+    assert "event.streamed_audio_bytes" in src
+    assert src.count("ReadRealtimeEvent(ws, &pending_event, buf, sizeof(buf), &event, &closed, &sink)") >= 2
+    assert "constexpr size_t kRealtimeMaxJsonEventBytes = 12288" in src
+    assert "constexpr size_t kRealtimeReadChunkBytes = 2048" in src
+    assert 'JsonStr(j, "delta")' not in src
+    assert '"session.update"' not in src
+    assert '"session.updated"' not in src
+    assert src.index("BuildRealtimeConversationItemCreate(tts_text)") < src.index(
+        "BuildRealtimeResponseCreate(voice_direction, voice)"
+    )
     assert "cJSON_ParseWithLengthOpts" in src
     assert "kRealtimeMaxJsonEventBytes" in src
     assert '"response.output_audio.done"' in src
@@ -204,6 +228,11 @@ def test_voice_flow_is_wired_and_guards_on_audio_and_key():
     assert "oracle.HasAnswerAudio()" in app
     # Playback is fed the real byte count, not the WAV header's size field.
     assert "audio.PlayAnswerAudio(oracle.AnswerAudioBytes())" in app
+    # The config portal is paused during the OpenAI/TLS-heavy section so Realtime
+    # and email have the largest available heap block on the ESP32-C6.
+    assert "pausing portal during voice flow to free heap" in app
+    assert "portal.Stop()" in app
+    assert "portal resume after voice flow" in app
     # No key -> clean error, no crash.
     assert "openai.api_key.empty()" in src
 
@@ -271,4 +300,7 @@ def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     assert int(m.group(1)) >= 12288
     m2 = re.search(r'xTaskCreate\(\s*OracleSpeakTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
     assert m2 is not None, "oracle speak (TTS) phase must run on a dedicated xTaskCreate worker"
-    assert int(m2.group(1)) >= 12288
+    # The Realtime TTS path streams audio to flash and uses a 2 KB read buffer;
+    # keeping this stack compact leaves mbedTLS a >16 KB contiguous heap block
+    # for TLS reads during long audio responses.
+    assert 8192 <= int(m2.group(1)) <= 10240

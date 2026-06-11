@@ -77,7 +77,7 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
-The spoken answer uses OpenAI Realtime over WebSocket. The firmware waits for `session.updated` before creating the response, buffers split JSON frames before parsing them, and logs the useful milestones as `[ORACLE] realtime session.updated`, `first audio chunk`, `audio.done`, and `done status=... audio=...`.
+The spoken answer uses OpenAI Realtime over WebSocket. The firmware waits for `session.created`, sends the text as `conversation.item.create`, then asks for audio with `response.create` and a complete `audio.output.format` (`audio/pcm`, 24 kHz). Audio deltas are decoded in small base64 slices straight into the flash spool, while oversized non-audio metadata events are skipped so the ESP32-C6 never has to hold a whole Realtime audio JSON frame in RAM. The Realtime TLS transport pins its RX buffer static after handshake to avoid mid-stream mbedTLS heap fragmentation. Useful milestones show up as `[ORACLE] realtime session.created`, `first audio chunk`, `audio.done`, `done status=... audio=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
 
 ## Flash it (the easy way)
 
@@ -119,7 +119,17 @@ Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` c
 Run the host tests:
 
 ```sh
-python -m pytest tests/        # 102 passing
+python -m pytest tests/        # 104 passing
+```
+
+Smoke-test the OpenAI Realtime TTS payload from the host before flashing firmware changes:
+
+```sh
+OPENAI_API_KEY=sk-... node tools/realtime_tts_smoke.mjs \
+  --model gpt-realtime-2 \
+  --voice cedar \
+  --text "The oracle speaks in one short line." \
+  --out /tmp/bisc8-realtime-answer.wav
 ```
 
 ## Design: "Bisc8 OS"

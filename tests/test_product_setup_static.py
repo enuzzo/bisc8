@@ -137,6 +137,8 @@ def test_partition_table_reserves_audio_spool_storage():
     assert "0x4f0000" in partitions
     assert 'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"' in sdkconfig
     assert "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y" in sdkconfig_defaults
+    assert "CONFIG_MBEDTLS_DYNAMIC_BUFFER=y" in sdkconfig
+    assert "CONFIG_MBEDTLS_DYNAMIC_BUFFER=y" in sdkconfig_defaults
 
 
 def test_localization_exposes_required_languages_and_display_states():
@@ -575,6 +577,17 @@ def test_voice_recording_spools_mono_wav_to_flash():
         assert token in header or token in source
     assert "fatfs" not in cmake
     assert "wear_levelling" not in cmake
+
+
+def test_voice_recording_timeout_can_still_finalize_on_release():
+    source = read(MAIN / "audio_service.cpp")
+    finish_body = source.split("const char *AudioService::FinishVoiceRecording()", 1)[1].split(
+        "esp_err_t AudioService::PlayAnswerAudio", 1
+    )[0]
+
+    assert "voice_file_ready_" in finish_body
+    assert "voice recording auto-finished" in finish_body
+    assert finish_body.index("voice_file_ready_") < finish_body.index("voice recording finish ignored")
 
 
 def test_audio_record_buffer_is_lazy_to_keep_setup_portal_heap_available():

@@ -372,6 +372,13 @@ void AudioService::StartVoiceRecording() {
 
 const char *AudioService::FinishVoiceRecording() {
     if (!voice_recording_ && voice_task_ == nullptr) {
+        if (voice_err_ == ESP_OK && voice_file_ready_) {
+            NotifyRecording(false);
+            DebugSerial::LogAlways("[AUDIO]", "voice recording auto-finished path=%s pcm_bytes=%u",
+                                   kVoiceQuestionPath,
+                                   static_cast<unsigned>(voice_pcm_bytes_));
+            return kVoiceQuestionPath;
+        }
         DebugSerial::LogAlways("[AUDIO]", "voice recording finish ignored; no active recording");
         return nullptr;
     }
