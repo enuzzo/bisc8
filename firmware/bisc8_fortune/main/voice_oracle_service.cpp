@@ -34,6 +34,10 @@ constexpr const char *kRealtimePathPrefix = "/v1/realtime?model=";
 constexpr const char *kAnswerSpoolUri = "spool://answer.wav";
 constexpr const char *kSpoolPartition = "spool";
 constexpr const char *kMultipartBoundary = "----bisc8oracleMUL7boundaryZ9";
+constexpr const char *kTranscriptionPrompt =
+    "The speaker usually asks short oracle questions in Italian, English, or Spanish. "
+    "Transcribe only clear foreground speech. If the audio is quiet, clipped, or mostly silence, "
+    "do not invent subtitles, captions, music lyrics, or background language.";
 constexpr uint32_t kHttpTimeoutMs = 25000;
 constexpr uint32_t kRealtimeTimeoutMs = 45000;
 constexpr uint32_t kRealtimeAudioRateHz = 24000;
@@ -55,13 +59,14 @@ constexpr const char *kBrainSystemPrompt =
     "Given the user's transcript, produce a short oracle answer as COMPACT JSON ONLY (no markdown, no code fences), "
     "with exactly these fields:\n"
     "- detected_language: ISO-like code (it, en, es, ...)\n"
-    "- oracle_answer_screen: AT MOST 55 characters, one short clear line for a tiny 200x200 screen, no newlines\n"
+    "- oracle_answer_screen: AT MOST 55 characters, one short clear line for a tiny 200x200 screen, no newlines, "
+    "Latin-1 characters only\n"
     "- oracle_answer_full: 1 to 3 short sentences, for voice\n"
     "- tts_text: the exact spoken script to read aloud (1 to 4 short lines)\n"
     "- voice_direction: a short English note on the emotional colour of THIS answer (e.g. tender, knowing, hopeful, consoling)\n"
     "Rules: same language as the user; always speak to their specific question, even through metaphor; never say you are an AI; "
     "do not give medical, legal, financial or safety-critical advice as certainty; poetic and evocative, never nonsense; "
-    "concise. Avoid long dashes.";
+    "concise. Avoid long dashes. For oracle_answer_screen, never use CJK, emoji, runes, or symbolic glyphs.";
 
 bool SpeechModelSupportsInstructions(const std::string &model) {
     return !model.empty() && model.rfind("tts-1", 0) != 0;
@@ -994,6 +999,155 @@ std::string Utf8Truncate(const std::string &s, size_t max_chars) {
     return s.substr(0, i);
 }
 
+bool ReadUtf8Codepoint(const std::string &s, size_t *offset, uint32_t *codepoint) {
+    if (offset == nullptr || codepoint == nullptr || *offset >= s.size()) {
+        return false;
+    }
+    const unsigned char first = static_cast<unsigned char>(s[*offset]);
+    if (first < 0x80) {
+        *codepoint = first;
+        ++(*offset);
+        return true;
+    }
+
+    size_t len = 0;
+    uint32_t cp = 0;
+    uint32_t min_cp = 0;
+    if ((first & 0xE0) == 0xC0) {
+        len = 2;
+        cp = first & 0x1F;
+        min_cp = 0x80;
+    } else if ((first & 0xF0) == 0xE0) {
+        len = 3;
+        cp = first & 0x0F;
+        min_cp = 0x800;
+    } else if ((first & 0xF8) == 0xF0) {
+        len = 4;
+        cp = first & 0x07;
+        min_cp = 0x10000;
+    } else {
+        ++(*offset);
+        *codepoint = '?';
+        return false;
+    }
+
+    if (*offset + len > s.size()) {
+        *offset = s.size();
+        *codepoint = '?';
+        return false;
+    }
+    for (size_t i = 1; i < len; ++i) {
+        const unsigned char c = static_cast<unsigned char>(s[*offset + i]);
+        if ((c & 0xC0) != 0x80) {
+            ++(*offset);
+            *codepoint = '?';
+            return false;
+        }
+        cp = (cp << 6) | (c & 0x3F);
+    }
+    *offset += len;
+    if (cp < min_cp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+        *codepoint = '?';
+        return false;
+    }
+    *codepoint = cp;
+    return true;
+}
+
+void AppendUtf8Codepoint(std::string *out, uint32_t cp) {
+    if (out == nullptr) {
+        return;
+    }
+    if (cp < 0x80) {
+        out->push_back(static_cast<char>(cp));
+    } else if (cp < 0x800) {
+        out->push_back(static_cast<char>(0xC0 | (cp >> 6)));
+        out->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else if (cp < 0x10000) {
+        out->push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        out->push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+        out->push_back(static_cast<char>(0xF0 | (cp >> 18)));
+        out->push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+        out->push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out->push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+}
+
+void AppendScreenSpace(std::string *out, bool *last_space) {
+    if (out == nullptr || last_space == nullptr || out->empty() || *last_space) {
+        return;
+    }
+    out->push_back(' ');
+    *last_space = true;
+}
+
+void AppendScreenAscii(std::string *out, const char *text, bool *last_space) {
+    if (out == nullptr || text == nullptr || last_space == nullptr) {
+        return;
+    }
+    for (const char *p = text; *p != '\0'; ++p) {
+        const char c = *p;
+        if (c == ' ') {
+            AppendScreenSpace(out, last_space);
+        } else {
+            out->push_back(c);
+            *last_space = false;
+        }
+    }
+}
+
+std::string SanitizeScreenTextForDisplay(const std::string &input) {
+    std::string out;
+    bool last_space = true;  // trims leading whitespace
+    size_t i = 0;
+    while (i < input.size()) {
+        uint32_t cp = 0;
+        const bool valid = ReadUtf8Codepoint(input, &i, &cp);
+        if (!valid) {
+            AppendScreenAscii(&out, "?", &last_space);
+            continue;
+        }
+
+        if (cp == '\n' || cp == '\r' || cp == '\t' || cp == 0x00A0) {
+            AppendScreenSpace(&out, &last_space);
+        } else if (cp == 0x00AD) {
+            continue;  // soft hyphen
+        } else if ((cp >= 0x20 && cp <= 0x7E) || (cp >= 0xA1 && cp <= 0xFF)) {
+            AppendUtf8Codepoint(&out, cp);
+            last_space = false;
+        } else if (cp == 0x2018 || cp == 0x2019 || cp == 0x02BC) {
+            AppendScreenAscii(&out, "'", &last_space);
+        } else if (cp == 0x201C || cp == 0x201D) {
+            AppendScreenAscii(&out, "\"", &last_space);
+        } else if (cp == 0x2013 || cp == 0x2014 || cp == 0x2212) {
+            AppendScreenAscii(&out, "-", &last_space);
+        } else if (cp == 0x2026) {
+            AppendScreenAscii(&out, "...", &last_space);
+        } else {
+            AppendScreenSpace(&out, &last_space);
+        }
+    }
+    while (!out.empty() && out.back() == ' ') {
+        out.pop_back();
+    }
+    return out;
+}
+
+std::string ScreenFallbackForLanguage(const std::string &language) {
+    if (language.rfind("en", 0) == 0) {
+        return "The vision arrives.";
+    }
+    if (language.rfind("es", 0) == 0) {
+        return "La vision llega.";
+    }
+    if (language.rfind("fr", 0) == 0) {
+        return "La vision arrive.";
+    }
+    return "La visione arriva.";
+}
+
 std::string JsonStr(const cJSON *obj, const char *key) {
     const cJSON *item = cJSON_GetObjectItemCaseSensitive(obj, key);
     if (cJSON_IsString(item) && item->valuestring != nullptr) {
@@ -1062,6 +1216,12 @@ esp_err_t VoiceOracleService::Transcribe(const OpenAiSettings &openai) {
     preamble += "--" + boundary + "\r\n";
     preamble += "Content-Disposition: form-data; name=\"model\"\r\n\r\n";
     preamble += openai.transcription_model + "\r\n";
+    preamble += "--" + boundary + "\r\n";
+    preamble += "Content-Disposition: form-data; name=\"prompt\"\r\n\r\n";
+    preamble += std::string(kTranscriptionPrompt) + "\r\n";
+    preamble += "--" + boundary + "\r\n";
+    preamble += "Content-Disposition: form-data; name=\"temperature\"\r\n\r\n";
+    preamble += "0\r\n";
     preamble += "--" + boundary + "\r\n";
     preamble += "Content-Disposition: form-data; name=\"file\"; filename=\"question.wav\"\r\n";
     preamble += "Content-Type: audio/wav\r\n\r\n";
@@ -1179,10 +1339,13 @@ esp_err_t VoiceOracleService::GenerateAnswer(const OpenAiSettings &openai, const
     // Reply in the language of the TRANSCRIPT itself (the words the user actually
     // said), which the model reads directly. This is more reliable than trusting
     // the STT's separate language tag, which can mislabel short/accented speech.
-    // The device UI language is only a tiebreaker for a truly ambiguous transcript.
+    // The device UI language is only a tiebreaker for a truly ambiguous transcript
+    // or for subtitle-like hallucinations from weak/noisy audio.
     const std::string user_content =
         "A person asked the oracle the following (transcribed). Reply in the SAME language as their "
-        "words below, whatever language that is. If it is truly ambiguous, prefer " + device_language +
+        "words below, whatever language that is. The device UI language is " + device_language +
+        ". If the transcript is truly ambiguous, mostly non-Latin, or looks like accidental captions, "
+        "subtitles, lyrics, or background speech rather than a short oracle question, prefer " + device_language +
         ".\n\nTheir words:\n" + transcript_ + "\n\nReturn only JSON.";
     cJSON_AddStringToObject(usr, "content", user_content.c_str());
     cJSON_AddItemToArray(messages, usr);
@@ -1251,6 +1414,10 @@ esp_err_t VoiceOracleService::GenerateAnswer(const OpenAiSettings &openai, const
     // Derive missing pieces instead of failing outright.
     if (answer_screen_.empty()) {
         answer_screen_ = answer_full_;
+    }
+    answer_screen_ = SanitizeScreenTextForDisplay(answer_screen_);
+    if (answer_screen_.empty()) {
+        answer_screen_ = ScreenFallbackForLanguage(device_language);
     }
     answer_screen_ = Utf8Truncate(answer_screen_, kMaxScreenAnswerChars);
     if (tts_text_.empty()) {
@@ -1357,6 +1524,11 @@ esp_err_t VoiceOracleService::Synthesize(const OpenAiSettings &openai) {
 
 esp_err_t VoiceOracleService::AskTextAnswer(const char *wav_path, const OpenAiSettings &openai,
                                             OracleResponse *response) {
+    return AskTextAnswer(wav_path, openai, "it", response);
+}
+
+esp_err_t VoiceOracleService::AskTextAnswer(const char *wav_path, const OpenAiSettings &openai,
+                                            const std::string &device_language, OracleResponse *response) {
     Reset();
     if (response != nullptr) {
         response->detected_language = "";
@@ -1374,16 +1546,17 @@ esp_err_t VoiceOracleService::AskTextAnswer(const char *wav_path, const OpenAiSe
         last_failure_ = OracleFailure::NoKey;
         return ESP_ERR_INVALID_STATE;
     }
+    const std::string fallback_language = device_language.empty() ? "it" : device_language;
     DebugSerial::LogAlways("[ORACLE]", "voice flow start wav=%s free_heap=%u",
                            wav_path == nullptr ? "(null)" : wav_path,
                            static_cast<unsigned>(esp_get_free_heap_size()));
 
-    detected_language_ = "it";  // overwritten by STT / brain when detected
+    detected_language_ = fallback_language;  // overwritten by STT / brain when detected
     esp_err_t err = Transcribe(openai);
     if (err != ESP_OK) {
         return err;  // Transcribe set last_failure_ (NoSpeech / Transcribe)
     }
-    err = GenerateAnswer(openai, detected_language_);
+    err = GenerateAnswer(openai, fallback_language);
     if (err != ESP_OK) {
         last_failure_ = OracleFailure::Brain;
         return err;

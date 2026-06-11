@@ -40,7 +40,11 @@ public:
     // text fields of `response` (and the engine/voice fields for the email) so the
     // caller can SHOW the answer immediately, before the slow TTS audio download.
     // The const char* fields point at internal storage valid until the next call.
+    // `device_language` is used only as a fallback when STT returns ambiguous or
+    // subtitle-like text; the transcript itself still decides the answer language.
     esp_err_t AskTextAnswer(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response);
+    esp_err_t AskTextAnswer(const char *wav_path, const OpenAiSettings &openai,
+                            const std::string &device_language, OracleResponse *response);
 
     // Phase 2: synthesize the spoken answer for the text produced by AskTextAnswer,
     // leaving a WAV in the answer spool. Returns ESP_OK iff fresh audio is ready

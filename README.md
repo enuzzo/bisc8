@@ -77,7 +77,7 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
-The spoken answer uses OpenAI Realtime over WebSocket. The firmware waits for `session.created`, sends the text as `conversation.item.create`, then asks for audio with `response.create` and a complete `audio.output.format` (`audio/pcm`, 24 kHz). Audio deltas are decoded in small base64 slices straight into the flash spool, while oversized non-audio metadata events are skipped so the ESP32-C6 never has to hold a whole Realtime audio JSON frame in RAM. The Realtime TLS transport pins its RX buffer static after handshake to avoid mid-stream mbedTLS heap fragmentation. Useful milestones show up as `[ORACLE] realtime session.created`, `first audio chunk`, `audio.done`, `done status=... audio=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
+Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses OpenAI Realtime over WebSocket. The firmware waits for `session.created`, sends the text as `conversation.item.create`, then asks for audio with `response.create` and a complete `audio.output.format` (`audio/pcm`, 24 kHz). Audio deltas are decoded in small base64 slices straight into the flash spool, while oversized non-audio metadata events are skipped so the ESP32-C6 never has to hold a whole Realtime audio JSON frame in RAM. The Realtime TLS transport pins its RX buffer static after handshake to avoid mid-stream mbedTLS heap fragmentation. Useful milestones show up as `[ORACLE] realtime session.created`, `first audio chunk`, `audio.done`, `done status=... audio=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
 
 ## Flash it (the easy way)
 
@@ -119,7 +119,7 @@ Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` c
 Run the host tests:
 
 ```sh
-python -m pytest tests/        # 104 passing
+python -m pytest tests/        # 105 passing
 ```
 
 Smoke-test the OpenAI Realtime TTS payload from the host before flashing firmware changes:
@@ -147,7 +147,7 @@ Typography does the heavy lifting:
 | **ITC Garamond** | long-form copy | <https://globalfonts.pro/font/itc-garamond> |
 | **Pixelify Sans** | on-device e-paper + email wordmark | <https://fonts.google.com/specimen/Pixelify+Sans> |
 
-The first three are the **web** type system (the flasher + the captive portal). On-device (and in the email wordmark) the e-paper uses **Pixelify Sans**, baked into crisp 1-bit fonts with full Latin-1 coverage, so Italian, Spanish, and French accents survive at 200×200. We never strip an accent to fit ASCII; the oracle has standards.
+The first three are the **web** type system (the flasher + the captive portal). On-device (and in the email wordmark) the e-paper uses **Pixelify Sans**, baked into crisp 1-bit fonts with full Latin-1 coverage, so Italian, Spanish, and French accents survive at 200×200. The tiny screen answer is sanitized to that Latin-1 set before rendering, which prevents unsupported scripts or emoji from becoming tofu boxes; the full answer, TTS script, and email body keep their Unicode text. We never strip an accent to fit ASCII; the oracle has standards.
 
 ## License & credits
 

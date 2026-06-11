@@ -165,6 +165,7 @@ def test_voice_oracle_signature_and_response_contract():
     assert "AskFromRecordedAudio(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response)" in header
     # Two-phase API: the text answer first (shown immediately), then the spoken audio.
     assert "AskTextAnswer(const char *wav_path, const OpenAiSettings &openai, OracleResponse *response)" in header
+    assert "const std::string &device_language, OracleResponse *response" in header
     assert "SpeakAnswer(const OpenAiSettings &openai)" in header
     assert "HasAnswerAudio" in header
     # The Brain JSON maps onto the repo's OracleResponse field names.
@@ -175,8 +176,18 @@ def test_voice_oracle_signature_and_response_contract():
 def test_screen_answer_is_utf8_truncated_to_the_limit():
     src = read(ORACLE_CPP)
     assert "Utf8Truncate" in src
+    assert "SanitizeScreenTextForDisplay" in src
+    assert "ScreenFallbackForLanguage" in src
+    assert "Latin-1 characters only" in src
     # Truncation is applied to the screen answer at the configured limit.
     assert "Utf8Truncate(answer_screen_, kMaxScreenAnswerChars)" in src
+    assert src.index("answer_screen_ = SanitizeScreenTextForDisplay(answer_screen_)") < src.index(
+        "Utf8Truncate(answer_screen_, kMaxScreenAnswerChars)"
+    )
+    # The e-paper fonts cover Latin-1; other scripts are display-only sanitized
+    # so they cannot show up as tofu glyph boxes.
+    assert "cp >= 0xA1 && cp <= 0xFF" in src
+    assert "never use CJK, emoji, runes" in src
     # And it respects multibyte boundaries rather than cutting raw bytes.
     assert "0xC0" in src and "0xE0" in src and "0xF0" in src
 
@@ -186,9 +197,26 @@ def test_stt_streams_the_wav_from_spool_as_multipart():
     assert "multipart/form-data" in src
     assert "boundary" in src
     assert "filename=" in src
+    assert 'name=\\"prompt\\"' in src
+    assert 'name=\\"temperature\\"' in src
+    assert "kTranscriptionPrompt" in src
+    assert "do not invent subtitles" in src
     # Streamed from flash, not held in RAM.
     assert "esp_partition_read" in src
     assert "esp_http_client_write" in src
+
+
+def test_oracle_uses_device_language_when_transcript_looks_ambiguous():
+    app = read(APP_MAIN)
+    src = read(ORACLE_CPP)
+
+    assert "const std::string *device_language" in app
+    assert "RunOracleTextOnWorker(oracle, wav_path, settings.openai, settings.language, &response)" in app
+    assert "detected_language_ = fallback_language" in src
+    assert "err = GenerateAnswer(openai, fallback_language)" in src
+    assert "mostly non-Latin" in src
+    assert "accidental captions" in src
+    assert "err = GenerateAnswer(openai, detected_language_)" not in src
 
 
 def test_tts_requests_wav_and_streams_to_the_answer_spool():
@@ -219,8 +247,9 @@ def test_voice_flow_is_wired_and_guards_on_audio_and_key():
     src = read(ORACLE_CPP)
     # Two-phase flow on dedicated workers (see the stack test below): phase 1
     # (STT + brain) yields the text answer; phase 2 (TTS) yields the audio.
-    assert "RunOracleTextOnWorker(oracle, wav_path, settings.openai, &response)" in app
-    assert "AskTextAnswer(" in app
+    assert "RunOracleTextOnWorker(oracle, wav_path, settings.openai, settings.language, &response)" in app
+    assert "AskTextAnswer(job->wav_path, *job->openai, *job->device_language, job->response)" in app
+    assert "The device UI language is " in src
     assert "RunOracleSpeakOnWorker(oracle, settings.openai)" in app
     # Perceived-latency fix: the text answer is painted BEFORE the (slow) TTS phase
     # runs, so the screen never looks frozen while audio downloads.

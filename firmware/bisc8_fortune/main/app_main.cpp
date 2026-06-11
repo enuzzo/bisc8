@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <string>
+
 #include <esp_bit_defs.h>
 #include <esp_err.h>
 #include <esp_heap_caps.h>
@@ -78,6 +80,7 @@ struct OracleTextJob {
     VoiceOracleService *oracle;
     const char *wav_path;
     const OpenAiSettings *openai;
+    const std::string *device_language;
     OracleResponse *response;
     esp_err_t result;
     TaskHandle_t caller;
@@ -86,7 +89,7 @@ struct OracleTextJob {
 void OracleTextTaskEntry(void *arg) {
     auto *job = static_cast<OracleTextJob *>(arg);
     LogHeapCheckpoint("oracle text start");
-    job->result = job->oracle->AskTextAnswer(job->wav_path, *job->openai, job->response);
+    job->result = job->oracle->AskTextAnswer(job->wav_path, *job->openai, *job->device_language, job->response);
     DebugSerial::LogAlways("[HEAP]", "oracle_text stack_free=%u",
                            static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
     LogHeapCheckpoint("oracle text end");
@@ -95,9 +98,10 @@ void OracleTextTaskEntry(void *arg) {
 }
 
 esp_err_t RunOracleTextOnWorker(VoiceOracleService &oracle, const char *wav_path,
-                                const OpenAiSettings &openai, OracleResponse *response) {
+                                const OpenAiSettings &openai, const std::string &device_language,
+                                OracleResponse *response) {
     LogHeapCheckpoint("before oracle text worker");
-    OracleTextJob job{&oracle, wav_path, &openai, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
+    OracleTextJob job{&oracle, wav_path, &openai, &device_language, response, ESP_FAIL, xTaskGetCurrentTaskHandle()};
     if (xTaskCreate(OracleTextTaskEntry, "oracle_text", 16384, &job, 5, nullptr) != pdPASS) {
         DebugSerial::LogAlways("[ORACLE]", "text worker task create failed (no mem)");
         return ESP_ERR_NO_MEM;
@@ -569,7 +573,7 @@ extern "C" void app_main(void) {
                 display.ShowVoiceThinking(language);
                 OracleResponse response;
                 // Phase 1 (STT + brain): get the text answer fast.
-                err = RunOracleTextOnWorker(oracle, wav_path, settings.openai, &response);
+                err = RunOracleTextOnWorker(oracle, wav_path, settings.openai, settings.language, &response);
                 if (err == ESP_OK) {
                     // Paint the answer NOW, before fetching the spoken audio. The TTS
                     // download is the slow part on a weak network; showing the text
