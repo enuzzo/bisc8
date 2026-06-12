@@ -21,6 +21,52 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
+const BISC8_EMAIL_RELAY_VERSION = '2026-06-12-early-ack';
+const BISC8_EMAIL_LOG = __DIR__ . '/bisc8-email.log.php';
+
+ignore_user_abort(true);
+if (function_exists('set_time_limit')) {
+    @set_time_limit(180);
+}
+
+function relay_log(array $fields): void
+{
+    $row = array_merge(['ts' => date('c'), 'version' => BISC8_EMAIL_RELAY_VERSION], $fields);
+    $line = json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($line === false) {
+        return;
+    }
+    if (!is_file(BISC8_EMAIL_LOG)) {
+        @file_put_contents(BISC8_EMAIL_LOG, "<?php exit; ?>\n", FILE_APPEND | LOCK_EX);
+    }
+    @file_put_contents(BISC8_EMAIL_LOG, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
+function respond_json_and_continue(array $payload, int $status = 202): void
+{
+    $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        $json = '{"ok":true,"accepted":true}';
+    }
+
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-Content-Type-Options: nosniff');
+    header('Connection: close');
+    header('Content-Length: ' . strlen($json));
+    echo $json;
+
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+        return;
+    }
+    while (ob_get_level() > 0) {
+        @ob_end_flush();
+    }
+    flush();
+}
+
 // --- Config: file first, then env-var overrides. Nothing secret is committed. ---
 $cfg = ['token' => '', 'mail_to' => '', 'mail_from' => '', 'mail_from_name' => 'Bisc8', 'max_attach_mb' => 9, 'timezone' => 'Europe/Rome'];
 $cfgFile = __DIR__ . '/bisc8-email.config.php';
@@ -44,7 +90,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // Health check: open the URL in a browser to confirm it deployed and is ready.
 if ($method === 'GET') {
-    echo json_encode(['ok' => true, 'service' => 'bisc8-email', 'ready' => ($cfg['token'] !== '' && $cfg['mail_to'] !== '')]);
+    echo json_encode(['ok' => true, 'service' => 'bisc8-email', 'version' => BISC8_EMAIL_RELAY_VERSION, 'ready' => ($cfg['token'] !== '' && $cfg['mail_to'] !== '')]);
     exit;
 }
 if ($method !== 'POST') {
@@ -293,10 +339,33 @@ if (!empty($attachments)) {
     $body = $related;
 }
 
+$requestId = bin2hex(random_bytes(6));
+$attachmentInfo = array_map(static fn(array $att): array => [
+    'filename' => (string)$att['filename'],
+    'bytes' => strlen((string)$att['data']),
+], $attachments);
+
+relay_log([
+    'id' => $requestId,
+    'event' => 'accepted',
+    'attached' => count($attachments),
+    'attachments' => $attachmentInfo,
+    'content_length' => (int)($_SERVER['CONTENT_LENGTH'] ?? 0),
+    'lang' => $lang,
+    'stt_model' => $sttModel,
+    'brain_model' => $brainModel,
+    'tts_model' => $ttsModel,
+    'voice' => $voiceName,
+]);
+
+respond_json_and_continue(['ok' => true, 'accepted' => true, 'attached' => count($attachments), 'request_id' => $requestId, 'version' => BISC8_EMAIL_RELAY_VERSION]);
+
 $ok = @mail($to, $subject, $body, implode("\r\n", $headers));
-if ($ok) {
-    echo json_encode(['ok' => true, 'attached' => count($attachments)]);
-} else {
-    http_response_code(502);
-    echo json_encode(['ok' => false, 'error' => 'mail() failed']);
-}
+$lastError = error_get_last();
+relay_log([
+    'id' => $requestId,
+    'event' => 'mail_result',
+    'ok' => (bool)$ok,
+    'attached' => count($attachments),
+    'error' => $ok ? null : (string)($lastError['message'] ?? 'mail() failed'),
+]);

@@ -82,3 +82,17 @@ def test_relay_email_keeps_the_mime_lightweight():
     # made the synchronous PHP mail() handoff much more fragile.
     assert "data:font/woff2;base64" not in php
     assert "No inline images and no embedded fonts" in php
+
+
+def test_relay_acknowledges_the_device_before_host_mail_handoff():
+    php = read(RELAY_PHP)
+    # The shared host can block inside mail(); the ESP must receive a quick
+    # accepted response before the relay hands the MIME bundle to the MTA.
+    assert "ignore_user_abort(true)" in php
+    assert "function respond_json_and_continue" in php
+    assert "fastcgi_finish_request" in php
+    assert "__DIR__ . '/bisc8-email.log.php'" in php
+
+    ack_at = php.index("respond_json_and_continue(['ok' => true, 'accepted' => true")
+    mail_at = php.index("@mail(")
+    assert ack_at < mail_at

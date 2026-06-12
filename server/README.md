@@ -15,6 +15,8 @@ shared relay token.
 - `bisc8-email.php` — the endpoint. No framework, no secrets. Deploy as-is.
 - `bisc8-email.config.example.php` — copy to `bisc8-email.config.php` and fill in.
 - `bisc8-email.config.php` — **your** config (token + recipient). Git-ignored.
+- `bisc8-email.log.php` — generated on first accepted POST; diagnostic metadata
+  only, protected by a `<?php exit; ?>` first line if requested from the web.
 
 ## Deploy
 
@@ -27,7 +29,8 @@ shared relay token.
    (Alternatively set env vars `BISC8_RELAY_TOKEN` / `BISC8_MAIL_TO`; they
    override the file.)
 3. Open the URL in a browser. You should see:
-   `{"ok":true,"service":"bisc8-email","ready":true}` (`ready:true` = configured).
+   `{"ok":true,"service":"bisc8-email","version":"...","ready":true}`
+   (`ready:true` = configured).
 
 ## Point the device at it
 
@@ -46,6 +49,21 @@ By default it uses PHP `mail()`, which hands off to the host's own mail server
 (the same way most PHP apps send mail with no SMTP auth). If your host needs an
 explicit SMTP relay instead, swap the `mail()` call at the bottom for your SMTP
 client — the rest (auth, MIME, attachment) stays the same.
+
+Shared hosts can block for a long time inside `mail()`. To keep the ESP32-C6
+from timing out and aborting the request, the relay now returns `202 Accepted`
+JSON immediately after the upload has been authenticated and the MIME payload is
+built:
+
+```json
+{"ok":true,"accepted":true,"attached":2,"request_id":"...","version":"..."}
+```
+
+That response means "the relay accepted the payload", not "the mailbox has
+delivered it". The actual `mail()` result is written to `bisc8-email.log.php` as
+`accepted` and `mail_result` rows with byte counts, model names, voice name and
+the generated request id. The log intentionally does not include the token,
+recipient, transcript or answer text.
 
 The relay intentionally does not embed web fonts in the HTML email. The two WAV
 attachments already dominate message size, and keeping the MIME light makes the
