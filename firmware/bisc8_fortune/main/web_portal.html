@@ -63,11 +63,12 @@ b{font-weight:400;}
 /* bordered group: 2px border, notched ChiKareGo2 uppercase label on a tinted chip */
 .group{position:relative;border:2px solid var(--ink);padding:18px 12px 14px;margin:0 0 16px;background:var(--paper);}
 .group>.glabel{position:absolute;top:-11px;left:11px;background:var(--peach);border:2px solid var(--ink);padding:1px 8px;font-family:var(--title);font-size:13px;font-weight:400;letter-spacing:2px;text-transform:uppercase;}
-/* group divs are the 2nd..6th div children of .wrap (status div is 1st): Wi-Fi=2 peach(default), Lingua=3, Oracolo=4, Email=5, Reset=6 */
+/* group divs are the 2nd..7th div children of .wrap (status div is 1st): Wi-Fi=2 peach(default), Lingua=3, Oracolo=4, Email=5, Audio=6, Reset=7 */
 .group:nth-of-type(3)>.glabel{background:var(--lilac);}  /* Lingua */
 .group:nth-of-type(4)>.glabel{background:var(--mint);}   /* Oracolo */
 .group:nth-of-type(5)>.glabel{background:var(--sky);}    /* Email */
-.group:nth-of-type(6)>.glabel{background:var(--rose);}   /* Reset */
+.group:nth-of-type(6)>.glabel{background:var(--butter);} /* Audio */
+.group:nth-of-type(7)>.glabel{background:var(--rose);}   /* Reset */
 .hint{font-family:var(--body);font-size:13px;line-height:1.45;margin:0 0 11px;color:#5a5249;}
 .hint.below{margin:10px 0 0;}
 label.fld{display:block;font-family:var(--title);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 5px;color:#6b6055;}
@@ -81,6 +82,10 @@ input:focus,select:focus{outline:none;background:var(--paper);box-shadow:3px 3px
 .btn{font-family:var(--title);font-size:15px;font-weight:400;letter-spacing:.5px;background:var(--rose);color:var(--ink);border:2px solid var(--ink);padding:11px 18px;min-height:44px;box-shadow:3px 3px 0 var(--shadow);cursor:pointer;}
 .btn:hover{box-shadow:3px 3px 0 var(--butter);}
 .btn:active{transform:translate(3px,3px);box-shadow:none;}
+/* anchors styled as buttons (audio downloads) keep the same chunky look */
+a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;}
+/* download rows: stacked, full width, System-7 list feel */
+.actions.dl{flex-direction:column;align-items:stretch;}
 /* secondary: System-7 platinum grey */
 .btn.sec{background:#e3e0d8;color:var(--ink);}
 .btn.sec:hover{background:#eceae3;box-shadow:3px 3px 0 var(--mint);}
@@ -199,7 +204,7 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
       <span class="spark s2" aria-hidden="true">*</span>
       <span class="spark s3" aria-hidden="true">+</span>
       <span class="spark s4" aria-hidden="true">*</span>
-      <img class="logo" src="data:image/png;base64,__LOGO_B64__" alt="Bisc8 — the cookie-wizard">
+      <img class="logo" src="data:image/png;base64,__LOGO_B64__" alt="Bisc8, the cookie-wizard">
     </span>
     <p data-i18n="tagline" style="text-align:center;font-family:var(--title);font-size:1.3rem;letter-spacing:normal;text-transform:capitalize;margin:.2rem 0 1.1rem;color:var(--ink);">briciomanzia tascabile</p>
 
@@ -252,7 +257,7 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
         </div>
         <div class="two">
           <div class="field"><label class="fld" data-i18n="tts">Testo a voce</label><input name="speech_model" data-fill="openai_speech_model" placeholder="gpt-4o-mini-tts"></div>
-          <div class="field"><label class="fld" data-i18n="voice">Voce</label><select name="voice" data-fill="openai_voice"><option value="" data-i18n="voice_keep">&mdash; mantieni attuale &mdash;</option><optgroup label="Voci maschili / profonde"><option value="ash">maschile - ash, profonda</option><option value="ballad">maschile - ballad, teatrale</option><option value="cedar">maschile - cedar, naturale</option><option value="echo">maschile - echo, narrativo</option><option value="onyx">maschile - onyx, cavernosa</option><option value="sage">maschile - sage, calma</option><option value="verse">maschile - verse, poetica</option></optgroup><optgroup label="Voci femminili / chiare"><option value="coral">femminile - coral, calda</option><option value="marin">femminile - marin, naturale</option><option value="nova">femminile - nova, brillante</option><option value="shimmer">femminile - shimmer, luminosa</option></optgroup><optgroup label="Voci neutre / narrative"><option value="alloy">neutra - alloy, equilibrata</option><option value="fable">neutra - fable, narrativa</option></optgroup></select></div>
+          <div class="field"><label class="fld" data-i18n="voice">Voce</label><select name="voice" data-fill="openai_voice"><option value="" data-i18n="voice_keep">(mantieni attuale)</option><optgroup label="Voci maschili / profonde"><option value="ash">maschile - ash, profonda</option><option value="ballad">maschile - ballad, teatrale</option><option value="cedar">maschile - cedar, naturale</option><option value="echo">maschile - echo, narrativo</option><option value="onyx">maschile - onyx, cavernosa</option><option value="sage">maschile - sage, calma</option><option value="verse">maschile - verse, poetica</option></optgroup><optgroup label="Voci femminili / chiare"><option value="coral">femminile - coral, calda</option><option value="marin">femminile - marin, naturale</option><option value="nova">femminile - nova, brillante</option><option value="shimmer">femminile - shimmer, luminosa</option></optgroup><optgroup label="Voci neutre / narrative"><option value="alloy">neutra - alloy, equilibrata</option><option value="fable">neutra - fable, narrativa</option></optgroup></select></div>
         </div>
         <div class="field"><label class="fld" data-i18n="reasoning">Ragionamento</label><select name="reasoning_effort" data-fill="openai_reasoning_effort"><option value="off" data-i18n="reasoning_off">off</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option></select></div>
         <div class="actions"><button class="btn" type="submit" data-i18n="save_oracle">Salva Oracolo</button></div>
@@ -280,6 +285,15 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
     </div>
 
     <div class="group">
+      <span class="glabel" data-i18n="audio_label">Audio</span>
+      <p class="hint" data-i18n="audio_hint">.</p>
+      <div class="actions dl">
+        <a class="btn sec" href="/api/audio/question.wav" download="bisc8-domanda.wav" data-i18n="audio_q">Domanda (mic)</a>
+        <a class="btn sec" href="/api/audio/answer.wav" download="bisc8-risposta.wav" data-i18n="audio_a">Responso (voce)</a>
+      </div>
+    </div>
+
+    <div class="group">
       <span class="glabel" data-i18n="reset_label">Reset</span>
       <div class="actions" style="margin-bottom:9px"><button class="btn sec" type="button" id="reset" data-i18n="reset_btn">Reset totale</button></div>
       <p class="hint" style="margin:0" data-i18n="reset_hint">.</p>
@@ -298,7 +312,7 @@ details summary{font-size:1.1rem;letter-spacing:normal;margin:.6rem 0 .85rem;}
 
 <div class="rebar" id="rebar">
   <div class="ic"><span class="mascot"></span></div>
-  <div class="txt"><b data-i18n="reboot_title">Wi-Fi pronta.</b><span data-i18n="reboot_msg">Testata e salvata. Riavvia per applicarla.</span></div>
+  <div class="txt"><b data-i18n="reboot_title">Wi-Fi salvata.</b><span data-i18n="reboot_msg">Riavvia per provarla: l'esito appare sullo schermo.</span></div>
   <button class="go" type="button" id="reboot" data-i18n="reboot_now">Riavvia ora</button>
 </div>
 <div class="toast" id="toast"></div>
@@ -311,14 +325,16 @@ const I18N={
  ssid:"SSID",password:"Password",pwd_ph:"quella che sai tu",save_wifi:"Salva Wi-Fi",forget_label:"Dimentica slot",forget:"Dimentica",
  lang_label:"Lingua",lang_hint:"La lingua in cui vaticina l'oracolo. Scegline una: i responsi seguono.",
  oracle_label:"Oracolo",oracle_hint:"La chiave resta sul biscotto e da nessun'altra parte. Acqua in bocca.",
- api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",voice_keep:"— mantieni attuale —",reasoning:"Ragionamento",reasoning_off:"spento",
+ api_key:"Chiave API",keep_key:"lascia vuoto per non toccarla",stt:"Voce a testo",model:"Modello oracolo",tts:"Testo a voce",voice:"Voce",voice_keep:"(mantieni attuale)",reasoning:"Ragionamento",reasoning_off:"spento",
  save_oracle:"Salva Oracolo",key_stored:"Chiave salvata:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@esempio.it",send_resp:"Manda i responsi",yes:"Sì",no:"No",
  relay_adv:"Relay (avanzato)",relay_url:"URL relay",relay_token:"Token relay",keep_token:"lascia vuoto per non toccarlo",save_email:"Salva Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
+ audio_label:"Audio",audio_hint:"Le ultime registrazioni a piena qualità: la domanda che ha sentito il microfono e il responso pronunciato. Per controllare le orecchie del biscotto.",
+ audio_q:"Domanda (mic)",audio_a:"Responso (voce)",
  reset_label:"Reset",reset_btn:"Reset totale",reset_hint:"Cancella Wi-Fi, oracolo, email e lingua. Di nuovo un biscotto vuoto e a digiuno.",
  firmware:"Firmware",secret_warn:"I segreti vivono in chiaro su questo biscotto. Attiva la flash encryption prima di spedirne uno.",
- reboot_title:"Wi-Fi dentro.",reboot_msg:"Testata, salvata, pronta. Riavvia per renderla effettiva.",reboot_now:"Riavvia ora",
+ reboot_title:"Wi-Fi salvata.",reboot_msg:"Riavvia per provarla: l'esito appare sullo schermo del biscotto.",reboot_now:"Riavvia ora",
  diac_label:"test diacritici",
  missing:"manca",setupMode:"setup",onlineMode:"connesso",offlineMode:"offline",configured:"configurato",
  saved:"Salvato",rebooting:"Riavvio...",scanning:"Scansiono...",networksFound:"reti trovate",
@@ -327,16 +343,18 @@ const I18N={
  wifi_label:"Wi-Fi",wifi_hint:"Saved networks live here on the biscuit. Nothing leaves, nothing phones home.",
  wifi_scan:"Scan",wifi_scan_note:"the networks within earshot, nothing more.",scan_h:"Networks found",
  ssid:"SSID",password:"Password",pwd_ph:"the one you know",save_wifi:"Save Wi-Fi",forget_label:"Forget slot",forget:"Forget",
- lang_label:"Language",lang_hint:"The tongue the oracle prophesies in. Pick one — the readings follow.",
+ lang_label:"Language",lang_hint:"The tongue the oracle prophesies in. Pick one: the readings follow.",
  oracle_label:"Oracle",oracle_hint:"Your key stays on the biscuit and nowhere else. We don't kiss and tell.",
- api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",voice_keep:"— keep current —",reasoning:"Reasoning",reasoning_off:"off",
+ api_key:"API key",keep_key:"leave blank to keep it",stt:"Speech to text",model:"Oracle model",tts:"Text to speech",voice:"Voice",voice_keep:"(keep current)",reasoning:"Reasoning",reasoning_off:"off",
  save_oracle:"Save Oracle",key_stored:"Stored key:",
  email_label:"Email",recipient:"Recipient",recipient_ph:"you@example.com",send_resp:"Send the readings",yes:"Yes",no:"No",
  relay_adv:"Relay (advanced)",relay_url:"Relay URL",relay_token:"Relay token",keep_token:"leave blank to keep it",save_email:"Save Email",
  rec_lbl:"Recipient",relay_lbl:"Relay",
+ audio_label:"Audio",audio_hint:"The latest full-quality recordings: the question the mic heard and the spoken reading. For checking the biscuit's ears.",
+ audio_q:"Question (mic)",audio_a:"Reading (voice)",
  reset_label:"Reset",reset_btn:"Full reset",reset_hint:"Wipes Wi-Fi, oracle, email and language. Back to a blank, hungry biscuit.",
  firmware:"Firmware",secret_warn:"Secrets live on this biscuit, in the clear. Turn on flash encryption before you ship one.",
- reboot_title:"Wi-Fi's in.",reboot_msg:"Tested, saved, ready. Reboot to make it count.",reboot_now:"Reboot now",
+ reboot_title:"Wi-Fi saved.",reboot_msg:"Reboot to try it: the verdict shows on the biscuit's screen.",reboot_now:"Reboot now",
  diac_label:"diacritics test",
  missing:"missing",setupMode:"setup",onlineMode:"online",offlineMode:"offline",configured:"set",
  saved:"Saved",rebooting:"Rebooting...",scanning:"Scanning...",networksFound:"found",
@@ -347,14 +365,16 @@ const I18N={
  ssid:"SSID",password:"Contraseña",pwd_ph:"la que ya sabes",save_wifi:"Guardar Wi-Fi",forget_label:"Olvidar ranura",forget:"Olvidar",
  lang_label:"Idioma",lang_hint:"La lengua en que vaticina el oráculo. Elige una: las lecturas la siguen.",
  oracle_label:"Oráculo",oracle_hint:"Tu clave se queda en la galleta y en ningún otro sitio. Boca sellada.",
- api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",voice_keep:"— mantener actual —",reasoning:"Razonamiento",reasoning_off:"apagado",
+ api_key:"Clave API",keep_key:"déjalo vacío para no tocarla",stt:"Voz a texto",model:"Modelo del oráculo",tts:"Texto a voz",voice:"Voz",voice_keep:"(mantener actual)",reasoning:"Razonamiento",reasoning_off:"apagado",
  save_oracle:"Guardar Oráculo",key_stored:"Clave guardada:",
  email_label:"Email",recipient:"Destinatario",recipient_ph:"tu@ejemplo.es",send_resp:"Manda las lecturas",yes:"Sí",no:"No",
  relay_adv:"Relay (avanzado)",relay_url:"URL del relay",relay_token:"Token del relay",keep_token:"déjalo vacío para no tocarlo",save_email:"Guardar Email",
  rec_lbl:"Destinatario",relay_lbl:"Relay",
+ audio_label:"Audio",audio_hint:"Las últimas grabaciones a plena calidad: la pregunta que oyó el micrófono y la lectura pronunciada. Para revisar los oídos de la galleta.",
+ audio_q:"Pregunta (mic)",audio_a:"Lectura (voz)",
  reset_label:"Reset",reset_btn:"Reset total",reset_hint:"Borra Wi-Fi, oráculo, email e idioma. De vuelta a una galleta vacía y hambrienta.",
  firmware:"Firmware",secret_warn:"Los secretos viven en claro en esta galleta. Activa el cifrado de flash antes de enviar una.",
- reboot_title:"Wi-Fi dentro.",reboot_msg:"Probada, guardada, lista. Reinicia para que cuente.",reboot_now:"Reiniciar ahora",
+ reboot_title:"Wi-Fi guardada.",reboot_msg:"Reinicia para probarla: el resultado aparece en la pantalla de la galleta.",reboot_now:"Reiniciar ahora",
  diac_label:"test de diacríticos",
  missing:"falta",setupMode:"setup",onlineMode:"conectado",offlineMode:"offline",configured:"configurado",
  saved:"Guardado",rebooting:"Reiniciando...",scanning:"Buscando...",networksFound:"encontradas",

@@ -42,6 +42,10 @@ public:
     // Pre-erase the question spool during idle so the next recording starts
     // instantly. Call at boot and after each completed query.
     void RearmQuestionSpool();
+    // Copy the finished question WAV to the archive slot (kQuestionArchiveSpoolOffset)
+    // so the portal can serve the last mic capture even after the rearm wipes
+    // the live region. Call right before RearmQuestionSpool().
+    void ArchiveQuestionRecording();
     // Play the generated oracle answer WAV sitting in the spool answer region
     // (parses its header, reopens the codec at its sample rate, mono->stereo as
     // needed, restores 16 kHz after). Drives the playback observer so the

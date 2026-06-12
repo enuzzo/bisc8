@@ -599,8 +599,11 @@ extern "C" void app_main(void) {
                     const OracleErr e = OracleErrorInfo(StringsFor(language), oracle.LastFailure());
                     display.ShowError(e.message, e.code, language);
                 }
-                // Question WAV no longer needed (STT + email done); pre-erase the
-                // spool now so the next recording starts instantly.
+                // Question WAV no longer needed (STT + email done). Park a copy
+                // in the archive slot so the portal's /api/audio/question.wav
+                // can still serve "what the mic actually heard", THEN pre-erase
+                // the live region so the next recording starts instantly.
+                audio.ArchiveQuestionRecording();
                 audio.RearmQuestionSpool();
                 if (resume_portal_after_voice) {
                     const esp_err_t portal_err = portal.Start();

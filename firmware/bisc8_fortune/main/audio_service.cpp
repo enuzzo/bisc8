@@ -623,6 +623,58 @@ void AudioService::RearmQuestionSpool() {
     }
 }
 
+void AudioService::ArchiveQuestionRecording() {
+    // Park the finished question WAV in the archive slot before the rearm
+    // erases the live region, so the portal's mic check can still serve it.
+    // Runs in the post-flow housekeeping window (user is reading the answer);
+    // the ~2-3 s of flash work is invisible there.
+    if (voice_recording_ || voice_task_ != nullptr) {
+        return;  // never touch the spool under an active recording
+    }
+    if (spool_partition_ == nullptr) {
+        spool_partition_ =
+            esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, kSpoolPartition);
+        if (spool_partition_ == nullptr) {
+            return;
+        }
+    }
+    auto le32 = [](const uint8_t *p) {
+        return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+               (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+    };
+    uint8_t header[kWavHeaderBytes] = {};
+    if (esp_partition_read(spool_partition_, 0, header, sizeof(header)) != ESP_OK ||
+        memcmp(header, "RIFF", 4) != 0 || memcmp(header + 8, "WAVE", 4) != 0 ||
+        memcmp(header + 36, "data", 4) != 0) {
+        return;  // nothing recorded (or already rearmed); keep the old archive
+    }
+    const uint32_t data_bytes = le32(header + 40);
+    const uint32_t total = kWavHeaderBytes + data_bytes;
+    if (data_bytes == 0 || data_bytes == 0xFFFFFFFFU || total > kVoiceSpoolEraseBytes) {
+        return;
+    }
+    const uint32_t erase_len = (total + 4095U) & ~4095U;  // flash erase is 4 KB sectors
+    if (kQuestionArchiveSpoolOffset + erase_len > spool_partition_->size) {
+        return;
+    }
+    if (esp_partition_erase_range(spool_partition_, kQuestionArchiveSpoolOffset, erase_len) != ESP_OK) {
+        return;
+    }
+    uint8_t buf[2048];
+    uint32_t off = 0;
+    while (off < total) {
+        const uint32_t n = std::min(static_cast<uint32_t>(sizeof(buf)), total - off);
+        if (esp_partition_read(spool_partition_, off, buf, n) != ESP_OK ||
+            esp_partition_write(spool_partition_, kQuestionArchiveSpoolOffset + off, buf, n) != ESP_OK) {
+            DebugSerial::LogAlways("[AUDIO]", "question archive failed at off=%u", static_cast<unsigned>(off));
+            return;
+        }
+        off += n;
+    }
+    DebugSerial::LogAlways("[AUDIO]", "question archived bytes=%u at=0x%x", static_cast<unsigned>(total),
+                           static_cast<unsigned>(kQuestionArchiveSpoolOffset));
+}
+
 void AudioService::VoiceRecordTaskEntry(void *arg) {
     static_cast<AudioService *>(arg)->VoiceRecordTask();
     vTaskDelete(nullptr);

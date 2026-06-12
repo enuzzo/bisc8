@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include <esp_err.h>
 #include <esp_http_server.h>
@@ -41,6 +42,11 @@ private:
     static esp_err_t HandleEmail(httpd_req_t *req);
     static esp_err_t HandleReset(httpd_req_t *req);
     static esp_err_t HandleReboot(httpd_req_t *req);
+    // Full-quality WAV pulls from the flash spool (mic question / TTS answer),
+    // for bench QA and "what did it actually hear" checks over the LAN portal.
+    static esp_err_t HandleQuestionAudio(httpd_req_t *req);
+    static esp_err_t HandleAnswerAudio(httpd_req_t *req);
+    static esp_err_t StreamSpoolWav(httpd_req_t *req, uint32_t base_offset);
     static esp_err_t HandleCaptiveRedirect(httpd_req_t *req);
     esp_err_t RegisterRoute(const char *uri, httpd_method_t method, HttpHandler handler);
     esp_err_t SendStatusJson(httpd_req_t *req) const;
