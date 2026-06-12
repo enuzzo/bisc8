@@ -52,8 +52,7 @@ client — the rest (auth, MIME, attachment) stays the same.
 
 Shared hosts can block for a long time inside `mail()`. To keep the ESP32-C6
 from timing out and aborting the request, the relay now returns `202 Accepted`
-JSON immediately after the upload has been authenticated and the MIME payload is
-built:
+JSON immediately after the upload has been authenticated and read:
 
 ```json
 {"ok":true,"accepted":true,"attached":2,"request_id":"...","version":"..."}

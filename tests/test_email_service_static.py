@@ -96,3 +96,21 @@ def test_relay_acknowledges_the_device_before_host_mail_handoff():
     ack_at = php.index("respond_json_and_continue(['ok' => true, 'accepted' => true")
     mail_at = php.index("@mail(")
     assert ack_at < mail_at
+
+
+def test_relay_acknowledges_before_building_the_email_message():
+    php = read(RELAY_PHP)
+    # The host can fail or stall while building the subject/MIME bundle for a
+    # valid request; the ESP should already have its accepted response by then.
+    ack_at = php.index("respond_json_and_continue(['ok' => true, 'accepted' => true")
+    assert ack_at < php.index("$subject =")
+    assert ack_at < php.index("$altB =")
+    assert ack_at < php.index("chunk_split(base64_encode($html))")
+
+
+def test_relay_subject_preview_does_not_require_mbstring():
+    php = read(RELAY_PHP)
+    assert "function relay_subject_preview" in php
+    assert "function_exists('mb_substr')" in php
+    assert "relay_subject_preview($answerText" in php
+    assert "mb_substr($answerText" not in php

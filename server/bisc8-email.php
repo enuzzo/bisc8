@@ -67,6 +67,14 @@ function respond_json_and_continue(array $payload, int $status = 202): void
     flush();
 }
 
+function relay_subject_preview(string $value, int $maxChars): string
+{
+    if (function_exists('mb_substr')) {
+        return mb_substr($value, 0, $maxChars, 'UTF-8');
+    }
+    return substr($value, 0, $maxChars);
+}
+
 // --- Config: file first, then env-var overrides. Nothing secret is committed. ---
 $cfg = ['token' => '', 'mail_to' => '', 'mail_from' => '', 'mail_from_name' => 'Bisc8', 'max_attach_mb' => 9, 'timezone' => 'Europe/Rome'];
 $cfgFile = __DIR__ . '/bisc8-email.config.php';
@@ -169,18 +177,6 @@ $now = time();
 $dateFull = ucfirst($S['days'][(int)date('w', $now)]) . ' ' . (int)date('j', $now) . ' '
           . $S['months'][(int)date('n', $now) - 1] . ' ' . date('Y', $now) . ', ' . date('H:i', $now);
 
-$subject = $S['subj_prefix'] . ($answerText !== '' ? mb_substr($answerText, 0, 60) : $S['subj_fallback']);
-$text = $S['q_label'] . ":\n" . ($transcript !== '' ? $transcript : $S['empty']) . "\n\n"
-      . $S['a_label'] . ":\n" . ($answerText !== '' ? $answerText : $S['empty']) . "\n"
-      . "\n" . $S['date_label'] . ": " . $dateFull . "\n";
-if ($lang !== '') {
-    $text .= $S['lang_label'] . ": " . strtoupper($lang) . "\n";
-}
-if ($engineBits) {
-    $text .= "engines: " . implode(' · ', $engineBits) . "\n";
-}
-// footer + attachment names are appended once the uploads are known (below).
-
 // --- Optional WAV attachments: the question recording (field "audio") and the
 //     generated answer audio (field "answer"). Either may be absent. ---
 $maxBytes = ((int)$cfg['max_attach_mb']) * 1024 * 1024;
@@ -207,8 +203,39 @@ if ($aWav !== null) {
     $attachments[] = ['filename' => $S['a_file'], 'data' => $aWav];
 }
 
+$requestId = bin2hex(random_bytes(6));
+$attachmentInfo = array_map(static fn(array $att): array => [
+    'filename' => (string)$att['filename'],
+    'bytes' => strlen((string)$att['data']),
+], $attachments);
+
+respond_json_and_continue(['ok' => true, 'accepted' => true, 'attached' => count($attachments), 'request_id' => $requestId, 'version' => BISC8_EMAIL_RELAY_VERSION]);
+
+relay_log([
+    'id' => $requestId,
+    'event' => 'accepted',
+    'attached' => count($attachments),
+    'attachments' => $attachmentInfo,
+    'content_length' => (int)($_SERVER['CONTENT_LENGTH'] ?? 0),
+    'lang' => $lang,
+    'stt_model' => $sttModel,
+    'brain_model' => $brainModel,
+    'tts_model' => $ttsModel,
+    'voice' => $voiceName,
+]);
+
 // The WAVs ride along as real MIME attachments; an email client has no stable URL
 // to "click", so we simply name them (no fake buttons) in both the text and HTML.
+$subject = $S['subj_prefix'] . ($answerText !== '' ? relay_subject_preview($answerText, 60) : $S['subj_fallback']);
+$text = $S['q_label'] . ":\n" . ($transcript !== '' ? $transcript : $S['empty']) . "\n\n"
+      . $S['a_label'] . ":\n" . ($answerText !== '' ? $answerText : $S['empty']) . "\n"
+      . "\n" . $S['date_label'] . ": " . $dateFull . "\n";
+if ($lang !== '') {
+    $text .= $S['lang_label'] . ": " . strtoupper($lang) . "\n";
+}
+if ($engineBits) {
+    $text .= "engines: " . implode(' · ', $engineBits) . "\n";
+}
 $attachNames = array_map(static fn(array $a): string => (string)$a['filename'], $attachments);
 $attachNote  = $attachNames ? ($S['attach_label'] . ': ' . implode(', ', $attachNames)) : '';
 if ($attachNote !== '') {
@@ -338,27 +365,6 @@ if (!empty($attachments)) {
     $headers[] = 'Content-Type: multipart/related; boundary="' . $relB . '"';
     $body = $related;
 }
-
-$requestId = bin2hex(random_bytes(6));
-$attachmentInfo = array_map(static fn(array $att): array => [
-    'filename' => (string)$att['filename'],
-    'bytes' => strlen((string)$att['data']),
-], $attachments);
-
-relay_log([
-    'id' => $requestId,
-    'event' => 'accepted',
-    'attached' => count($attachments),
-    'attachments' => $attachmentInfo,
-    'content_length' => (int)($_SERVER['CONTENT_LENGTH'] ?? 0),
-    'lang' => $lang,
-    'stt_model' => $sttModel,
-    'brain_model' => $brainModel,
-    'tts_model' => $ttsModel,
-    'voice' => $voiceName,
-]);
-
-respond_json_and_continue(['ok' => true, 'accepted' => true, 'attached' => count($attachments), 'request_id' => $requestId, 'version' => BISC8_EMAIL_RELAY_VERSION]);
 
 $ok = @mail($to, $subject, $body, implode("\r\n", $headers));
 $lastError = error_get_last();
