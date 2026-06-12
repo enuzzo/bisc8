@@ -26,7 +26,9 @@ def test_config_schema_declares_product_limits_and_secret_masking():
 
     assert "constexpr size_t kMaxWifiCredentials = 8" in header
     assert "constexpr size_t kMaxScreenAnswerChars = 55" in header
-    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 10000" in header
+    # 12 s: association (kicked while stalled) + 4-way handshake + DHCP. The
+    # stall kick stops once associated, so slow-DHCP routers need the headroom.
+    assert "constexpr uint32_t kWifiAttemptTimeoutMs = 12000" in header
     assert "constexpr uint32_t kVoiceRecordLimitMs = 15000" in header
     assert "MaskSecret" in header
     assert 'return "***";' in source

@@ -11,7 +11,10 @@ namespace bisc8 {
 
 constexpr size_t kMaxWifiCredentials = 8;
 constexpr size_t kMaxScreenAnswerChars = 55;  // tiny 200x200 e-paper; keep it short
-constexpr uint32_t kWifiAttemptTimeoutMs = 10000;
+// Per-network join budget: association (kicked every 3 s while stalled) + the
+// 4-way handshake + DHCP. 12 s leaves a late association enough DHCP headroom
+// on slow home routers; failures still reach the setup portal quickly.
+constexpr uint32_t kWifiAttemptTimeoutMs = 12000;
 constexpr uint32_t kVoiceRecordLimitMs = 15000;
 constexpr uint32_t kConfigSchemaVersion = 2;
 
@@ -22,6 +25,11 @@ constexpr uint32_t kConfigSchemaVersion = 2;
 // WAV header after download.
 constexpr uint32_t kVoiceAnswerSpoolOffset = 0x200000;        // 2 MB into spool
 constexpr uint32_t kVoiceAnswerSpoolMaxBytes = 0x2f0000;      // up to ~3 MB of WAV
+// Archive slot for the LAST question WAV, in the unused gap between the live
+// question region (0..512 KB) and the answer region (2 MB+). The live region
+// is pre-erased right after each oracle flow, so the portal serves the mic
+// check from here instead.
+constexpr uint32_t kQuestionArchiveSpoolOffset = 0x100000;
 
 struct WifiCredential {
     std::string ssid;

@@ -22,8 +22,9 @@
 namespace bisc8 {
 namespace {
 
-constexpr EventBits_t WIFI_CONNECTED_BIT = BIT0;
-constexpr EventBits_t WIFI_FAILED_BIT = BIT1;
+constexpr EventBits_t WIFI_CONNECTED_BIT = BIT0;   // got an IP (DHCP done)
+constexpr EventBits_t WIFI_FAILED_BIT = BIT1;      // explicit disconnect/auth failure
+constexpr EventBits_t WIFI_ASSOCIATED_BIT = BIT2;  // L2 association up, DHCP in flight
 constexpr uint16_t kMaxScanRecords = 20;
 constexpr const char *kSetupUrl = "http://192.168.4.1";
 constexpr uint32_t kSetupIpHostOrder = 0xC0A80401;
@@ -56,10 +57,16 @@ void OnWifiEvent(void *arg, esp_event_base_t event_base, int32_t event_id, void 
             service->UpdateConnectedIp(ip);
         }
         xEventGroupSetBits(g_wifi_events, WIFI_CONNECTED_BIT);
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
+        // Associated; the 4-way handshake passed and DHCP is now in flight.
+        // ConnectToNetwork uses this to stop kicking the association.
+        xEventGroupSetBits(g_wifi_events, WIFI_ASSOCIATED_BIT);
+        DebugSerial::LogAlways("[WIFI]", "associated; waiting for DHCP");
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         if (service != nullptr) {
             service->MarkDisconnected();
         }
+        xEventGroupClearBits(g_wifi_events, WIFI_ASSOCIATED_BIT);
         xEventGroupSetBits(g_wifi_events, WIFI_FAILED_BIT);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
         const auto *event = static_cast<wifi_event_ap_staconnected_t *>(event_data);
@@ -209,7 +216,7 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
     status_.connected_ssid.clear();
     status_.connected_ip.clear();
     esp_wifi_disconnect();
-    xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT);
+    xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT | WIFI_ASSOCIATED_BIT);
 
     wifi_config_t sta_config = {};
     if (!CopyWifiString(reinterpret_cast<char *>(sta_config.sta.ssid), sizeof(sta_config.sta.ssid), ssid)) {
@@ -260,11 +267,17 @@ esp_err_t ConnectivityService::ConnectToNetwork(const char *ssid, const char *pa
         // neither connects nor reports a disconnect. Re-kick esp_wifi_connect on
         // an explicit failure, or every few stalled seconds; a prompt retry
         // almost always associates. This is what kept dropping us into setup.
+        //
+        // BUT: once we are ASSOCIATED, the radio is fine and we are only waiting
+        // for DHCP. Kicking there tears down a healthy association and restarts
+        // the whole join, so a router whose assoc+DHCP takes >3 s in total could
+        // never finish inside the budget (slow TIM/mesh gear shows exactly this).
         const bool failed = (bits & WIFI_FAILED_BIT) != 0;
-        const bool stalled = (sec % kKickEverySec == 0);
+        const bool associated = (bits & WIFI_ASSOCIATED_BIT) != 0;
+        const bool stalled = (sec % kKickEverySec == 0) && !associated;
         if ((failed || stalled) && sec < budget_s) {
             esp_wifi_disconnect();
-            xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT);
+            xEventGroupClearBits(g_wifi_events, WIFI_CONNECTED_BIT | WIFI_FAILED_BIT | WIFI_ASSOCIATED_BIT);
             esp_wifi_connect();
             ++attempts;
             DebugSerial::LogAlways("[WIFI]", "reconnect kick ssid=%s attempt=%d reason=%s",
