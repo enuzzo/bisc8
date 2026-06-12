@@ -45,8 +45,19 @@ def test_firmware_retries_the_relay_post_when_status_is_missing():
     src = read(EMAIL_CPP)
     assert "constexpr int kEmailMaxAttempts = 3;" in src
     assert "relay retry attempt=" in src
-    assert "for (int attempt = 1; attempt <= kEmailMaxAttempts; ++attempt)" in src
+    assert "for (int attempt = 1; attempt <= max_attempts; ++attempt)" in src
+    assert "send_payload(false, kEmailMaxAttempts, \"legacy\")" in src
     assert "status >= 200 && status < 300" in src
+
+
+def test_firmware_falls_back_to_legacy_payload_without_answer_audio():
+    src = read(EMAIL_CPP)
+    # If the newer answer-audio multipart stalls, recover the old behavior that
+    # was already known to deliver: text + question audio, no answer WAV.
+    assert "constexpr uint32_t kEmailTimeoutMs = 30000;" in src
+    assert "send_payload(false, kEmailMaxAttempts, \"legacy\")" in src
+    assert "retrying without answer audio" in src
+    assert "mode=%s" in src
 
 
 def test_firmware_repairs_the_answer_wav_length_header_for_players():

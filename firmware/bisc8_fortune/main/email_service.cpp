@@ -19,7 +19,7 @@ namespace bisc8 {
 namespace {
 constexpr const char *kSpoolPartition = "spool";  // question WAV lives at offset 0
 constexpr const char *kEmailBoundary = "----bisc8emailMUL7boundaryZ9";
-constexpr uint32_t kEmailTimeoutMs = 60000;
+constexpr uint32_t kEmailTimeoutMs = 30000;
 constexpr int kEmailMaxAttempts = 3;
 constexpr uint32_t kEmailRetryDelayMs = 750;
 
@@ -129,129 +129,149 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     // "answer_audio", not "answer": "answer" is already the answer-TEXT form field.
     const std::string fh_a = attach_answer ? file_part_header("answer_audio", "answer.wav") : std::string();
     const std::string closing = "--" + boundary + "--\r\n";
-    const int content_length = static_cast<int>(
-        preamble.size() +
-        (attach_question ? fh_q.size() + wav_total + 2 : 0) +  // +2: CRLF terminating the part body
-        (attach_answer ? fh_a.size() + ans_total + 2 : 0) +
-        closing.size());
-
     const std::string content_type = "multipart/form-data; boundary=" + boundary;
     const std::string auth = "Bearer " + settings.relay_token;
-    esp_err_t last_err = ESP_FAIL;
-    for (int attempt = 1; attempt <= kEmailMaxAttempts; ++attempt) {
-        esp_http_client_config_t cfg = {};
-        cfg.url = settings.relay_url.c_str();
-        cfg.method = HTTP_METHOD_POST;
-        cfg.crt_bundle_attach = esp_crt_bundle_attach;
-        cfg.timeout_ms = kEmailTimeoutMs;
-        cfg.buffer_size = 2048;
-        cfg.buffer_size_tx = 2048;
-        esp_http_client_handle_t client = esp_http_client_init(&cfg);
-        if (client == nullptr) {
-            last_err = ESP_ERR_NO_MEM;
-        } else {
-            esp_http_client_set_header(client, "Content-Type", content_type.c_str());
-            if (!settings.relay_token.empty()) {  // some hosts strip Authorization; the token is also a form field
-                esp_http_client_set_header(client, "Authorization", auth.c_str());
-            }
+    auto send_payload = [&](bool send_answer, int max_attempts, const char *mode) -> esp_err_t {
+        const bool include_answer = send_answer && attach_answer;
+        const int content_length = static_cast<int>(
+            preamble.size() +
+            (attach_question ? fh_q.size() + wav_total + 2 : 0) +  // +2: CRLF terminating the part body
+            (include_answer ? fh_a.size() + ans_total + 2 : 0) +
+            closing.size());
 
-            auto write_all = [&](const char *data, size_t len) -> bool {
-                size_t done = 0;
-                while (done < len) {
-                    const int w = esp_http_client_write(client, data + done, len - done);
-                    if (w <= 0) {
-                        return false;
-                    }
-                    done += static_cast<size_t>(w);
-                }
-                return true;
-            };
+        DebugSerial::LogAlways("[EMAIL]", "relay payload mode=%s length=%d question=%uB answer=%uB", mode,
+                               content_length, static_cast<unsigned>(attach_question ? wav_total : 0),
+                               static_cast<unsigned>(include_answer ? ans_total : 0));
 
-            esp_err_t err = esp_http_client_open(client, content_length);
-            if (err != ESP_OK) {
-                esp_http_client_cleanup(client);
-                DebugSerial::LogAlways("[EMAIL]", "relay open failed: %s attempt=%d", esp_err_to_name(err),
-                                       attempt);
-                last_err = err;
+        esp_err_t last_err = ESP_FAIL;
+        for (int attempt = 1; attempt <= max_attempts; ++attempt) {
+            esp_http_client_config_t cfg = {};
+            cfg.url = settings.relay_url.c_str();
+            cfg.method = HTTP_METHOD_POST;
+            cfg.crt_bundle_attach = esp_crt_bundle_attach;
+            cfg.timeout_ms = kEmailTimeoutMs;
+            cfg.buffer_size = 2048;
+            cfg.buffer_size_tx = 2048;
+            esp_http_client_handle_t client = esp_http_client_init(&cfg);
+            if (client == nullptr) {
+                last_err = ESP_ERR_NO_MEM;
             } else {
-                // Stream a [base, base+len) spool region to the client in flash-friendly chunks.
-                uint8_t chunk[2048];
-                auto stream_region = [&](uint32_t base, uint32_t len) -> bool {
-                    uint32_t off = base;
-                    uint32_t remaining = len;
-                    while (remaining > 0) {
-                        const uint32_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
-                        if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
+                esp_http_client_set_header(client, "Content-Type", content_type.c_str());
+                if (!settings.relay_token.empty()) {  // some hosts strip Authorization; the token is also a form field
+                    esp_http_client_set_header(client, "Authorization", auth.c_str());
+                }
+
+                auto write_all = [&](const char *data, size_t len) -> bool {
+                    size_t done = 0;
+                    while (done < len) {
+                        const int w = esp_http_client_write(client, data + done, len - done);
+                        if (w <= 0) {
                             return false;
                         }
-                        if (!write_all(reinterpret_cast<const char *>(chunk), n)) {
-                            return false;
-                        }
-                        off += n;
-                        remaining -= n;
+                        done += static_cast<size_t>(w);
                     }
                     return true;
                 };
 
-                bool ok = write_all(preamble.data(), preamble.size());
-                if (ok && attach_question) {
-                    ok = write_all(fh_q.data(), fh_q.size()) && stream_region(0, wav_total) &&
-                         write_all("\r\n", 2);
-                }
-                if (ok && attach_answer) {
-                    // Patched header first, then the audio payload that follows it in flash.
-                    ok = write_all(fh_a.data(), fh_a.size()) &&
-                         write_all(reinterpret_cast<const char *>(ans_hdr), ans_hdr_len) &&
-                         stream_region(kVoiceAnswerSpoolOffset + ans_payload_off, ans_total - ans_payload_off) &&
-                         write_all("\r\n", 2);
-                }
-                if (ok) {
-                    ok = write_all(closing.data(), closing.size());
-                }
-
-                int status = 0;
-                if (ok) {
-                    const int header_len = esp_http_client_fetch_headers(client);
-                    if (header_len < 0) {
-                        ok = false;
-                        err = ESP_FAIL;
-                        DebugSerial::LogAlways("[EMAIL]", "relay headers failed: %d", header_len);
-                    } else {
-                        status = esp_http_client_get_status_code(client);
-                        char rbuf[256];
-                        int r = 0;
-                        while ((r = esp_http_client_read(client, rbuf, sizeof(rbuf))) > 0) {
-                            // drain the (small JSON) response
+                esp_err_t err = esp_http_client_open(client, content_length);
+                if (err != ESP_OK) {
+                    esp_http_client_cleanup(client);
+                    DebugSerial::LogAlways("[EMAIL]", "relay open failed: %s mode=%s attempt=%d",
+                                           esp_err_to_name(err), mode, attempt);
+                    last_err = err;
+                } else {
+                    // Stream a [base, base+len) spool region to the client in flash-friendly chunks.
+                    uint8_t chunk[2048];
+                    auto stream_region = [&](uint32_t base, uint32_t len) -> bool {
+                        uint32_t off = base;
+                        uint32_t remaining = len;
+                        while (remaining > 0) {
+                            const uint32_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
+                            if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
+                                return false;
+                            }
+                            if (!write_all(reinterpret_cast<const char *>(chunk), n)) {
+                                return false;
+                            }
+                            off += n;
+                            remaining -= n;
                         }
-                        if (r < 0) {
+                        return true;
+                    };
+
+                    bool ok = write_all(preamble.data(), preamble.size());
+                    if (ok && attach_question) {
+                        ok = write_all(fh_q.data(), fh_q.size()) && stream_region(0, wav_total) &&
+                             write_all("\r\n", 2);
+                    }
+                    if (ok && include_answer) {
+                        // Patched header first, then the audio payload that follows it in flash.
+                        ok = write_all(fh_a.data(), fh_a.size()) &&
+                             write_all(reinterpret_cast<const char *>(ans_hdr), ans_hdr_len) &&
+                             stream_region(kVoiceAnswerSpoolOffset + ans_payload_off,
+                                           ans_total - ans_payload_off) &&
+                             write_all("\r\n", 2);
+                    }
+                    if (ok) {
+                        ok = write_all(closing.data(), closing.size());
+                    }
+
+                    int status = 0;
+                    if (ok) {
+                        const int header_len = esp_http_client_fetch_headers(client);
+                        if (header_len < 0) {
                             ok = false;
                             err = ESP_FAIL;
-                            DebugSerial::LogAlways("[EMAIL]", "relay read failed: %d", r);
+                            DebugSerial::LogAlways("[EMAIL]", "relay headers failed: %d mode=%s", header_len,
+                                                   mode);
+                        } else {
+                            status = esp_http_client_get_status_code(client);
+                            char rbuf[256];
+                            int r = 0;
+                            while ((r = esp_http_client_read(client, rbuf, sizeof(rbuf))) > 0) {
+                                // drain the (small JSON) response
+                            }
+                            if (r < 0) {
+                                ok = false;
+                                err = ESP_FAIL;
+                                DebugSerial::LogAlways("[EMAIL]", "relay read failed: %d mode=%s", r, mode);
+                            }
                         }
                     }
-                }
-                esp_http_client_close(client);
-                esp_http_client_cleanup(client);
+                    esp_http_client_close(client);
+                    esp_http_client_cleanup(client);
 
-                DebugSerial::LogAlways("[EMAIL]", "relay POST status=%d question=%uB answer=%uB attempt=%d",
-                                       status, static_cast<unsigned>(attach_question ? wav_total : 0),
-                                       static_cast<unsigned>(attach_answer ? ans_total : 0), attempt);
-                if (!ok) {
-                    last_err = (err != ESP_OK) ? err : ESP_FAIL;
-                } else if (status >= 200 && status < 300) {
-                    return ESP_OK;
-                } else {
-                    last_err = ESP_ERR_INVALID_RESPONSE;
+                    DebugSerial::LogAlways(
+                        "[EMAIL]", "relay POST status=%d question=%uB answer=%uB mode=%s attempt=%d", status,
+                        static_cast<unsigned>(attach_question ? wav_total : 0),
+                        static_cast<unsigned>(include_answer ? ans_total : 0), mode, attempt);
+                    if (!ok) {
+                        last_err = (err != ESP_OK) ? err : ESP_FAIL;
+                    } else if (status >= 200 && status < 300) {
+                        return ESP_OK;
+                    } else {
+                        last_err = ESP_ERR_INVALID_RESPONSE;
+                    }
                 }
             }
+            if (attempt < max_attempts) {
+                DebugSerial::LogAlways("[EMAIL]", "relay retry attempt=%d mode=%s err=%s", attempt + 1, mode,
+                                       esp_err_to_name(last_err));
+                vTaskDelay(pdMS_TO_TICKS(kEmailRetryDelayMs));
+            }
         }
-        if (attempt < kEmailMaxAttempts) {
-            DebugSerial::LogAlways("[EMAIL]", "relay retry attempt=%d err=%s", attempt + 1,
-                                   esp_err_to_name(last_err));
-            vTaskDelay(pdMS_TO_TICKS(kEmailRetryDelayMs));
+        return last_err;
+    };
+
+    if (attach_answer) {
+        const esp_err_t full_err = send_payload(true, 1, "full");
+        if (full_err == ESP_OK) {
+            return ESP_OK;
         }
+        DebugSerial::LogAlways("[EMAIL]", "full payload failed; retrying without answer audio err=%s",
+                               esp_err_to_name(full_err));
     }
-    return last_err;
+    return send_payload(false, kEmailMaxAttempts, "legacy");
 }
 
 }  // namespace bisc8
