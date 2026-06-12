@@ -1,6 +1,7 @@
 # Bisc8 Project Status
 
-Date: 2026-06-05
+Date: 2026-06-12 (audio/email quality + Wi-Fi join + bench QA kit; hardware
+validation pending, see `notes/TEST_PLAN_AUDIO.md`)
 
 ## Hardware
 
@@ -19,7 +20,7 @@ Date: 2026-06-05
 - `FortuneService`: random fortune picker backed by generated flash-safe data.
 - `AudioService`: cues, mic test, voice recording (chunked WAV to the spool), and answer playback (24->16 kHz resample). Pre-erases the question spool at idle.
 - `VoiceOracleService`: STT -> chat-completions Brain -> TTS over TLS, run on a dedicated 16 KB-stack worker; granular failure codes (E01..E05).
-- `EmailService`: multipart relay POST (transcript + answer + question WAV) to a user-configured endpoint (`server/bisc8-email.php`).
+- `EmailService`: multipart relay POST (transcript + answer + question/answer review WAVs, box-filtered to 8 kHz with 8 s/12 s caps) to a user-configured endpoint (`server/bisc8-email.php`); fallback ladder compact8k -> question8k -> text-only.
 - `ButtonController`: BOOT click, PWR click, PWR long press.
 - `DebugSerial`: structured logs, serial commands, framebuffer dump.
 

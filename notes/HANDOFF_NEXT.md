@@ -1,6 +1,39 @@
 # Handoff (next session)
 
-## Latest session: speech TTS stability and relay hardening (2026-06-11)
+## Latest session: email audio quality, Wi-Fi join, bench QA kit (2026-06-12)
+
+Root cause of "qualità microfono pessima": the compact-audio commit emailed
+4 kHz WAVs made by every-4th-sample decimation with NO anti-alias filter, so
+2-8 kHz speech energy folded into the passband (garble on top of muffle), plus
+6 s/10 s truncation. Mic capture (16 kHz) and STT never degraded.
+
+Shipped (compiles, 126 host tests green, **not yet run on hardware**):
+
+- `email_service.cpp`: box-filtered (averaged) downsample to 8 kHz PCM16,
+  question <=8 s / answer <=12 s, true-rate WAV headers, retry ladder renamed
+  `compact8k` -> `question8k` -> `text`.
+- `connectivity_service.cpp`: the 3 s stall-kick stops once
+  `WIFI_EVENT_STA_CONNECTED` fires (it used to abort slow DHCP forever; prime
+  suspect for the friend's TIM router). Join budget 10 s -> 12 s.
+- Portal: new Audio group + `GET /api/audio/question.wav` (live region, falls
+  back to the new archive slot at spool `0x100000` written after each flow)
+  and `/api/audio/answer.wav`. Honest reboot-bar copy ("Wi-Fi salvata", not
+  "Testata"). Em/en-dashes removed from portal + site copy per the UI brief.
+- New `tools/audio_qa.py` (fetch/grade WAVs; `--simulate-email` previews the
+  encoder, exact firmware math) + `tests/test_audio_qa.py`.
+
+## Open / next round
+
+- **MONDAY (device back): run `notes/TEST_PLAN_AUDIO.md` top to bottom.**
+  Flash, Wi-Fi log check (`associated; waiting for DHCP`, no post-assoc
+  kicks), mic loop via `audio_qa.py --device`, email loop (attachments are
+  8 kHz and listenable), portal Audio buttons. Only after a full pass:
+  `tools/prepare_web_flash.py` + publish, and push the friend's unit.
+- Relay PHP on the host: oracle emails with attachments delivered on
+  2026-06-12, so the deployed copy looks current; spot-check the relay log
+  version once during the Monday email loop.
+
+## Previous session: speech TTS stability and relay hardening (2026-06-11)
 
 The live product default is back on request-based Speech TTS:
 `gpt-4o-mini-tts`, voice `ash`, instructions
@@ -31,12 +64,11 @@ STT retries were exercised and recovered. The final stricter test still failed
 only on remote relay status because the host copy of `server/bisc8-email.php` is
 deploy-only and had not been replaced during the session.
 
-## Open / next round
+## Open from that round (superseded)
 
-- **DEPLOY: re-upload `server/bisc8-email.php` to the host.** The repo copy is
-  now lightweight and accepts `answer_audio`, but the device talks to the hosted
-  PHP file. After upload, rerun one device query and require `[EMAIL] relay POST
-  status=200 ... answer=...B`.
+- ~~DEPLOY: re-upload `server/bisc8-email.php` to the host.~~ Presumed done:
+  oracle emails with both attachments delivered on 2026-06-12. Folded into the
+  Monday spot-check above.
 
 ## Latest session: OpenAI defaults and portal refresh (2026-06-10)
 
