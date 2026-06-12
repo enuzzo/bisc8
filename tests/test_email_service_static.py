@@ -46,7 +46,7 @@ def test_firmware_retries_the_relay_post_when_status_is_missing():
     assert "constexpr int kEmailMaxAttempts = 3;" in src
     assert "relay retry attempt=" in src
     assert "for (int attempt = 1; attempt <= max_attempts; ++attempt)" in src
-    assert "send_payload(false, kEmailMaxAttempts, \"legacy\")" in src
+    assert "send_payload(EmailPayloadMode::kTextOnly, kEmailMaxAttempts)" in src
     assert "status >= 200 && status < 300" in src
 
 
@@ -55,9 +55,34 @@ def test_firmware_falls_back_to_legacy_payload_without_answer_audio():
     # If the newer answer-audio multipart stalls, recover the old behavior that
     # was already known to deliver: text + question audio, no answer WAV.
     assert "constexpr uint32_t kEmailTimeoutMs = 30000;" in src
-    assert "send_payload(false, kEmailMaxAttempts, \"legacy\")" in src
+    assert "send_payload(EmailPayloadMode::kQuestionOnly4k, kEmailMaxAttempts)" in src
     assert "retrying without answer audio" in src
     assert "mode=%s" in src
+
+
+def test_firmware_sends_compact_answer_wav_before_legacy_fallback():
+    src = read(EMAIL_CPP)
+    # Email gets a smaller, standard WAV derived from the same TTS PCM so the
+    # device audio stays high quality while the relay upload remains reliable.
+    assert "kEmailAnswerSampleRateHz = 4000" in src
+    assert "EmailPayloadMode::kCompact4k" in src
+    assert "BuildCompactAnswerHeader" in src
+    assert "stream_compact_answer" in src
+    compact_at = src.index("send_payload(EmailPayloadMode::kCompact4k")
+    legacy_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly4k")
+    assert compact_at < legacy_at
+
+
+def test_firmware_keeps_email_payload_small_and_text_only_as_last_fallback():
+    src = read(EMAIL_CPP)
+    assert "kEmailQuestionSampleRateHz = 4000" in src
+    assert "kEmailMaxQuestionPcmBytes = kEmailQuestionSampleRateHz * 2 * 6" in src
+    assert "kEmailMaxAnswerPcmBytes = kEmailAnswerSampleRateHz * 2 * 10" in src
+    assert "BuildCompactQuestionHeader" in src
+    assert "stream_compact_question" in src
+    question_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly4k")
+    text_at = src.index("send_payload(EmailPayloadMode::kTextOnly")
+    assert question_at < text_at
 
 
 def test_firmware_repairs_the_answer_wav_length_header_for_players():

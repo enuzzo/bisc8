@@ -72,12 +72,12 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
         │
         ├──▶  FACE    e-paper, ≤55 chars, full-refresh reveal (the deliberate e-ink flash beat)
         ├──▶  VOICE   gpt-4o-mini-tts "ash", wizard-prophecy style, 24 kHz → 16 kHz, spoken aloud
-        └──▶  POST    optional email: transcript + answer + the question & answer .wav
+        └──▶  POST    optional email: transcript + answer + compact question & answer .wav
 ```
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
-Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses the OpenAI Speech endpoint with `gpt-4o-mini-tts`, the built-in `ash` voice, and the voice instruction `Parla come fossi un mago che recita una profezia misteriosa.` The firmware asks for raw 24 kHz PCM, streams it straight into the flash spool after a local WAV header, patches that header with the final byte count, then plays it back through the 16 kHz codec. Useful milestones show up as `[ORACLE] tts model=... voice=... status=200 bytes=...`, `[ORACLE] tts ok pcm=... wav=...`, then `[AUDIO] answer playback done` and `[EMAIL] ... answer=...B`.
+Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses the OpenAI Speech endpoint with `gpt-4o-mini-tts`, the built-in `ash` voice, and the voice instruction `Parla come fossi un mago che recita una profezia misteriosa.` The firmware asks for raw 24 kHz PCM, streams it straight into the flash spool after a local WAV header, patches that header with the final byte count, then plays it back through the 16 kHz codec. Email attachments are separate tiny review copies: the question and answer are decimated to 4 kHz WAVs, capped at about 6 and 10 seconds, and retried as `compact4k`, then `question4k`, then text-only if the shared host refuses audio. Useful milestones show up as `[ORACLE] tts model=... voice=... status=200 bytes=...`, `[ORACLE] tts ok pcm=... wav=...`, then `[AUDIO] answer playback done` and `[EMAIL] relay payload mode=... question=...B answer=...B`.
 
 ## Flash it (the easy way)
 
