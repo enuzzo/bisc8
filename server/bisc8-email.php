@@ -21,7 +21,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
-const BISC8_EMAIL_RELAY_VERSION = '2026-06-12-early-ack';
+const BISC8_EMAIL_RELAY_VERSION = '2026-06-12-pre-mime-ack';
 const BISC8_EMAIL_LOG = __DIR__ . '/bisc8-email.log.php';
 
 ignore_user_abort(true);

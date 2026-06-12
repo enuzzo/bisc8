@@ -114,3 +114,8 @@ def test_relay_subject_preview_does_not_require_mbstring():
     assert "function_exists('mb_substr')" in php
     assert "relay_subject_preview($answerText" in php
     assert "mb_substr($answerText" not in php
+
+
+def test_relay_version_marks_the_pre_mime_ack_build():
+    php = read(RELAY_PHP)
+    assert "2026-06-12-pre-mime-ack" in php
