@@ -22,12 +22,18 @@ constexpr const char *kEmailBoundary = "----bisc8emailMUL7boundaryZ9";
 constexpr uint32_t kEmailTimeoutMs = 30000;
 constexpr int kEmailMaxAttempts = 3;
 constexpr uint32_t kEmailRetryDelayMs = 750;
-constexpr uint32_t kEmailQuestionSampleRateHz = 4000;
-constexpr uint32_t kEmailAnswerSampleRateHz = 4000;
-constexpr uint32_t kEmailMaxQuestionPcmBytes = kEmailQuestionSampleRateHz * 2 * 6;
-constexpr uint32_t kEmailMaxAnswerPcmBytes = kEmailAnswerSampleRateHz * 2 * 10;
+// Email review copies: 8 kHz mono PCM16, downsampled with an averaging (box)
+// low-pass. The earlier 4 kHz every-Nth decimation had no anti-alias filter,
+// so 2-8 kHz speech energy folded back into the passband and the attachments
+// sounded garbled on top of muffled. 8 kHz averaged is telephone-grade speech
+// and the multipart body stays shared-host friendly: question <=8 s (128 KB)
+// + answer <=12 s (192 KB), still ~3x below the old full-WAV payloads that
+// made the relay upload flaky.
+constexpr uint32_t kEmailAudioTargetRateHz = 8000;
+constexpr uint32_t kEmailMaxQuestionPcmBytes = kEmailAudioTargetRateHz * 2 * 8;
+constexpr uint32_t kEmailMaxAnswerPcmBytes = kEmailAudioTargetRateHz * 2 * 12;
 
-enum class EmailPayloadMode { kCompact4k, kQuestionOnly4k, kTextOnly };
+enum class EmailPayloadMode { kCompact8k, kQuestionOnly8k, kTextOnly };
 
 std::string Str(const char *s) { return s == nullptr ? std::string() : std::string(s); }
 
@@ -74,25 +80,20 @@ void BuildPcm16WavHeader(uint8_t *header, uint32_t sample_rate, uint32_t pcm_byt
     PutLe32(header + 40, pcm_bytes);
 }
 
-void BuildCompactQuestionHeader(uint8_t *header, uint32_t pcm_bytes) {
-    BuildPcm16WavHeader(header, kEmailQuestionSampleRateHz, pcm_bytes);
+uint32_t DownsampleRatio(uint32_t source_rate, uint32_t target_rate) {
+    if (source_rate == 0 || target_rate == 0) {
+        return 1;
+    }
+    const uint32_t ratio = source_rate / target_rate;
+    return ratio < 1 ? 1 : ratio;
 }
 
-void BuildCompactAnswerHeader(uint8_t *header, uint32_t pcm_bytes) {
-    BuildPcm16WavHeader(header, kEmailAnswerSampleRateHz, pcm_bytes);
-}
-
-uint32_t DecimatedPcmBytes(uint32_t source_pcm_bytes, uint32_t source_rate, uint32_t target_rate,
-                           uint32_t max_pcm_bytes) {
-    if (source_pcm_bytes < 2 || source_rate == 0 || target_rate == 0 || max_pcm_bytes < 2) {
+uint32_t DownsampledPcmBytes(uint32_t source_pcm_bytes, uint32_t ratio, uint32_t max_pcm_bytes) {
+    if (source_pcm_bytes < 2 || ratio == 0 || max_pcm_bytes < 2) {
         return 0;
     }
-    uint32_t ratio = source_rate / target_rate;
-    if (ratio < 1) {
-        ratio = 1;
-    }
     const uint32_t source_samples = source_pcm_bytes / 2;
-    const uint32_t out_samples = (source_samples + ratio - 1) / ratio;
+    const uint32_t out_samples = (source_samples + ratio - 1) / ratio;  // trailing partial group still emits one sample
     uint32_t bytes = out_samples * 2;
     const uint32_t cap = max_pcm_bytes & ~1U;
     if (bytes > cap) {
@@ -103,10 +104,10 @@ uint32_t DecimatedPcmBytes(uint32_t source_pcm_bytes, uint32_t source_rate, uint
 
 const char *EmailPayloadModeName(EmailPayloadMode mode) {
     switch (mode) {
-        case EmailPayloadMode::kCompact4k:
-            return "compact4k";
-        case EmailPayloadMode::kQuestionOnly4k:
-            return "question4k";
+        case EmailPayloadMode::kCompact8k:
+            return "compact8k";
+        case EmailPayloadMode::kQuestionOnly8k:
+            return "question8k";
         case EmailPayloadMode::kTextOnly:
         default:
             return "text";
@@ -147,15 +148,19 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
         }
     }
     const bool attach_question = (wav_total > 0);
+    const uint32_t question_ratio = DownsampleRatio(question_sample_rate, kEmailAudioTargetRateHz);
+    // The header must carry the TRUE output rate (source/ratio), not the nominal
+    // target: a 22.05 kHz source with ratio 2 yields 11.025 kHz, and a wrong
+    // rate plays at the wrong pitch.
+    const uint32_t compact_question_rate = question_sample_rate / question_ratio;
     const uint32_t compact_question_pcm_bytes =
-        attach_question ? DecimatedPcmBytes(question_pcm_bytes, question_sample_rate,
-                                            kEmailQuestionSampleRateHz, kEmailMaxQuestionPcmBytes)
+        attach_question ? DownsampledPcmBytes(question_pcm_bytes, question_ratio, kEmailMaxQuestionPcmBytes)
                         : 0;
     const uint32_t compact_question_total =
         compact_question_pcm_bytes > 0 ? 44 + compact_question_pcm_bytes : 0;
     uint8_t compact_question_hdr[44] = {};
     if (compact_question_total > 0) {
-        BuildCompactQuestionHeader(compact_question_hdr, compact_question_pcm_bytes);
+        BuildPcm16WavHeader(compact_question_hdr, compact_question_rate, compact_question_pcm_bytes);
     }
 
     // Answer audio (TTS) from the reserved answer region. Keep the full WAV for
@@ -191,14 +196,15 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     }
     const bool attach_answer = (ans_total > 0);
     const uint32_t ans_pcm_bytes = attach_answer ? ((ans_total - ans_payload_off) & ~1U) : 0;
+    const uint32_t answer_ratio = DownsampleRatio(ans_sample_rate, kEmailAudioTargetRateHz);
+    const uint32_t compact_answer_rate = ans_sample_rate / answer_ratio;
     const uint32_t compact_answer_pcm_bytes =
-        attach_answer ? DecimatedPcmBytes(ans_pcm_bytes, ans_sample_rate,
-                                          kEmailAnswerSampleRateHz, kEmailMaxAnswerPcmBytes)
+        attach_answer ? DownsampledPcmBytes(ans_pcm_bytes, answer_ratio, kEmailMaxAnswerPcmBytes)
                       : 0;
     const uint32_t compact_answer_total = compact_answer_pcm_bytes > 0 ? 44 + compact_answer_pcm_bytes : 0;
     uint8_t compact_ans_hdr[44] = {};
     if (compact_answer_total > 0) {
-        BuildCompactAnswerHeader(compact_ans_hdr, compact_answer_pcm_bytes);
+        BuildPcm16WavHeader(compact_ans_hdr, compact_answer_rate, compact_answer_pcm_bytes);
     }
 
     const std::string boundary = kEmailBoundary;
@@ -234,7 +240,7 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
         const bool include_question =
             (payload_mode != EmailPayloadMode::kTextOnly && compact_question_total > 0);
         const bool include_answer =
-            (payload_mode == EmailPayloadMode::kCompact4k && compact_answer_total > 0);
+            (payload_mode == EmailPayloadMode::kCompact8k && compact_answer_total > 0);
         const uint32_t question_part_bytes = include_question ? compact_question_total : 0;
         const uint32_t answer_part_bytes = include_answer ? compact_answer_total : 0;
         const int content_length = static_cast<int>(
@@ -284,19 +290,22 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                                            esp_err_to_name(err), mode, attempt);
                     last_err = err;
                 } else {
-                    // Stream decimated mono PCM into a small WAV attachment. The full-resolution
-                    // files stay in flash for STT/playback; email only needs a reviewable sample.
+                    // Stream box-filtered mono PCM into a small WAV attachment. Each group of
+                    // `ratio` input samples is AVERAGED into one output sample (cheap low-pass),
+                    // not just picked: plain every-Nth decimation aliases 2-8 kHz speech energy
+                    // back into the passband and sounds garbled. The full-resolution files stay
+                    // in flash for STT/playback; email only needs a reviewable copy.
                     uint8_t chunk[2048];
-                    auto stream_decimated_pcm = [&](uint32_t base, uint32_t len, uint32_t source_rate,
-                                                    uint32_t target_rate, uint32_t expected_bytes) -> bool {
-                        uint32_t ratio = source_rate / target_rate;
+                    auto stream_downsampled_pcm = [&](uint32_t base, uint32_t len, uint32_t ratio,
+                                                      uint32_t expected_bytes) -> bool {
                         if (ratio < 1) {
                             ratio = 1;
                         }
                         uint32_t off = base;
                         uint32_t remaining = len & ~1U;
-                        uint32_t sample_index = 0;
                         uint32_t total_written = 0;
+                        int32_t acc = 0;          // running sum of the current group, carried across chunks
+                        uint32_t acc_count = 0;   // input samples accumulated in the group so far
                         while (remaining > 0 && total_written < expected_bytes) {
                             uint32_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
                             n &= ~1U;
@@ -306,16 +315,23 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                             if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
                                 return false;
                             }
+                            // In-place compaction: the write cursor can never pass the read
+                            // cursor (one output sample per `ratio` inputs, emitted after the
+                            // group's last input byte pair was already consumed).
                             uint32_t out_len = 0;
-                            for (uint32_t i = 0; i < n; i += 2, ++sample_index) {
-                                if ((sample_index % ratio) != 0) {
+                            for (uint32_t i = 0; i + 1 < n; i += 2) {
+                                acc += static_cast<int16_t>(chunk[i] | (chunk[i + 1] << 8));
+                                if (++acc_count < ratio) {
                                     continue;
                                 }
+                                const int16_t avg = static_cast<int16_t>(acc / static_cast<int32_t>(ratio));
+                                acc = 0;
+                                acc_count = 0;
                                 if (total_written + out_len + 2 > expected_bytes) {
                                     break;
                                 }
-                                chunk[out_len++] = chunk[i];
-                                chunk[out_len++] = chunk[i + 1];
+                                chunk[out_len++] = static_cast<uint8_t>(avg & 0xff);
+                                chunk[out_len++] = static_cast<uint8_t>((avg >> 8) & 0xff);
                             }
                             if (out_len > 0) {
                                 if (!write_all(reinterpret_cast<const char *>(chunk), out_len)) {
@@ -326,16 +342,26 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                             off += n;
                             remaining -= n;
                         }
+                        // The byte budget counts a trailing partial group as one sample
+                        // (ceil division in DownsampledPcmBytes); flush it.
+                        if (total_written < expected_bytes && acc_count > 0) {
+                            const int16_t avg = static_cast<int16_t>(acc / static_cast<int32_t>(acc_count));
+                            uint8_t tail[2] = {static_cast<uint8_t>(avg & 0xff),
+                                               static_cast<uint8_t>((avg >> 8) & 0xff)};
+                            if (!write_all(reinterpret_cast<const char *>(tail), sizeof(tail))) {
+                                return false;
+                            }
+                            total_written += sizeof(tail);
+                        }
                         return total_written == expected_bytes;
                     };
                     auto stream_compact_question = [&]() -> bool {
-                        return stream_decimated_pcm(question_payload_off, question_pcm_bytes, question_sample_rate,
-                                                    kEmailQuestionSampleRateHz, compact_question_pcm_bytes);
+                        return stream_downsampled_pcm(question_payload_off, question_pcm_bytes, question_ratio,
+                                                      compact_question_pcm_bytes);
                     };
                     auto stream_compact_answer = [&]() -> bool {
-                        return stream_decimated_pcm(kVoiceAnswerSpoolOffset + ans_payload_off, ans_pcm_bytes,
-                                                    ans_sample_rate, kEmailAnswerSampleRateHz,
-                                                    compact_answer_pcm_bytes);
+                        return stream_downsampled_pcm(kVoiceAnswerSpoolOffset + ans_payload_off, ans_pcm_bytes,
+                                                      answer_ratio, compact_answer_pcm_bytes);
                     };
 
                     bool ok = write_all(preamble.data(), preamble.size());
@@ -404,7 +430,7 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     };
 
     if (compact_question_total > 0 || compact_answer_total > 0) {
-        const esp_err_t compact_err = send_payload(EmailPayloadMode::kCompact4k, kEmailMaxAttempts);
+        const esp_err_t compact_err = send_payload(EmailPayloadMode::kCompact8k, kEmailMaxAttempts);
         if (compact_err == ESP_OK) {
             return ESP_OK;
         }
@@ -412,7 +438,7 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                                esp_err_to_name(compact_err));
     }
     if (compact_question_total > 0) {
-        const esp_err_t question_err = send_payload(EmailPayloadMode::kQuestionOnly4k, kEmailMaxAttempts);
+        const esp_err_t question_err = send_payload(EmailPayloadMode::kQuestionOnly8k, kEmailMaxAttempts);
         if (question_err == ESP_OK) {
             return ESP_OK;
         }

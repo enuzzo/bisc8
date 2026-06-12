@@ -55,7 +55,7 @@ def test_firmware_falls_back_to_legacy_payload_without_answer_audio():
     # If the newer answer-audio multipart stalls, recover the old behavior that
     # was already known to deliver: text + question audio, no answer WAV.
     assert "constexpr uint32_t kEmailTimeoutMs = 30000;" in src
-    assert "send_payload(EmailPayloadMode::kQuestionOnly4k, kEmailMaxAttempts)" in src
+    assert "send_payload(EmailPayloadMode::kQuestionOnly8k, kEmailMaxAttempts)" in src
     assert "retrying without answer audio" in src
     assert "mode=%s" in src
 
@@ -64,25 +64,42 @@ def test_firmware_sends_compact_answer_wav_before_legacy_fallback():
     src = read(EMAIL_CPP)
     # Email gets a smaller, standard WAV derived from the same TTS PCM so the
     # device audio stays high quality while the relay upload remains reliable.
-    assert "kEmailAnswerSampleRateHz = 4000" in src
-    assert "EmailPayloadMode::kCompact4k" in src
-    assert "BuildCompactAnswerHeader" in src
+    assert "EmailPayloadMode::kCompact8k" in src
     assert "stream_compact_answer" in src
-    compact_at = src.index("send_payload(EmailPayloadMode::kCompact4k")
-    legacy_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly4k")
+    compact_at = src.index("send_payload(EmailPayloadMode::kCompact8k")
+    legacy_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly8k")
     assert compact_at < legacy_at
 
 
 def test_firmware_keeps_email_payload_small_and_text_only_as_last_fallback():
     src = read(EMAIL_CPP)
-    assert "kEmailQuestionSampleRateHz = 4000" in src
-    assert "kEmailMaxQuestionPcmBytes = kEmailQuestionSampleRateHz * 2 * 6" in src
-    assert "kEmailMaxAnswerPcmBytes = kEmailAnswerSampleRateHz * 2 * 10" in src
-    assert "BuildCompactQuestionHeader" in src
+    # 8 kHz mono PCM16 review copies: telephone-band speech, shared-host sized.
+    assert "kEmailAudioTargetRateHz = 8000" in src
+    assert "kEmailMaxQuestionPcmBytes = kEmailAudioTargetRateHz * 2 * 8" in src
+    assert "kEmailMaxAnswerPcmBytes = kEmailAudioTargetRateHz * 2 * 12" in src
     assert "stream_compact_question" in src
-    question_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly4k")
+    question_at = src.index("send_payload(EmailPayloadMode::kQuestionOnly8k")
     text_at = src.index("send_payload(EmailPayloadMode::kTextOnly")
     assert question_at < text_at
+
+
+def test_firmware_email_downsampler_filters_instead_of_skipping_samples():
+    src = read(EMAIL_CPP)
+    # The review copies must be low-passed while downsampling. Bare every-Nth
+    # decimation aliases 2-8 kHz speech energy into the passband and is exactly
+    # the "terrible mic quality" regression we shipped once already.
+    assert "stream_downsampled_pcm" in src
+    assert "acc / static_cast<int32_t>(ratio)" in src  # box-filter average per group
+    assert "carried across chunks" in src              # accumulator survives chunk borders
+    assert "(sample_index % ratio)" not in src         # the old naive decimator is gone
+
+
+def test_firmware_email_wav_header_uses_true_output_rate():
+    src = read(EMAIL_CPP)
+    # Integer-ratio downsampling of a non-multiple source (e.g. 22.05 kHz)
+    # must stamp the real source/ratio rate, or playback pitch-shifts.
+    assert "question_sample_rate / question_ratio" in src
+    assert "ans_sample_rate / answer_ratio" in src
 
 
 def test_firmware_repairs_the_answer_wav_length_header_for_players():

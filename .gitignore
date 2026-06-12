@@ -41,3 +41,6 @@ screenshots/epaper/
 # Scratch logo iterations / AI-generated drafts
 assets/logo/archive/
 assets/logo/Gemini_*
+
+# Local Claude Code workspace config (machine-specific preview servers)
+.claude/

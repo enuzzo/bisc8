@@ -4,9 +4,10 @@ A tiny, **standalone** PHP endpoint that turns a Bisc8 voice query into an email
 (transcript + oracle answer, with the question recording attached as
 `domanda.wav` and the spoken answer as `risposta.wav`). Upload fields: `audio`
 (question WAV) and `answer_audio` (answer WAV); either may be absent. Current
-firmware sends small 4 kHz review WAVs for those attachments, not the full-size
-playback files, because shared-host HTTPS uploads from the ESP32-C6 are much
-more reliable when the MIME body stays around a few hundred kilobytes or less.
+firmware sends small 8 kHz anti-aliased review WAVs for those attachments, not
+the full-size playback files, because shared-host HTTPS uploads from the
+ESP32-C6 are much more reliable when the MIME body stays around a few hundred
+kilobytes or less.
 
 The device cannot send email itself: it has no mail server, and its residential
 IP would be rejected by Gmail & co. So it POSTs here, and this script sends the
@@ -70,7 +71,7 @@ recipient, transcript or answer text.
 The relay intentionally does not embed web fonts in the HTML email. The WAV
 attachments still dominate message size, and keeping the MIME light makes the
 synchronous PHP `mail()` handoff much less fragile on shared hosting. Firmware
-retries the upload as `compact4k` (question + answer), then `question4k`, then
+retries the upload as `compact8k` (question + answer), then `question8k`, then
 text-only so a large or slow upload does not erase the whole reading.
 
 ## Notes
