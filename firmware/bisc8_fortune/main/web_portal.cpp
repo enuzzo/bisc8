@@ -140,6 +140,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 /* secondary: System-7 platinum grey */
 .btn.sec{background:#e3e0d8;color:var(--ink);}
 .btn.sec:hover{background:#eceae3;box-shadow:3px 3px 0 var(--mint);}
+/* armed = one tap from wiping: rose fill, question as label */
+.btn.armed,.btn.sec.armed{background:var(--rose);}
 .btn:disabled{opacity:.55;cursor:wait;}
 .btn:focus-visible,.seg b:focus-visible,.scan button:focus-visible,.eye:focus-visible,.close:focus-visible,details summary:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
 .seg{display:inline-flex;border:2px solid var(--ink);background:var(--paper);}
@@ -460,7 +462,17 @@ document.querySelectorAll('#langSeg b').forEach(function(b){b.addEventListener('
 document.querySelectorAll('#emailSeg b').forEach(function(b){b.addEventListener('click',function(){setEmailEnabled(b.dataset.val==='1')})});
 document.getElementById('scan').addEventListener('click',async function(){const st=document.getElementById('scanState');const list=document.getElementById('scanList');st.textContent=tr('scanning');list.textContent='';try{const j=await api('/api/wifi/scan');st.textContent=j.networks.length+' '+tr('networksFound');j.networks.forEach(function(n){const x=document.createElement('button');x.type='button';x.textContent=n.ssid+' · '+n.band+' · '+n.rssi;x.onclick=function(){document.getElementById('ssid').value=n.ssid};list.appendChild(x)})}catch(e){st.textContent=e.message}});
 document.getElementById('reboot').addEventListener('click',async function(){try{await api('/api/reboot',{method:'POST'});note('rebooting')}catch(e){note(e.message)}});
-document.getElementById('reset').addEventListener('click',async function(){if(!confirm(tr('resetConfirm')))return;try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
+/* Full reset: two-tap inline confirm. window.confirm() is silently suppressed
+   inside iOS's captive-portal sheet, so the first tap ARMS the button (label
+   becomes the localized question, rose fill), a second tap within 5s fires,
+   anything else disarms. dataset.i18n is swapped so language re-renders keep
+   the armed label intact. */
+(function(){var b=document.getElementById('reset'),t=null;
+function disarm(){if(t){clearTimeout(t);t=null;}b.classList.remove('armed');b.dataset.i18n='reset_btn';b.textContent=tr('reset_btn');}
+b.addEventListener('click',async function(){
+ if(!t){b.classList.add('armed');b.dataset.i18n='resetConfirm';b.textContent=tr('resetConfirm');t=setTimeout(disarm,5000);return;}
+ disarm();try{fill(await api('/api/reset',{method:'POST'}));note('resetDone')}catch(e){note(e.message)}});
+})();
 document.querySelectorAll('.eye').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentElement.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';b.classList.toggle('on',show);b.setAttribute('aria-pressed',show?'true':'false');b.setAttribute('aria-label',show?'hide':'show');});});
 document.querySelectorAll('.seg b').forEach(function(b){b.tabIndex=0;b.setAttribute('role','button');b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}});});
 applyLanguage('en');refresh();
