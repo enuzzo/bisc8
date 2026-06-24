@@ -40,21 +40,20 @@ def test_voice_oracle_uses_tls_http_client_and_endpoints():
     assert "v1/audio/speech" in src
 
 
-def test_live_openai_defaults_and_portal_use_gpt4o_mini_tts():
+def test_live_openai_defaults_and_portal_use_realtime_tts():
     config = read(APP_CONFIG_CPP)
     portal = read(WEB_PORTAL_CPP)
     template = read(WEB_PORTAL_HTML)
 
     assert 'settings.transcription_model = "whisper-1"' in config
     assert 'settings.response_model = "gpt-5.4-mini"' in config
-    assert 'settings.speech_model = "gpt-4o-mini-tts"' in config
-    assert 'settings.voice = "ash"' in config
+    assert 'settings.speech_model = "gpt-realtime-2"' in config
+    assert 'settings.voice = "echo"' in config
 
     for live_source in (config, portal, template):
-        assert "gpt-4o-mini-tts" in live_source
         assert "gpt-5.4-mini" in live_source
     for web_source in (portal, template):
-        assert 'placeholder="gpt-4o-mini-tts"' in web_source
+        assert 'placeholder="gpt-realtime-2"' in web_source
 
 
 def test_openai_voice_dropdown_uses_real_speech_voice_options():
@@ -105,15 +104,19 @@ def test_portal_status_exposes_current_openai_settings_for_prefill():
     assert "el.tagName==='SELECT'" in portal
 
 
-def test_config_migrates_realtime_tts_defaults_and_sanitizes_voices():
+def test_config_self_heals_voices_without_purging_realtime_tts():
     config = read(APP_CONFIG_CPP)
 
     assert "MigrateOpenAiSettings" in config
     assert "IsRealtimeSpeechModel" in config
-    assert "MigrateOpenAiSettings(settings, true)" in config
+    # Realtime is now the preferred high-quality TTS: neither the boot self-heal
+    # (Load) nor the persist path (Save) may rewrite a saved Realtime speech
+    # model, so both call sites pass migrate_realtime_defaults = false.
+    assert "MigrateOpenAiSettings(settings, false)" in config
     assert "MigrateOpenAiSettings(&settings, false)" in config
+    assert "MigrateOpenAiSettings(settings, true)" not in config
+    # It still fills empty fields and snaps unsupported voices back to a default.
     assert 'settings->openai.speech_model = defaults.speech_model' in config
-    assert "openai.speech_model" in config
     assert "IsSupportedOpenAiVoice" in config
     assert 'settings->openai.voice = defaults.voice' in config
 
@@ -161,7 +164,13 @@ def test_realtime_speech_path_uses_websocket_audio_deltas():
     assert "constexpr size_t kRealtimeMaxJsonEventBytes = 12288" in src
     assert "constexpr size_t kRealtimeReadChunkBytes = 2048" in src
     assert 'JsonStr(j, "delta")' not in src
-    assert '"session.update"' not in src
+    # Voice is a session-level property: pin it via session.update BEFORE the
+    # conversation item / response, or the model drifts between voices mid-answer.
+    assert '"session.update"' in src
+    assert 'cJSON_AddStringToObject(session, "type", "realtime")' in src
+    assert src.index("BuildRealtimeSessionUpdate(voice)") < src.index(
+        "BuildRealtimeConversationItemCreate(tts_text)"
+    )
     assert '"session.updated"' not in src
     assert src.index("BuildRealtimeConversationItemCreate(tts_text)") < src.index(
         "BuildRealtimeResponseCreate(voice_direction, voice)"
@@ -292,7 +301,7 @@ def test_voice_flow_is_wired_and_guards_on_audio_and_key():
     assert "pausing portal during voice flow to free heap" in app
     assert "portal.Stop()" in app
     assert "portal resume after voice flow" in app
-    assert "constexpr uint32_t kOracleTtsTaskStackBytes = 5120;" in app
+    assert "constexpr uint32_t kOracleTtsTaskStackBytes = 9216;" in app
     assert 'xTaskCreate(OracleSpeakTaskEntry, "oracle_tts", kOracleTtsTaskStackBytes' in app
     # No key -> clean error, no crash.
     assert "openai.api_key.empty()" in src
@@ -353,8 +362,9 @@ def test_mic_gain_is_below_the_es8311_clipping_ceiling():
 def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     # The OpenAI HTTPS calls (mbedTLS handshake) need far more stack than the
     # main task carries; running them inline panicked with a stack-protection
-    # fault. The text phase stays high-stack, while TTS is dedicated but compact:
-    # mbedTLS needs the contiguous heap more than this phase needs stack.
+    # fault. The text phase stays high-stack; the TTS phase must also carry enough
+    # stack for the Realtime WebSocket/TLS/JSON path (>=9 KB, proven on hardware),
+    # while still leaving the contiguous heap for mbedTLS' 16 KB receive record.
     app = read(APP_MAIN)
     m = re.search(r'xTaskCreate\(\s*OracleTextTaskEntry\s*,\s*"[^"]*"\s*,\s*(\d+)', app)
     assert m is not None, "oracle text phase must run on a dedicated xTaskCreate worker"
@@ -363,4 +373,4 @@ def test_voice_oracle_runs_on_a_dedicated_high_stack_task():
     assert stack is not None
     m2 = re.search(r'xTaskCreate\(\s*OracleSpeakTaskEntry\s*,\s*"[^"]*"\s*,\s*kOracleTtsTaskStackBytes', app)
     assert m2 is not None, "oracle speak (TTS) phase must run on a dedicated xTaskCreate worker"
-    assert int(stack.group(1)) <= 6144
+    assert int(stack.group(1)) >= 9216

@@ -753,6 +753,19 @@ std::string BuildRealtimeResponseCreate(const std::string &voice_direction, cons
     return PrintJson(root);
 }
 
+// Voice is a SESSION-level property in the Realtime GA API. Setting it only on
+// response.create let the model open with its default (feminine) voice and then
+// switch partway through the answer; pinning session.audio.output.voice up front
+// keeps the whole reading in one voice.
+std::string BuildRealtimeSessionUpdate(const char *voice) {
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", "session.update");
+    cJSON *session = cJSON_AddObjectToObject(root, "session");
+    cJSON_AddStringToObject(session, "type", "realtime");
+    AddRealtimeAudioOutput(session, voice);
+    return PrintJson(root);
+}
+
 esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tts_text,
                              const std::string &voice_direction, const esp_partition_t *spool,
                              uint32_t *answer_audio_bytes) {
@@ -839,9 +852,13 @@ esp_err_t SynthesizeRealtime(const OpenAiSettings &openai, const std::string &tt
     if (result == ESP_OK && !session_created) {
         result = ESP_ERR_INVALID_RESPONSE;
     }
-    // This one-shot TTS path configures output modality, format, and voice on
-    // response.create. The text to read is first added as a canonical
-    // conversation item, then response.create asks the model to speak it.
+    // Pin the voice on the SESSION first (Realtime treats voice as session-level;
+    // setting it only per-response made the model drift between voices mid-answer).
+    // Then add the text as a conversation item and ask the model to speak it.
+    if (result == ESP_OK && !WsSendText(ws, BuildRealtimeSessionUpdate(voice))) {
+        DebugSerial::LogAlways("[ORACLE]", "realtime session.update send failed");
+        result = ESP_FAIL;
+    }
     if (result == ESP_OK && !WsSendText(ws, BuildRealtimeConversationItemCreate(tts_text))) {
         DebugSerial::LogAlways("[ORACLE]", "realtime conversation.item.create send failed");
         result = ESP_FAIL;

@@ -1,7 +1,7 @@
 # Bisc8 Project Status
 
-Date: 2026-06-12 (audio/email quality + Wi-Fi join + bench QA kit; hardware
-validation pending, see `notes/TEST_PLAN_AUDIO.md`)
+Date: 2026-06-24 (OpenAI Realtime voice + compact email relay fixed and
+hardware-verified; see `notes/knowledge/OPENAI_VOICE_ORACLE.md`)
 
 ## Hardware
 
@@ -19,7 +19,7 @@ validation pending, see `notes/TEST_PLAN_AUDIO.md`)
 - `DisplayService`: LVGL/e-paper screens, Bisc8 boot/off/idle/fortune/mic/error layouts.
 - `FortuneService`: random fortune picker backed by generated flash-safe data.
 - `AudioService`: cues, mic test, voice recording (chunked WAV to the spool), and answer playback (24->16 kHz resample). Pre-erases the question spool at idle.
-- `VoiceOracleService`: STT -> chat-completions Brain -> TTS over TLS, run on a dedicated 16 KB-stack worker; granular failure codes (E01..E05).
+- `VoiceOracleService`: STT -> chat-completions Brain -> Realtime TTS over WebSocket, split across dedicated text/TTS workers; granular failure codes (E01..E05).
 - `EmailService`: multipart relay POST (transcript + answer + question/answer review WAVs, box-filtered to 8 kHz with 8 s/12 s caps) to a user-configured endpoint (`server/bisc8-email.php`); fallback ladder compact8k -> question8k -> text-only.
 - `ButtonController`: BOOT click, PWR click, PWR long press.
 - `DebugSerial`: structured logs, serial commands, framebuffer dump.
@@ -32,7 +32,7 @@ validation pending, see `notes/TEST_PLAN_AUDIO.md`)
 - Fortune randomizer from `assets/grimorio.txt`, currently 888 lines.
 - Beep on fortune generation.
 - Microphone record/playback test.
-- **Online voice oracle** (hold BOOT, speak, release): OpenAI STT + chat-completions + TTS, working on hardware. Answer shown on screen (<=55 chars) and spoken (coral voice, mystical-seer style); reply in the spoken language.
+- **Online voice oracle** (hold BOOT, speak, release): OpenAI STT + chat-completions + Realtime TTS, working on hardware. Answer shown on screen (<=55 chars) and spoken with the configured OpenAI voice; reply in the spoken language.
 - Animated listening (mic) and thinking ("Consulto le briciole.." + dots) screens; a start-talking cue; on-screen error codes E01..E05.
 - Captive portal configures Wi-Fi, language, OpenAI (models/voice dropdown/reasoning), and email relay.
 - **Email relay**: the device POSTs to a standalone PHP endpoint we own (`server/`) that emails the transcript/answer/recording; no email credentials on the device.
@@ -65,16 +65,22 @@ validation pending, see `notes/TEST_PLAN_AUDIO.md`)
 
 ## Latest Runtime Check
 
-After the user restarted the board, serial `STATUS` returned:
+After the 2026-06-24 OpenAI/email fix was flashed, a full device voice cycle
+returned:
 
 ```text
-[STATUS] state=idle board=ready audio=ready debug=on fortune_count=888 fortune_presses=3 mic_tests=0 free_heap=180396
+[ORACLE] realtime first audio chunk=19200B
+[ORACLE] realtime audio.done chunks=34 bytes=652800
+[ORACLE] realtime done status=completed audio=652800 detail=
+[ORACLE] realtime tts model=gpt-realtime-2 voice=ash wav=652844B time=8173ms
+[AUDIO] answer playback done rate=24000 resample=1 gain=260% raw_peak=14053 max_safe_gain=233% result=ESP_OK
+[EMAIL] relay POST status=202 question=104044B answer=192044B mode=compact8k attempt=1
 ```
 
-Latest snapshot captured:
+Latest serial `STATUS` in the same session:
 
 ```text
-screenshots/epaper/bisc8_20260603_193314.png
+[STATUS] state=idle board=ready audio=ready config=ready debug=on fortune_count=888 fortune_presses=0 mic_tests=0 free_heap=73432
 ```
 
 ## Known Follow-Ups

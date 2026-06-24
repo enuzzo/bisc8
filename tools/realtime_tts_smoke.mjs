@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Buffer } from "node:buffer";
 
 const defaults = {
   model: "gpt-realtime-2",
-  voice: "cedar",
+  voice: "echo",
   out: "/tmp/bisc8-realtime-answer.wav",
   text: "Speak one short mystical sentence for a pocket oracle.",
 };
@@ -61,6 +61,23 @@ function wavHeader(pcmBytes, sampleRate = 24000) {
   return header;
 }
 
+function loadApiKey() {
+  if (process.env.OPENAI_API_KEY) {
+    return process.env.OPENAI_API_KEY;
+  }
+  if (!existsSync(".env.local")) {
+    return "";
+  }
+  const text = readFileSync(".env.local", "utf8");
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^\s*OPENAI_API_KEY\s*=\s*(.+?)\s*$/);
+    if (match) {
+      return match[1].replace(/^['"]|['"]$/g, "");
+    }
+  }
+  return "";
+}
+
 async function messageText(data) {
   if (typeof data === "string") {
     return data;
@@ -83,9 +100,9 @@ async function main() {
     usage();
     return;
   }
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = loadApiKey();
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set");
+    throw new Error("OPENAI_API_KEY is not set and .env.local has no OPENAI_API_KEY");
   }
 
   const url = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(opts.model)}`;
@@ -130,6 +147,18 @@ async function main() {
         const data = JSON.parse(await messageText(event.data));
         if (data.type === "session.created") {
           console.log("[smoke] session.created");
+          ws.send(JSON.stringify({
+            type: "session.update",
+            session: {
+              type: "realtime",
+              audio: {
+                output: {
+                  format: { type: "audio/pcm", rate: 24000 },
+                  voice: opts.voice,
+                },
+              },
+            },
+          }));
           ws.send(JSON.stringify({
             type: "conversation.item.create",
             item: {

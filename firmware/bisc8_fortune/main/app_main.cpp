@@ -50,9 +50,12 @@ constexpr uint8_t kLowBatteryWarnPct = 12;
 // on screen) to protect the cell from a deep over-discharge. Checked at boot AND
 // on every event, so it triggers from any screen.
 constexpr uint8_t kCriticalBatteryShutdownPct = 10;
-// TTS spends most heap on mbedTLS' 16 KB receive record. Keep this worker lean:
-// measured high-water marks left >6 KB unused on the old 9 KB stack.
-constexpr uint32_t kOracleTtsTaskStackBytes = 5120;
+// The Realtime (gpt-realtime-2) TTS path runs the WebSocket + TLS handshake +
+// cJSON event parsing on this worker and needs ~9 KB of stack. The lighter
+// request-based path fit in 5 KB but starved Realtime, which panicked with a
+// stack-protection fault in "oracle_tts". 9216 is the value proven on hardware
+// that still leaves the contiguous heap for mbedTLS' 16 KB receive record.
+constexpr uint32_t kOracleTtsTaskStackBytes = 9216;
 
 void LogHeapCheckpoint(const char *label) {
     DebugSerial::LogAlways("[HEAP]", "%s free=%u largest=%u",

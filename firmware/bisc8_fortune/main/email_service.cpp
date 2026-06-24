@@ -23,12 +23,8 @@ constexpr uint32_t kEmailTimeoutMs = 30000;
 constexpr int kEmailMaxAttempts = 3;
 constexpr uint32_t kEmailRetryDelayMs = 750;
 // Email review copies: 8 kHz mono PCM16, downsampled with an averaging (box)
-// low-pass. The earlier 4 kHz every-Nth decimation had no anti-alias filter,
-// so 2-8 kHz speech energy folded back into the passband and the attachments
-// sounded garbled on top of muffled. 8 kHz averaged is telephone-grade speech
-// and the multipart body stays shared-host friendly: question <=8 s (128 KB)
-// + answer <=12 s (192 KB), still ~3x below the old full-WAV payloads that
-// made the relay upload flaky.
+// low-pass. The full-resolution question and answer stay in flash for
+// STT/playback; the relay gets small, host-friendly review WAVs.
 constexpr uint32_t kEmailAudioTargetRateHz = 8000;
 constexpr uint32_t kEmailMaxQuestionPcmBytes = kEmailAudioTargetRateHz * 2 * 8;
 constexpr uint32_t kEmailMaxAnswerPcmBytes = kEmailAudioTargetRateHz * 2 * 12;
@@ -93,7 +89,7 @@ uint32_t DownsampledPcmBytes(uint32_t source_pcm_bytes, uint32_t ratio, uint32_t
         return 0;
     }
     const uint32_t source_samples = source_pcm_bytes / 2;
-    const uint32_t out_samples = (source_samples + ratio - 1) / ratio;  // trailing partial group still emits one sample
+    const uint32_t out_samples = (source_samples + ratio - 1) / ratio;
     uint32_t bytes = out_samples * 2;
     const uint32_t cap = max_pcm_bytes & ~1U;
     if (bytes > cap) {
@@ -149,9 +145,6 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
     }
     const bool attach_question = (wav_total > 0);
     const uint32_t question_ratio = DownsampleRatio(question_sample_rate, kEmailAudioTargetRateHz);
-    // The header must carry the TRUE output rate (source/ratio), not the nominal
-    // target: a 22.05 kHz source with ratio 2 yields 11.025 kHz, and a wrong
-    // rate plays at the wrong pitch.
     const uint32_t compact_question_rate = question_sample_rate / question_ratio;
     const uint32_t compact_question_pcm_bytes =
         attach_question ? DownsampledPcmBytes(question_pcm_bytes, question_ratio, kEmailMaxQuestionPcmBytes)
@@ -290,11 +283,10 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                                            esp_err_to_name(err), mode, attempt);
                     last_err = err;
                 } else {
-                    // Stream box-filtered mono PCM into a small WAV attachment. Each group of
-                    // `ratio` input samples is AVERAGED into one output sample (cheap low-pass),
-                    // not just picked: plain every-Nth decimation aliases 2-8 kHz speech energy
-                    // back into the passband and sounds garbled. The full-resolution files stay
-                    // in flash for STT/playback; email only needs a reviewable copy.
+                    // Stream box-filtered mono PCM into a small WAV attachment.
+                    // Each group of `ratio` input samples is averaged into one
+                    // output sample; this keeps aliases out of the speech band
+                    // while staying cheap enough for the ESP32-C6.
                     uint8_t chunk[2048];
                     auto stream_downsampled_pcm = [&](uint32_t base, uint32_t len, uint32_t ratio,
                                                       uint32_t expected_bytes) -> bool {
@@ -304,8 +296,8 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                         uint32_t off = base;
                         uint32_t remaining = len & ~1U;
                         uint32_t total_written = 0;
-                        int32_t acc = 0;          // running sum of the current group, carried across chunks
-                        uint32_t acc_count = 0;   // input samples accumulated in the group so far
+                        int32_t acc = 0;
+                        uint32_t acc_count = 0;  // carried across chunks
                         while (remaining > 0 && total_written < expected_bytes) {
                             uint32_t n = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
                             n &= ~1U;
@@ -315,9 +307,6 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                             if (esp_partition_read(spool, off, chunk, n) != ESP_OK) {
                                 return false;
                             }
-                            // In-place compaction: the write cursor can never pass the read
-                            // cursor (one output sample per `ratio` inputs, emitted after the
-                            // group's last input byte pair was already consumed).
                             uint32_t out_len = 0;
                             for (uint32_t i = 0; i + 1 < n; i += 2) {
                                 acc += static_cast<int16_t>(chunk[i] | (chunk[i + 1] << 8));
@@ -342,8 +331,6 @@ esp_err_t EmailService::SendOracleEmail(const EmailSettings &settings, const Ora
                             off += n;
                             remaining -= n;
                         }
-                        // The byte budget counts a trailing partial group as one sample
-                        // (ceil division in DownsampledPcmBytes); flush it.
                         if (total_written < expected_bytes && acc_count > 0) {
                             const int16_t avg = static_cast<int16_t>(acc / static_cast<int32_t>(acc_count));
                             uint8_t tail[2] = {static_cast<uint8_t>(avg & 0xff),

@@ -2,15 +2,17 @@
 
 This document is written for future AI agents and contributors who need to continue Bisc8 without rediscovering the project shape from scratch.
 
-> **⚠️ STATUS (updated 2026-06-06): partly historical — read with care.** This
+> **STATUS (updated 2026-06-24): partly historical - read with care.** This
 > guide predates the working online voice oracle. Since it was written: the oracle
 > (**STT → chat-completions → TTS → playback → email**) is **fully implemented and
-> confirmed on hardware**; the brain uses **chat/completions**, not the Responses
-> API; the on-screen answer limit is **55** chars (not 100); and the display/portal
-> fonts are **Pixelify Sans** (not Montserrat). For the current state, build/flash
-> steps and known follow-ups, use **`docs/HANDOFF_NEXT.md`** (latest) and
-> **`docs/PROJECT_STATUS.md`**. Treat the "not implemented yet" / "Responses API" /
-> font / char-limit specifics below as historical planning notes, not current truth.
+> confirmed on hardware**; speech now defaults to **Realtime `gpt-realtime-2`**;
+> the email relay sends compact **8 kHz review WAVs**; the brain uses
+> **chat/completions**, not the Responses API; the on-screen answer limit is
+> **55** chars (not 100); and the display/portal fonts are **Pixelify Sans** (not
+> Montserrat). For the current OpenAI/email contract, read
+> **`notes/knowledge/OPENAI_VOICE_ORACLE.md` first**. Treat the "not implemented
+> yet" / "Responses API" / font / char-limit specifics below as historical
+> planning notes, not current truth.
 
 ## Project Summary
 

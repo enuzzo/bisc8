@@ -138,8 +138,8 @@ OpenAiSettings DefaultOpenAiSettings() {
     OpenAiSettings settings;
     settings.transcription_model = "whisper-1";       // request-based STT fallback path
     settings.response_model = "gpt-5.4-mini";          // simple oracle query model
-    settings.speech_model = "gpt-4o-mini-tts";         // Speech API TTS with expressive instructions
-    settings.voice = "ash";
+    settings.speech_model = "gpt-realtime-2";          // Realtime speech TTS over WebSocket (24 kHz, expressive)
+    settings.voice = "echo";
     settings.reasoning_effort = "";  // off by default; set per reasoning-capable model in the portal
     return settings;
 }
@@ -176,8 +176,10 @@ esp_err_t ConfigStore::Init() {
 
 namespace {
 // One-time self-heal for saved voice settings. Runs on every Load; once a
-// config is clean it's a no-op. The caller persists the result, so a device with
-// stale Realtime defaults upgrades itself the first time it boots this firmware.
+// config is clean it's a no-op. It only fills empty or unsupported fields with
+// the defaults. It must NOT rewrite a saved Realtime speech model: gpt-realtime-2
+// is now the preferred high-quality TTS, so callers pass migrate_realtime_defaults
+// = false (the flag survives only for explicit, opt-in purges).
 bool MigrateOpenAiSettings(DeviceSettings *settings, bool migrate_realtime_defaults) {
     const OpenAiSettings defaults = DefaultOpenAiSettings();
     bool changed = false;
@@ -285,7 +287,7 @@ esp_err_t ConfigStore::Load(DeviceSettings *settings) {
     }
     err = LoadWifi(handle, settings);
     nvs_close(handle);
-    if (err == ESP_OK && MigrateOpenAiSettings(settings, true)) {
+    if (err == ESP_OK && MigrateOpenAiSettings(settings, false)) {
         printf("[CONFIG] healed OpenAI model(s)/voice -> %s / %s / %s (voice %s)\n",
                settings->openai.transcription_model.c_str(),
                settings->openai.response_model.c_str(),

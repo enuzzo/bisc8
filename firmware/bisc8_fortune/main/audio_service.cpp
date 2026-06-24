@@ -43,7 +43,9 @@ constexpr uint32_t kPlaybackTaskStackBytes = 3072;
 constexpr uint32_t kCuePlaybackWaitMs = 20000;
 constexpr UBaseType_t kVoiceTaskPriority = 4;
 constexpr UBaseType_t kPlaybackTaskPriority = 6;
-constexpr int kAnswerGainPercent = 180;  // lift the (quiet) TTS without over-clipping it
+constexpr int kAnswerGainPercent = 260;  // Realtime TTS is quiet and codec out_vol is already
+                                         // maxed (100), so lift digitally. Watch the playback
+                                         // "raw_peak/max_safe_gain" log to retune without clipping.
 constexpr float kChimeAttackRatio = 0.16f;
 constexpr float kChimeAmplitude = 7800.0f;
 constexpr float kPi = 3.14159265f;
@@ -501,6 +503,7 @@ esp_err_t AudioService::PlayAnswerAudio(uint32_t wav_total_bytes) {
     uint32_t off = kVoiceAnswerSpoolOffset + data_off;
     uint32_t remaining = data_size & ~static_cast<uint32_t>(1);  // whole samples only
     err = ESP_OK;
+    int32_t raw_peak = 1;  // pre-gain peak sample, to report playback headroom for tuning
     while (remaining >= 2) {
         size_t want = remaining < kInBytes ? remaining : kInBytes;
         want -= want % (resample ? 6 : 2);
@@ -512,6 +515,12 @@ esp_err_t AudioService::PlayAnswerAudio(uint32_t wav_total_bytes) {
             break;
         }
         const size_t in_samples = want / 2;
+        for (size_t i = 0; i < in_samples; ++i) {
+            const int32_t a = inbuf[i] < 0 ? -static_cast<int32_t>(inbuf[i]) : inbuf[i];
+            if (a > raw_peak) {
+                raw_peak = a;
+            }
+        }
         size_t out_i = 0;
         if (resample) {
             for (size_t g = 0; g + 3 <= in_samples; g += 3) {
@@ -538,8 +547,11 @@ esp_err_t AudioService::PlayAnswerAudio(uint32_t wav_total_bytes) {
     vTaskPrioritySet(nullptr, prev_prio);
     heap_caps_free(inbuf);
     heap_caps_free(outbuf);
-    DebugSerial::LogAlways("[AUDIO]", "answer playback done rate=%u resample=%d result=%s",
-                           static_cast<unsigned>(rate), resample ? 1 : 0, esp_err_to_name(err));
+    DebugSerial::LogAlways(
+        "[AUDIO]",
+        "answer playback done rate=%u resample=%d gain=%d%% raw_peak=%d max_safe_gain=%d%% result=%s",
+        static_cast<unsigned>(rate), resample ? 1 : 0, kAnswerGainPercent, static_cast<int>(raw_peak),
+        static_cast<int>(32767 * 100 / raw_peak), esp_err_to_name(err));
     return err;
 }
 
@@ -660,7 +672,10 @@ void AudioService::ArchiveQuestionRecording() {
     if (esp_partition_erase_range(spool_partition_, kQuestionArchiveSpoolOffset, erase_len) != ESP_OK) {
         return;
     }
-    uint8_t buf[2048];
+    // Runs on the ~4 KB main task; esp_partition_write descends deep into the
+    // flash HAL, so keep this copy buffer small or the combined frames overflow
+    // the stack (Stack protection fault in "main").
+    uint8_t buf[512];
     uint32_t off = 0;
     while (off < total) {
         const uint32_t n = std::min(static_cast<uint32_t>(sizeof(buf)), total - off);

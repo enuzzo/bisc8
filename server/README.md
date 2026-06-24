@@ -74,6 +74,11 @@ synchronous PHP `mail()` handoff much less fragile on shared hosting. Firmware
 retries the upload as `compact8k` (question + answer), then `question8k`, then
 text-only so a large or slow upload does not erase the whole reading.
 
+The device-side payload contract is documented in
+`notes/knowledge/OPENAI_VOICE_ORACLE.md`. In short: do not change the relay to
+expect full-resolution WAVs. Current firmware deliberately sends compact 8 kHz
+review copies while keeping the full 24 kHz answer WAV on-device for playback.
+
 ## Notes
 
 - The recipient is fixed server-side (`mail_to`), so a leaked token can only ever

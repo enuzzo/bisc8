@@ -825,6 +825,31 @@ def test_ai_handoff_doc_describes_runtime_boundaries_and_openai_status():
     assert "chat/completions" in handoff
 
 
+def test_openai_voice_oracle_knowledge_base_tracks_current_contract():
+    kb = read(ROOT / "notes/knowledge/OPENAI_VOICE_ORACLE.md")
+    smoke = read(ROOT / "tools/realtime_tts_smoke.mjs")
+    readme = read(README)
+
+    for phrase in (
+        "gpt-5.4-mini",
+        "gpt-realtime-2",
+        "whisper-1",
+        "session.type",
+        '"type": "realtime"',
+        "response.output_audio.delta",
+        "compact8k",
+        "question8k",
+        "text",
+        "relay POST status=202",
+        "Missing required parameter: 'session.type'",
+    ):
+        assert phrase in kb
+    assert "notes/knowledge/OPENAI_VOICE_ORACLE.md" in readme
+    assert '"session.update"' in smoke
+    assert 'type: "realtime"' in smoke
+    assert ".env.local" in smoke
+
+
 def test_public_flash_page_uses_web_serial_manifest_without_secrets():
     page = read(FLASH_PAGE)
     manifest = read(FLASH_MANIFEST)

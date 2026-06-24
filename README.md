@@ -71,13 +71,15 @@ Hold **BOOT**, speak, release. Bisc8 records a 16 kHz mono WAV to a dedicated ra
    [ BRAIN ]  gpt-5.4-mini         → a lyrical answer, in the language you spoke
         │
         ├──▶  FACE    e-paper, ≤55 chars, full-refresh reveal (the deliberate e-ink flash beat)
-        ├──▶  VOICE   gpt-4o-mini-tts "ash", wizard-prophecy style, 24 kHz → 16 kHz, spoken aloud
+        ├──▶  VOICE   gpt-realtime-2 over WebSocket, 24 kHz PCM → 16 kHz, spoken aloud
         └──▶  POST    optional email: transcript + answer + compact question & answer .wav
 ```
 
 No Wi-Fi? No API key? The biscuit shrugs and reaches into its offline grimoire of pre-written fortunes, so it always has *something* to say. When the network or OpenAI misbehaves, it tells you to your face with on-screen codes `E01`–`E05` instead of pretending everything's fine.
 
-Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses the OpenAI Speech endpoint with `gpt-4o-mini-tts`, the built-in `ash` voice, and the voice instruction `Parla come fossi un mago che recita una profezia misteriosa.` The firmware asks for raw 24 kHz PCM, streams it straight into the flash spool after a local WAV header, patches that header with the final byte count, then plays it back through the 16 kHz codec. Email attachments are separate small review copies: the question and answer are box-filtered (anti-aliased) down to 8 kHz mono WAVs — telephone-grade speech — capped at about 8 and 12 seconds, and retried as `compact8k`, then `question8k`, then text-only if the shared host refuses audio. Useful milestones show up as `[ORACLE] tts model=... voice=... status=200 bytes=...`, `[ORACLE] tts ok pcm=... wav=...`, then `[AUDIO] answer playback done` and `[EMAIL] relay payload mode=... question=...B answer=...B`.
+Speech-to-text is intentionally boring: the transcription request carries a short prompt that biases toward clear foreground oracle questions in Italian, English, or Spanish, and runs at temperature `0` so weak or clipped audio is less likely to bloom into invented captions or surprise languages. The spoken answer uses OpenAI Realtime with `gpt-realtime-2`: after `session.created`, firmware sends a `session.update` with `session.type="realtime"`, 24 kHz `audio/pcm` output, and the configured voice, then streams `response.output_audio.delta` chunks straight into flash after a local WAV header. When `response.output_audio.done` and `response.done` arrive, it patches the header and plays the answer through the 16 kHz codec. The classic `/v1/audio/speech` path remains as a fallback for non-Realtime speech model strings. Email attachments are separate small review copies: the question and answer are box-filtered (anti-aliased) down to 8 kHz mono WAVs - telephone-grade speech - capped at about 8 and 12 seconds, and retried as `compact8k`, then `question8k`, then text-only if the shared host refuses audio. Useful milestones show up as `[ORACLE] realtime first audio chunk=...`, `[ORACLE] realtime tts model=... voice=... wav=...`, then `[AUDIO] answer playback done` and `[EMAIL] relay POST status=202 ... mode=compact8k`.
+
+The current OpenAI contract, request shapes, model defaults, and the 2026-06-24 audio/email regression are tracked in [notes/knowledge/OPENAI_VOICE_ORACLE.md](notes/knowledge/OPENAI_VOICE_ORACLE.md).
 
 ## Flash it (the easy way)
 
@@ -119,17 +121,17 @@ Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` c
 Run the host tests:
 
 ```sh
-python -m pytest tests/        # 105 passing
+python -m pytest tests/        # 125 passing
 ```
 
-Smoke-test the OpenAI Speech TTS payload from the host before flashing firmware changes. The helper reads
+Smoke-test the OpenAI Realtime TTS payload from the host before flashing firmware changes. The helper reads
 `OPENAI_API_KEY` from the environment or from local `.env.local`:
 
 ```sh
-node tools/speech_tts_smoke.mjs \
-  --model gpt-4o-mini-tts \
-  --voice ash \
-  --input "The oracle speaks in one short line."
+node tools/realtime_tts_smoke.mjs \
+  --model gpt-realtime-2 \
+  --voice echo \
+  --text "The oracle speaks in one short line."
 ```
 
 ## Design: "Bisc8 OS"
