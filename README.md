@@ -83,13 +83,13 @@ The current OpenAI contract, request shapes, model defaults, and the 2026-06-24 
 
 ## Flash it (the easy way)
 
-The whole point of the [**browser flasher**](https://enuzzo.github.io/bisc8/) is that there is no hard way unless you want one.
+The whole point of the [**browser flasher**](https://enuzzo.github.io/bisc8/) is that there is no hard way unless you want one. The published flasher now serves firmware `r0142-20260624-1553` from commit `7c1bffd`, the build with Realtime voice playback and the compact email relay fix verified on hardware.
 
 1. Open **[enuzzo.github.io/bisc8](https://enuzzo.github.io/bisc8/)** in desktop **Chrome** or **Edge**.
 2. Plug the biscuit in over USB-C and hit **Flash Bisc8**. [ESP Web Tools](https://esphome.github.io/esp-web-tools/) writes the bootloader, partition table, and app at the ESP32-C6 offsets `0x0`, `0x8000`, `0x10000`. No SDK, no terminal, no `idf.py`.
-3. When it reboots, join the `Bisc8-XXXX` hotspot, open `http://192.168.4.1`, and fill in Wi-Fi, language, your OpenAI key, and (optionally) an email recipient. Saving Wi-Fi tests the credentials on the spot, so you find out it's wrong *now* and not mid-prophecy.
+3. When it reboots, join the `Bisc8-XXXX` hotspot, open `http://192.168.4.1`, and fill in Wi-Fi, language, your OpenAI key, and (optionally) email relay settings. Saving Wi-Fi tests the credentials on the spot, so you find out it's wrong *now* and not mid-prophecy.
 
-> Public firmware images ship with **no** API keys, Wi-Fi credentials, or relay tokens baked in. The biscuit brings the theatrics; you bring your own keys.
+> Public firmware images ship with **no** API keys, Wi-Fi credentials, relay tokens, or email recipients baked in. The biscuit brings the theatrics; you bring your own keys.
 
 ## The hardware
 

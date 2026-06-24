@@ -12,6 +12,8 @@ SDKCONFIG_DEFAULTS = ROOT / "firmware/bisc8_fortune/sdkconfig.defaults"
 FLASH_PAGE = ROOT / "public/flash/index.html"
 FLASH_MANIFEST = ROOT / "public/flash/manifest.json"
 FLASH_PREP = ROOT / "tools/prepare_web_flash.py"
+DOCS_INDEX = ROOT / "docs/index.html"
+DOCS_MANIFEST = ROOT / "docs/manifest.json"
 SOUND_ASSETS = MAIN / "generated/sound_assets.h"
 SOUND_ASSETS_SOURCE = MAIN / "generated/sound_assets.cpp"
 
@@ -875,6 +877,33 @@ def test_public_flash_page_uses_web_serial_manifest_without_secrets():
         assert forbidden not in manifest
     # The README must prominently point at the public browser flasher (Pages site).
     assert "enuzzo.github.io/bisc8" in readme
+
+
+def test_public_readme_and_pages_site_track_current_voice_build():
+    readme = read(README)
+    docs_index = read(DOCS_INDEX)
+    docs_manifest = read(DOCS_MANIFEST)
+    flash_manifest = read(FLASH_MANIFEST)
+    flash_page = read(FLASH_PAGE)
+
+    for source in (readme, docs_index, flash_page):
+        assert "gpt-4o-mini-tts" not in source
+    for phrase in (
+        "gpt-realtime-2",
+        "compact email relay",
+        "r0142-20260624-1553",
+    ):
+        assert phrase in readme
+    for phrase in (
+        "OpenAI Realtime",
+        "compact review WAVs",
+        "firmware r0142-20260624-1553",
+    ):
+        assert phrase in docs_index
+    assert "esp-web-tools@10.1.0" in docs_index
+    assert "r0104" not in docs_manifest
+    assert "r0142-20260624-1553" in docs_manifest
+    assert "r0142-20260624-1553" in flash_manifest
 
 
 def test_public_flash_prepare_rejects_symlink_escape_and_prints_hashes():

@@ -1,6 +1,6 @@
 # Bisc8 Web Flash Page
 
-This folder is a static public flashing page for GitHub Pages or any HTTPS host. It uses ESP Web Tools and a manifest with the ESP32-C6 ESP-IDF offsets:
+This folder is a static public flashing page for GitHub Pages or any HTTPS host. The live GitHub Pages copy is `docs/`, currently publishing firmware `r0142-20260624-1553`. It uses ESP Web Tools and a manifest with the ESP32-C6 ESP-IDF offsets:
 
 - `0x0`: bootloader
 - `0x8000`: partition table
