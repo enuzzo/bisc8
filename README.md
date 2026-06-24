@@ -121,7 +121,7 @@ Build to a **local** dir outside the Dropbox-synced tree: the in-tree `build/` c
 Run the host tests:
 
 ```sh
-python -m pytest tests/        # 125 passing
+python -m pytest tests/        # 126 passing
 ```
 
 Smoke-test the OpenAI Realtime TTS payload from the host before flashing firmware changes. The helper reads
